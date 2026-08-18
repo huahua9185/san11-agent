@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "label": "test_fixture",
+    "description": "仅供单元测试使用的合成偏移表，结构形状模仿生产 offsets/pk_1.1_cn.json，但字段布局和数值都是为了测试方便手工编排的，不代表任何真实游戏版本。",
+    "process_name": "fake_test.exe",
+    "verified": true,
+    "game_version": "test-only",
+    "sources": []
+  },
+  "anchor": {
+    "resolution_method": "fixed_for_fixture",
+    "fixture_absolute_address": "0x1000",
+    "confidence": "high",
+    "note": "仅测试用：固定地址，不经过 module_base 换算"
+  },
+  "structs": {
+    "global": {
+      "base_offset": "0x0",
+      "struct_size": "0x20",
+      "count": 1,
+      "fields": {
+        "scenario_id": {"offset": "0x00", "size": 4, "type": "i32", "unknown": false},
+        "start_year": {"offset": "0x04", "size": 4, "type": "i32", "unknown": false},
+        "start_month": {"offset": "0x08", "size": 4, "type": "i32", "unknown": false},
+        "start_day": {"offset": "0x0C", "size": 4, "type": "i32", "unknown": false},
+        "emperor_general_id": {"offset": "0x10", "size": 4, "type": "i32", "unknown": false},
+        "difficulty": {"offset": "0x14", "size": 4, "type": "i32", "unknown": false},
+        "death_setting": {"offset": "0x18", "size": 4, "type": "i32", "unknown": false},
+        "current_xun": {"offset": "0x1C", "size": 4, "type": "i32", "unknown": false},
+        "current_year": {"offset": null, "unknown": true, "note": "测试用：故意标记未知，验证解析器会跳过而不是报错"},
+        "current_month": {"offset": null, "unknown": true},
+        "current_day": {"offset": null, "unknown": true},
+        "phase": {"offset": null, "unknown": true}
+      }
+    },
+    "general": {
+      "base_offset": "0x100",
+      "struct_size": "0x60",
+      "count": 2,
+      "fields": {
+        "name": {"offset": "0x00", "size": 8, "type": "fixed_str", "unknown": false},
+        "portrait_id": {"offset": "0x08", "size": 4, "type": "i32", "unknown": false},
+        "gender": {"offset": "0x0C", "size": 4, "type": "i32", "unknown": false},
+        "debut_year": {"offset": "0x10", "size": 4, "type": "i32", "unknown": false},
+        "birth_year": {"offset": "0x14", "size": 4, "type": "i32", "unknown": false},
+        "death_year": {"offset": "0x18", "size": 4, "type": "i32", "unknown": false},
+        "force_id": {"offset": "0x1C", "size": 4, "type": "i32", "unknown": false},
+        "faction_id": {"offset": "0x20", "size": 4, "type": "i32", "unknown": false},
+        "location": {"offset": "0x24", "size": 4, "type": "i32", "unknown": false},
+        "identity": {"offset": "0x28", "size": 4, "type": "i32", "unknown": false},
+        "office": {"offset": "0x2C", "size": 4, "type": "i32", "unknown": false},
+        "loyalty": {"offset": "0x30", "size": 2, "type": "u16", "unknown": false},
+        "merit": {"offset": "0x32", "size": 2, "type": "u16", "unknown": false},
+        "base_stats": {"offset": "0x34", "size": 5, "type": "bytes", "array_len": 5, "unknown": false},
+        "special_skill_id": {"offset": "0x3C", "size": 4, "type": "i32", "unknown": false},
+        "stamina": {"offset": "0x40", "size": 1, "type": "u8", "unknown": false},
+        "garrison_count": {"offset": "0x44", "size": 4, "type": "i32", "unknown": false},
+        "health": {"offset": "0x48", "size": 4, "type": "i32", "unknown": false},
+        "display_stats_wound": {"offset": "0x4C", "size": 5, "type": "bytes", "array_len": 5, "unknown": false},
+        "display_stats_normal": {"offset": "0x51", "size": 5, "type": "bytes", "array_len": 5, "unknown": false}
+      }
+    },
+    "city": {
+      "base_offset": "0x300",
+      "struct_size": "0x60",
+      "count": 2,
+      "fields": {
+        "name": {"offset": "0x00", "size": 8, "type": "fixed_str", "unknown": false},
+        "province": {"offset": "0x08", "size": 4, "type": "i32", "unknown": false},
+        "adjacent_cities": {"offset": "0x0C", "size": 24, "type": "i32_array", "array_len": 6, "unknown": false},
+        "governor_general_id": {"offset": "0x24", "size": 4, "type": "i32", "unknown": false},
+        "force_id": {"offset": "0x28", "size": 4, "type": "i32", "unknown": false},
+        "troop_capacity": {"offset": "0x2C", "size": 4, "type": "i32", "unknown": false},
+        "troops": {"offset": "0x30", "size": 4, "type": "i32", "unknown": false},
+        "gold": {"offset": "0x34", "size": 4, "type": "i32", "unknown": false},
+        "food": {"offset": "0x38", "size": 4, "type": "i32", "unknown": false},
+        "trade_price": {"offset": "0x3C", "size": 1, "type": "u8", "unknown": false},
+        "has_merchant": {"offset": "0x3D", "size": 1, "type": "u8", "unknown": false},
+        "morale": {"offset": "0x3E", "size": 1, "type": "u8", "unknown": false},
+        "security": {"offset": "0x3F", "size": 1, "type": "u8", "unknown": false},
+        "policy": {"offset": "0x40", "size": 4, "type": "i32", "unknown": false},
+        "target": {"offset": "0x44", "size": 4, "type": "i32", "unknown": false},
+        "development_land_count": {"offset": "0x48", "size": 4, "type": "i32", "unknown": false},
+        "developed_land_count": {"offset": "0x4C", "size": 4, "type": "i32", "unknown": false},
+        "domestic_land_x": {"offset": "0x50", "size": 2, "type": "i16", "unknown": false},
+        "domestic_land_y": {"offset": "0x52", "size": 2, "type": "i16", "unknown": false},
+        "faction_id": {"offset": null, "unknown": true, "note": "测试用：模仿生产文件里同名字段的 unknown 状态"},
+        "map_x": {"offset": null, "unknown": true},
+        "map_y": {"offset": null, "unknown": true}
+      }
+    },
+    "troop": {
+      "base_offset": "0x500",
+      "struct_size": "0xA0",
+      "count": 2,
+      "fields": {
+        "type": {"offset": "0x00", "size": 4, "type": "i32", "unknown": false},
+        "commander_general_id": {"offset": "0x04", "size": 4, "type": "i32", "unknown": false},
+        "vice_general_1_id": {"offset": "0x08", "size": 4, "type": "i32", "unknown": false},
+        "vice_general_2_id": {"offset": "0x0C", "size": 4, "type": "i32", "unknown": false},
+        "troop_count": {"offset": "0x10", "size": 2, "type": "u16", "unknown": false},
+        "morale": {"offset": "0x12", "size": 1, "type": "u8", "unknown": false},
+        "gold": {"offset": "0x14", "size": 4, "type": "i32", "unknown": false},
+        "food": {"offset": "0x18", "size": 4, "type": "i32", "unknown": false},
+        "status": {"offset": "0x1C", "size": 4, "type": "i32", "unknown": false},
+        "status_duration": {"offset": "0x20", "size": 4, "type": "i32", "unknown": false},
+        "x": {"offset": "0x24", "size": 2, "type": "i16", "unknown": false},
+        "y": {"offset": "0x26", "size": 2, "type": "i16", "unknown": false},
+        "has_acted": {"offset": "0x28", "size": 4, "type": "i32", "unknown": false},
+        "faction_id": {"offset": "0x2C", "size": 4, "type": "i32", "unknown": false},
+        "equipment_slots": {"offset": "0x30", "size": 96, "type": "bytes", "array_len": 12, "unknown": false},
+        "current_unit_type": {"offset": "0x90", "size": 4, "type": "i32", "unknown": false},
+        "display_stats": {"offset": "0x94", "size": 5, "type": "bytes", "array_len": 5, "unknown": false},
+        "display_attack": {"offset": "0x99", "size": 1, "type": "u8", "unknown": false},
+        "display_defense": {"offset": "0x9A", "size": 1, "type": "u8", "unknown": false},
+        "display_construction": {"offset": "0x9B", "size": 1, "type": "u8", "unknown": false}
+      }
+    },
+    "faction": {
+      "base_offset": "0x800",
+      "struct_size": "0x20",
+      "count": 1,
+      "fields": {
+        "ruler_general_id": {"offset": "0x00", "size": 4, "type": "i32", "unknown": false},
+        "advisor_general_id": {"offset": "0x04", "size": 4, "type": "i32", "unknown": false},
+        "relations_table": {"offset": "0x08", "size": 4, "type": "bytes", "array_len": 4, "unknown": false},
+        "player_marker": {"offset": "0x0C", "size": 4, "type": "i32", "unknown": false},
+        "researching_tech_id": {"offset": "0x10", "size": 4, "type": "i32", "unknown": false},
+        "skill_points": {"offset": "0x14", "size": 2, "type": "u16", "unknown": false}
+      }
+    }
+  },
+  "validation": {
+    "expected_general_count": 2,
+    "expected_city_count": 2,
+    "expected_faction_count": 1,
+    "scenario_id_range": [1, 10],
+    "start_year_range": [180, 200]
+  }
+}

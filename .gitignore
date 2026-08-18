@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# 真实游戏内存 dump 一般很大且可能含用户存档相关信息，不进版本库
+tests/fixtures/*.real.json
+dumps/
+saves/

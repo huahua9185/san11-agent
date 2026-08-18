@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "san11agent/offsets-schema",
+  "title": "san11-agent offsets file",
+  "description": "模块基址 + 相对偏移的地址表。所有地址一律相对表达，禁止在本文件之外的代码中出现硬编码绝对地址。字段找不到可靠来源时必须写 unknown:true 而不是猜测填值。",
+  "type": "object",
+  "required": ["meta", "anchor", "structs"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["label", "process_name", "verified"],
+      "properties": {
+        "label": { "type": "string", "description": "本偏移表的标签，例如 pk_1.1_cn（版本号未确认时仅作占位）" },
+        "description": { "type": "string" },
+        "process_name": { "type": "string", "description": "游戏主进程文件名，例如 san11pk.exe" },
+        "assumed_image_base": { "type": ["string", "null"], "description": "来源资料假设的 ImageBase，例如 0x00400000；仅用于换算来源文档里的绝对地址，不代表运行时一定如此" },
+        "verified": { "type": "boolean", "description": "这份偏移表是否已经在真实游戏进程上实测校验过" },
+        "game_version": { "type": ["string", "null"], "description": "对应的游戏版本号/补丁号，未知时为 null" },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "url"],
+            "properties": {
+              "name": { "type": "string" },
+              "url": { "type": "string" },
+              "license": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "description": "GAME_DATA_BASE 锚点的解析方式。resolution_method 未确定前，真实进程模式下必须拒绝读取而不是使用可能失效的绝对地址。",
+      "required": ["resolution_method"],
+      "properties": {
+        "resolution_method": {
+          "type": "string",
+          "enum": ["unknown", "static_rva", "pointer_chain", "fixed_for_fixture"]
+        },
+        "rva": { "type": ["string", "null"], "description": "resolution_method=static_rva 时：模块基址到锚点的相对偏移（十六进制字符串）" },
+        "pointer_chain": {
+          "type": ["array", "null"],
+          "description": "resolution_method=pointer_chain 时：[模块基址RVA, 之后每级解引用后再加的偏移...]",
+          "items": { "type": "string" }
+        },
+        "fixture_absolute_address": { "type": ["string", "null"], "description": "resolution_method=fixed_for_fixture 时：仅供测试用的固定地址" },
+        "observed_absolute_address": { "type": ["string", "null"], "description": "来源资料中记录的某一次运行观测到的绝对地址，仅作参考，不能直接当作稳定地址使用" },
+        "confidence": { "type": "string", "enum": ["high", "medium", "low", "none"] },
+        "note": { "type": "string" }
+      }
+    },
+    "structs": {
+      "type": "object",
+      "description": "每个结构体：base_offset 相对 anchor，struct_size 为单条记录字节数，count 为数组长度，fields 为字段表",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["base_offset", "fields"],
+        "properties": {
+          "base_offset": { "type": ["string", "null"] },
+          "base_offset_candidates": {
+            "type": ["array", "null"],
+            "description": "当资料本身存在矛盾、无法确定唯一值时，列出所有候选值，等待实测确认",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": { "type": "string" },
+                "derivation": { "type": "string" }
+              }
+            }
+          },
+          "struct_size": { "type": ["string", "null"] },
+          "count": { "type": ["integer", "null"] },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["unknown"],
+              "properties": {
+                "offset": { "type": ["string", "null"] },
+                "size": { "type": ["integer", "null"] },
+                "type": {
+                  "type": ["string", "null"],
+                  "enum": ["u8", "i8", "u16", "i16", "u32", "i32", "f32", "fixed_str", "bytes", "i32_array", null]
+                },
+                "array_len": { "type": ["integer", "null"] },
+                "unknown": { "type": "boolean" },
+                "confidence": { "type": "string", "enum": ["high", "medium", "low", "none"] },
+                "source": { "type": "string" },
+                "note": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "启动时的常量校验规则（尽力而为，见 docs/offset_research.md 关于校验缺口的说明）",
+      "properties": {
+        "expected_general_count": { "type": ["integer", "null"] },
+        "expected_city_count": { "type": ["integer", "null"] },
+        "expected_faction_count": { "type": ["integer", "null"] },
+        "scenario_id_range": {
+          "type": ["array", "null"],
+          "items": { "type": "integer" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "start_year_range": {
+          "type": ["array", "null"],
+          "items": { "type": "integer" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    }
+  }
+}

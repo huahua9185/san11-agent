@@ -1,0 +1,9 @@
+[project]
+name = "san11agent"
+version = "0.1.0"
+description = "三国志11：威力加强版 LLM 代理项目 —— M1 内存读取与状态解析"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
