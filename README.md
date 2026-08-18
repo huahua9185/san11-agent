@@ -2,9 +2,49 @@
 
 《三国志11：威力加强版》(san11pk.exe) LLM 代理研究项目。让 LLM 像人类玩家一样操作游戏、推进一局对局，衡量 AI 与人类玩家的决策差距。个人研究项目，游戏为本地单机离线游戏。
 
-完整项目规格见对话记录 / 项目 wiki（本仓库暂未收录规格文档本身）。核心约束：**信息边界**——中间层必须显式过滤，只暴露人类玩家在界面上能看到的信息，M2 已实现；**执行层**——键鼠模拟走 Win32 SendInput，动作可重入、失败即归位重来，M3 已搭好脚手架，见下方"当前状态"。
+完整项目规格见对话记录 / 项目 wiki（本仓库暂未收录规格文档本身）。核心约束：**信息边界**——中间层必须显式过滤，只暴露人类玩家在界面上能看到的信息，M2 已实现；**执行层**——键鼠模拟走 Win32 SendInput，动作可重入、失败即归位重来，M3 已搭好脚手架；**LegalActions**——AI 只能从"当前合法动作"的结构化列表里选，不能自己猜规则、不会输出非法指令，M4 本次先做了内政阶段这一半，见下方"当前状态"。
 
-## 当前状态：M3 — 执行层最小链路脚手架
+## 当前状态：M4（上半场）— LegalActions（内政阶段）
+
+**本次范围有一个重要前提，和 M3 一样**：真实游戏当前无法运行（用户机器锁屏、
+人在远程），所以本次**只做 LegalActions**（枚举当前合法动作），不做 Execute
+（把 Action 转换成真实键鼠输入）——等真实游戏能跑、M3 的 camera/selection
+内存缺口解决后再做 Execute。验收目标（来自项目规格）：
+
+> `LegalActions`：枚举当前阶段所有合法动作（关键 —— AI 不需要猜规则，也不会输出非法指令）
+
+- [x] 内政阶段动作类型体系（`san11agent/legal_actions.py`）：8 种
+  `ActionKind`（设施建设/征兵/训练/治安巡查/征收金/征收粮/外交/计略），每种
+  一个结构化 `frozen` dataclass（不是字符串），共享 `general_index`/
+  `city_index`/`unverified_constraints` 基类
+- [x] **核心约束**：`enumerate_legal_actions()` 只建立在 M2 的
+  `VisibleGameState` 之上，完全不引用 M1 完整 `GameState` 的类型——用
+  `isinstance(x, VisibleGeneralFull)`/`isinstance(x, VisibleCityDetail)`
+  判断"信息是否充分"，而不是假设字段存在。`tests/test_legal_actions.py`
+  里有专门的架构守卫测试守住这一点（模块不绑定完整 GameState 类型名、
+  `state` 参数类型标注确实是 `VisibleGameState`、防御性 isinstance 检查）
+- [x] 约束枚举覆盖：武将本回合是否已指派（显式参数，不来自内存）、体力是否
+  充足、是否在该城（`location == city.index`，未经验证的假设，可自定义
+  覆盖）、金钱粮草是否够（走规则表）、设施建设位是否可用、城池是否己方、
+  计略目标归属是否已知（fail-closed）
+- [x] 内政规则表 `rules/`（跟 `offsets/`/`ui_layout/` 平行的新目录）：
+  `rules/schema.json` 格式定义 + `rules/domestic_actions_pk_1.1_cn.json`
+  数据，加载器 `san11agent/domestic_rules.py`（风格模仿 `offsets.py`）。
+  **所有资源消耗数值（体力/金/粮阈值）诚实标 `unknown`**——这些不是内存
+  偏移问题，是游戏规则数值本身没有实机验证途径，没有编数字进去。**但这里
+  `unknown` 的语义和 `offsets.py` 不同**：不会拒绝枚举，只会把动作标记
+  `unverified_constraints`，供下游复核——这是一个明确的设计取舍，不是延续
+  M1/M2/M3 的默认做法，见 docs/legal_actions_research.md 第2节
+- [x] 单元测试：`tests/test_domestic_rules.py`（规则表加载器）+
+  `tests/test_legal_actions.py`（44个测试，全部用手工构造的
+  `VisibleGameState`/`DomesticRulesConfig`，完全离线，不经过 M1/M2 链路）
+- [ ] **Execute（把 Action 转换成真实键鼠输入）**——有意留到真实游戏能跑时
+  再做，这次完全没有涉及
+- [ ] 多条设计取舍需要你确认（"治安"和"巡查"是否应该拆开、`levy_gold`/
+  `levy_food` 是否应该合并、五种设施类型是否完整准确、`location==city.index`
+  假设是否成立等），全部列在 docs/legal_actions_research.md 第4节
+
+## 历史状态：M3 — 执行层最小链路脚手架
 
 **本次范围有一个重要前提**：真实游戏当前无法运行（用户机器锁屏、人在远程），
 且 M1 的 GAME_DATA_BASE 锚点仍未解决。所以 M3 这一轮**没有**接触真实游戏，
@@ -78,13 +118,16 @@ CLI 暂未接入 `--visible` 之类的过滤开关——见提交报告里的说
 ## 目录结构
 
 ```
-docs/offset_research.md      M1：内存偏移的调研报告——来源、可信度评估、所有未解决问题
-docs/visibility_research.md  M2：可见性状态的调研报告——探明/视野/武将发现相关缺口
-docs/execution_research.md   M3：执行层调研报告——camera/selection 内存缺口、ui_layout 坐标缺口、所有未经验证的设计假设
+docs/offset_research.md        M1：内存偏移的调研报告——来源、可信度评估、所有未解决问题
+docs/visibility_research.md    M2：可见性状态的调研报告——探明/视野/武将发现相关缺口
+docs/execution_research.md     M3：执行层调研报告——camera/selection 内存缺口、ui_layout 坐标缺口、所有未经验证的设计假设
+docs/legal_actions_research.md M4：LegalActions 设计取舍报告——Action 类型体系、约束建模、规则表 unknown 语义的取舍、需要你确认的问题
 offsets/schema.json       offsets 文件的格式定义（人类可读的权威文档）
 offsets/pk_1.1_cn.json    候选偏移表（未在真实进程验证过，meta.verified=false；含 M3 新增的 camera/selection struct）
 ui_layout/schema.json     ui_layout 文件的格式定义（客户区固定元素坐标表，跟 offsets 平行但不是内存偏移）
 ui_layout/pk_1.1_cn.json  界面坐标表（M3 阶段游戏无法运行，全部 unknown，只搭好格式）
+rules/schema.json         内政动作规则表的格式定义
+rules/domestic_actions_pk_1.1_cn.json  内政动作规则表（M4，资源消耗数值全部诚实标 unknown，见 docs/legal_actions_research.md）
 san11agent/
   memory.py                MemoryReader 抽象 + ProcessMemoryReader(真实进程) + DumpMemoryReader(离线dump) + MutableMemoryReader(可写，仅供 M3 测试用)
   offsets.py                加载/校验 offsets json
@@ -103,6 +146,8 @@ san11agent/
   execution_state.py         M3：CameraState/SelectionState 解析（复用 perception.read_struct_fields）
   map_projection.py          M3：地图格子坐标 -> 客户区坐标换算（project_tile_to_client）
   execution.py               M3：CitySelector 执行链路——滚动进视野→点击→轮询确认→失败归位重来
+  domestic_rules.py          M4：加载/校验 rules/*.json 内政动作规则表（RuleValue/ActionRuleSpec/DomesticRulesConfig）
+  legal_actions.py           M4：内政阶段 Action 类型体系（8种 ActionKind）+ enumerate_legal_actions()——只依赖 VisibleGameState
 tests/
   test_offsets.py            offsets 文件加载与校验的单元测试
   test_perception.py          GameState 解析的单元测试（合成 fixture）
@@ -120,10 +165,13 @@ tests/
   test_map_projection.py        地图坐标换算单元测试
   test_execution_state.py       CameraState/SelectionState 解析单元测试
   test_execution.py             M3 核心：CitySelector 全链路测试（成功/滚动/超时重试/归位/配置缺失报错）
+  test_domestic_rules.py        M4：规则表加载器单元测试（生产文件 + 测试 fixture + 格式错误）
+  test_legal_actions.py         M4 核心：44个测试——架构守卫（只依赖 VisibleGameState）、约束枚举、资源阈值拦截、可观测性
   fixtures/
     offsets_test.json                    M1/M2 用：仅供测试的最小偏移表（结构形状同生产文件，数值是编的）
     offsets_execution_test.json          M3 用：只含 camera/selection 的最小偏移表
     ui_layout_test.json                  M3 用：含已知坐标的 ui_layout 测试 fixture
+    domestic_rules_test.json             M4 用：全部资源数值 unknown 的最小规则表 fixture
     build_synthetic_dump.py              生成 M1/M2 合成内存 dump 的脚本
     synthetic_dump.json                  M1/M2 合成内存 dump（已提交方便直接跑测试）
     build_synthetic_execution_dump.py    生成 M3 CLI 冒烟测试用合成内存 dump 的脚本
@@ -138,9 +186,11 @@ tests/
 
 **M3**（详见 docs/execution_research.md）：`camera`（摄像机偏移/缩放）、`selection`（当前选中城池）两组新增内存字段完全未定位；`ui_layout/pk_1.1_cn.json` 里的界面坐标（`map_viewport`）完全没有真实测量数据。这两类缺口解决前，`CitySelector` 在真实进程场景下会在坐标换算那一步显式报错，不会用编出来的坐标点击。另外，这次新写的地图坐标换算公式、地图滚动的输入方式（假设方向键）、SendInput 是否被游戏感知，都是**未经真实游戏验证的设计假设**，不是已确认的事实——详见 docs/execution_research.md 第3节和第5节"需要你确认的问题"。
 
+**M4**（详见 docs/legal_actions_research.md）：`rules/domestic_actions_pk_1.1_cn.json` 里全部资源消耗数值（体力/金/粮阈值）都是 unknown——这些不是内存偏移问题，是游戏规则数值本身没有实机验证途径，unknown 时 LegalActions 不会拦截，只会记录进 `Action.unverified_constraints`（这个"不拦截"的默认行为本身是需要你确认的取舍，见报告第2节）。另外，"武将是否在这座城"（`location == city.index`）、"治安/巡查是否应合并"、"五种设施类型是否完整准确"等多条设计假设**未经真实游戏验证**，详见 docs/legal_actions_research.md 第4节"需要你确认的设计取舍"。武将适性/特技完全没有对应数据模型字段，本次没有实现相关约束（不是漏做，是数据模型目前不支持）。
+
 ## 运行
 
-开发机上 `python`/`pip` 命令本身是 Windows Store 的执行别名占位符（不可用），但机器上装有独立的 Python 3.12（`%LOCALAPPDATA%\Programs\Python\Python312\python.exe`），已用它实际跑过下面的命令并确认可用（M1+M2+M3 共 112 个测试全通过，全部离线、不依赖真实游戏、不真的等待）。
+开发机上 `python`/`pip` 命令本身是 Windows Store 的执行别名占位符（不可用），但机器上装有独立的 Python 3.12（`%LOCALAPPDATA%\Programs\Python\Python312\python.exe`），已用它实际跑过下面的命令并确认可用（M1+M2+M3+M4 共 156 个测试全通过，全部离线、不依赖真实游戏、不真的等待）。
 
 ```bash
 pip install -r requirements-dev.txt
@@ -162,4 +212,4 @@ python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --process san
 python -m san11agent.cli select-city --offsets tests/fixtures/offsets_execution_test.json --ui-layout tests/fixtures/ui_layout_test.json --dump tests/fixtures/synthetic_execution_dump.json --city-index 3 --tile-x 5 --tile-y 5 --poll-timeout 0.2
 ```
 
-运行时依赖：无第三方库，只用了标准库（`ctypes`/`json`/`dataclasses`/`argparse`）。测试依赖：`pytest`（见 `requirements-dev.txt`）。M2 的过滤器暂未接入 CLI（`san11agent.cli` 还没有 `--visible` 之类的开关），只能通过 Python API（`san11agent.boundary.filter_game_state`）调用——见提交报告里的说明。M3 的 `select-city` 子命令默认是演练模式（`FakeInputBackend`，不发送真实输入），要真的操作游戏窗口需要显式加 `--live`（仅 Windows，且目前 camera/selection 字段/ui_layout 坐标都是 unknown，实际跑不通，见上方"已知缺口"）。
+运行时依赖：无第三方库，只用了标准库（`ctypes`/`json`/`dataclasses`/`argparse`）。测试依赖：`pytest`（见 `requirements-dev.txt`）。M2 的过滤器暂未接入 CLI（`san11agent.cli` 还没有 `--visible` 之类的开关），只能通过 Python API（`san11agent.boundary.filter_game_state`）调用——见提交报告里的说明。M3 的 `select-city` 子命令默认是演练模式（`FakeInputBackend`，不发送真实输入），要真的操作游戏窗口需要显式加 `--live`（仅 Windows，且目前 camera/selection 字段/ui_layout 坐标都是 unknown，实际跑不通，见上方"已知缺口"）。M4 的 LegalActions 同样暂未接入 CLI，只能通过 Python API（`san11agent.legal_actions.enumerate_legal_actions`）调用——本次只做到"能离线枚举出结构化 Action 列表"，接入命令行/未来的对局循环留给后续里程碑。

@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "san11agent/domestic-action-rules-schema",
+  "title": "san11-agent domestic action rule table",
+  "description": "内政阶段动作的规则表：每个动作类型（ActionKind）的资源消耗/前置条件。跟 offsets/ 的做法一致——数值找不到可靠依据时必须写 unknown:true 而不是猜测填值。这份表里的绝大多数数值不是内存偏移问题，而是游戏平衡性规则本身（没有实机验证途径，只能靠实测或权威资料），所以这里的 unknown 语义和 offsets 略有不同：unknown=true 时，legal_actions.py 不会用这条规则拒绝任何动作（视为'暂不限制'），而是把它记录进枚举出的 Action.unverified_constraints，供上层/人工复核，而不是像 offsets.FieldSpec.require_known() 那样直接拒绝读取——因为直接拒绝会让 LegalActions 在规则数值全部待确认的当前阶段完全无法产出任何动作，失去脚手架的意义。",
+  "type": "object",
+  "required": ["meta", "actions"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["label", "verified"],
+      "properties": {
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "verified": { "type": "boolean", "description": "这份规则表里的数值是否已经对照真实游戏验证过" },
+        "game_version": { "type": ["string", "null"] },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "url": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "actions": {
+      "type": "object",
+      "description": "key 是 ActionKind 的 value（如 recruit_troops），见 san11agent/legal_actions.py",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["display_name_cn", "requires_own_city"],
+        "properties": {
+          "display_name_cn": { "type": "string" },
+          "requires_own_city": { "type": "boolean", "description": "执行该动作的武将是否必须身处己方城池——本次 M4 范围内全部动作都是 true，字段保留是为了未来扩展到非内政阶段时可配置" },
+          "requires_facility_slot": { "type": "boolean", "description": "仅 build_facility 用：是否需要城池还有空余开发用地位" },
+          "min_general_stamina": { "$ref": "#/definitions/rule_value" },
+          "gold_cost": { "$ref": "#/definitions/rule_value" },
+          "food_cost": { "$ref": "#/definitions/rule_value" },
+          "facility_types": { "$ref": "#/definitions/sub_type_map" },
+          "diplomacy_types": { "$ref": "#/definitions/sub_type_map" },
+          "stratagem_types": { "$ref": "#/definitions/sub_type_map" },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "rule_value": {
+      "type": "object",
+      "required": ["unknown"],
+      "properties": {
+        "value": { "type": ["integer", "null"] },
+        "unknown": { "type": "boolean" },
+        "confidence": { "type": "string", "enum": ["high", "medium", "low", "none"] },
+        "source": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "sub_type_map": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["display_name_cn"],
+        "properties": {
+          "display_name_cn": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

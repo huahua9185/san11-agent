@@ -1,0 +1,106 @@
+{
+  "meta": {
+    "label": "domestic_actions_pk_1.1_cn",
+    "description": "内政阶段动作规则表。ActionKind 分类本身（8 大类）和 build_facility/diplomacy/stratagem 的子类型列表，是根据《三国志11：威力加强版》公开的游戏机制常识整理的，不是从 311MemoryResearch 内存资料或任何权威文档逐条核实的——跟 offsets/ui_layout 不同，这里要确认的不是内存偏移，而是游戏规则本身，没有实机验证途径。所有数值型字段（体力/金/粮消耗阈值）一律标 unknown:true，不猜测填数字。分类本身和取舍列在 docs/legal_actions_research.md，需要你确认或指正。",
+    "verified": false,
+    "game_version": null,
+    "sources": []
+  },
+  "actions": {
+    "build_facility": {
+      "display_name_cn": "设施建设",
+      "requires_own_city": true,
+      "requires_facility_slot": true,
+      "min_general_stamina": {
+        "value": null, "unknown": true, "confidence": "none", "source": "",
+        "note": "未找到可靠数值来源，需要实机确认每种设施建设是否有不同的体力消耗。"
+      },
+      "gold_cost": {
+        "value": null, "unknown": true, "confidence": "none", "source": "",
+        "note": "不同设施类型的建设费用大概率不同（比如市场应该比农田贵），本表暂时不区分，统一未知。"
+      },
+      "food_cost": {
+        "value": null, "unknown": true, "confidence": "none", "source": "",
+        "note": "未确认建设是否消耗粮草（也可能只消耗金）。"
+      },
+      "facility_types": {
+        "farm": { "display_name_cn": "农田", "note": "提升该城农业/粮食产出，具体机制未核实" },
+        "market": { "display_name_cn": "市场", "note": "提升该城商业/金钱产出，具体机制未核实" },
+        "barracks": { "display_name_cn": "兵营", "note": "推测与征兵速度/上限有关，未核实" },
+        "stable": { "display_name_cn": "马厩", "note": "推测与骑兵部队相关，未核实" },
+        "crossbow_tower": { "display_name_cn": "弩楼", "note": "推测与城池防御/守城加成有关，未核实" }
+      },
+      "note": "这五种设施类型是用户在需求里直接列出的，本表没有独立验证这是不是该版本游戏里完整/准确的设施清单，见提交报告。target_tile 参数目前只能取 City.domestic_land_x/domestic_land_y 这一组坐标（M1 offsets 里城池只解析了一组建设用地坐标，不是完整的空位列表），不代表真的定位到了某个具体空位——enumerate_legal_actions() 产出的每个 BuildFacilityAction 都会在 unverified_constraints 里带上 'target_tile_precision' 标记这一点。"
+    },
+    "recruit_troops": {
+      "display_name_cn": "征兵",
+      "requires_own_city": true,
+      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认，推测征兵按人数付费，本表不建模'征多少人'这个数量参数，只建模'能否发起这个指令'。" },
+      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "note": "征哪支部队/征多少兵不在本次枚举范围内——Troop 数据结构目前没有与城池的直接关联字段（GameState.Troop 没有 city_index），LegalActions 只表达'可以在这座城对这位武将发起征兵指令'这个动作本身。"
+    },
+    "train_troops": {
+      "display_name_cn": "训练",
+      "requires_own_city": true,
+      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认，推测训练不消耗粮草，只消耗体力，但没有依据，仍标 unknown。" },
+      "note": "同 recruit_troops，训练哪支具体部队不在本次枚举范围内，原因相同（Troop 无 city_index 字段）。"
+    },
+    "security_patrol": {
+      "display_name_cn": "治安/巡查",
+      "requires_own_city": true,
+      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认，推测该指令不花钱，只花体力，但没有依据。" },
+      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "note": "'治安'和'巡查'在这里被合并成同一个 ActionKind——本表没有独立证据证明这是游戏里两个不同的指令，还是同一指令的两种叫法。如果实际是两个独立指令（比如效果/消耗不同），需要拆开，见提交报告。"
+    },
+    "levy_gold": {
+      "display_name_cn": "征收（金）",
+      "requires_own_city": true,
+      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "征收是'获得'金钱的指令，这里的 gold_cost 字段语义是'执行该指令所需的最低城池金钱余额'（如果有的话，比如需要垫付人力成本），不是'征收所得'——目前未找到任何依据说明是否存在这种门槛，标 unknown 即等同于'不设最低余额限制'。" },
+      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "note": "征收通常会有'过度征收降低治安/民忠'的副作用，这类副作用不影响本次'能不能发起这个指令'的判断，不在 LegalActions 枚举范围内（LegalActions 只回答'合法'，不评估'划不划算'）。"
+    },
+    "levy_food": {
+      "display_name_cn": "征收（粮）",
+      "requires_own_city": true,
+      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "同 levy_gold 的 gold_cost 说明，语义是执行门槛，不是征收所得。" },
+      "note": "是否应该和 levy_gold 合并成一个'征收'指令（一次性征金+粮，而不是分开两条指令），是需要你确认的设计取舍之一，见提交报告。"
+    },
+    "diplomacy": {
+      "display_name_cn": "外交",
+      "requires_own_city": true,
+      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "部分外交手段（比如赠金/婚姻）大概率需要金钱成本，未核实具体数值，也未区分子类型。" },
+      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "diplomacy_types": {
+        "alliance": { "display_name_cn": "同盟", "note": "" },
+        "ceasefire": { "display_name_cn": "停战", "note": "" },
+        "marriage": { "display_name_cn": "婚姻", "note": "" },
+        "trade_agreement": { "display_name_cn": "贸易", "note": "" },
+        "intimidate": { "display_name_cn": "恫吓", "note": "" }
+      },
+      "note": "本表没有对'是否已与该势力接触/接壤'这类前置条件建模——GameState 里没有对应字段能判断'是否已知晓某势力的存在'，enumerate_legal_actions() 会对所有非己方势力都枚举外交动作，这可能过度宽松（把还没有'见过面'的势力也列进去），已列入提交报告的已知限制。"
+    },
+    "stratagem": {
+      "display_name_cn": "计略",
+      "requires_own_city": true,
+      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认，推测计略类指令通常需要较高智力/体力门槛，但武将适性/智力筛选目前数据模型里没有可用字段，见 docs/legal_actions_research.md。" },
+      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "stratagem_types": {
+        "sow_discord": { "display_name_cn": "离间", "note": "" },
+        "incite_rebellion": { "display_name_cn": "煽动", "note": "" },
+        "spread_rumor": { "display_name_cn": "流言", "note": "" },
+        "sabotage": { "display_name_cn": "破坏", "note": "" },
+        "loot": { "display_name_cn": "劫略", "note": "" }
+      },
+      "note": "计略目标城池的可达性（比如是否要求与目标接壤/在一定范围内）未建模，enumerate_legal_actions() 会把所有非己方（且归属已知）的城池都列为合法目标，这可能过度宽松，已列入提交报告的已知限制。"
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "label": "domestic_rules_test_fixture",
+    "description": "仅供单元测试使用的合成规则表，结构形状模仿生产 rules/domestic_actions_pk_1.1_cn.json，但为了测试方便，所有资源消耗数值都保持 unknown（用于测试'未知规则不拦、但记录进 unverified_constraints'这条行为），只有结构性字段（requires_own_city/requires_facility_slot/子类型列表）是明确给定的。资源阈值的拦截行为在 test_legal_actions.py 里用单独构造的最小规则对象测试，不依赖这份文件。",
+    "verified": true,
+    "game_version": "test-only",
+    "sources": []
+  },
+  "actions": {
+    "build_facility": {
+      "display_name_cn": "设施建设",
+      "requires_own_city": true,
+      "requires_facility_slot": true,
+      "min_general_stamina": {"value": null, "unknown": true},
+      "gold_cost": {"value": null, "unknown": true},
+      "food_cost": {"value": null, "unknown": true},
+      "facility_types": {
+        "farm": {"display_name_cn": "农田"},
+        "market": {"display_name_cn": "市场"}
+      }
+    },
+    "recruit_troops": {
+      "display_name_cn": "征兵",
+      "requires_own_city": true,
+      "min_general_stamina": {"value": null, "unknown": true},
+      "gold_cost": {"value": null, "unknown": true},
+      "food_cost": {"value": null, "unknown": true}
+    },
+    "train_troops": {
+      "display_name_cn": "训练",
+      "requires_own_city": true,
+      "min_general_stamina": {"value": null, "unknown": true},
+      "gold_cost": {"value": null, "unknown": true},
+      "food_cost": {"value": null, "unknown": true}
+    },
+    "security_patrol": {
+      "display_name_cn": "治安/巡查",
+      "requires_own_city": true,
+      "min_general_stamina": {"value": null, "unknown": true},
+      "gold_cost": {"value": null, "unknown": true},
+      "food_cost": {"value": null, "unknown": true}
+    },
+    "levy_gold": {
+      "display_name_cn": "征收（金）",
+      "requires_own_city": true,
+      "min_general_stamina": {"value": null, "unknown": true},
+      "gold_cost": {"value": null, "unknown": true},
+      "food_cost": {"value": null, "unknown": true}
+    },
+    "levy_food": {
+      "display_name_cn": "征收（粮）",
+      "requires_own_city": true,
+      "min_general_stamina": {"value": null, "unknown": true},
+      "gold_cost": {"value": null, "unknown": true},
+      "food_cost": {"value": null, "unknown": true}
+    },
+    "diplomacy": {
+      "display_name_cn": "外交",
+      "requires_own_city": true,
+      "min_general_stamina": {"value": null, "unknown": true},
+      "gold_cost": {"value": null, "unknown": true},
+      "food_cost": {"value": null, "unknown": true},
+      "diplomacy_types": {
+        "alliance": {"display_name_cn": "同盟"},
+        "ceasefire": {"display_name_cn": "停战"}
+      }
+    },
+    "stratagem": {
+      "display_name_cn": "计略",
+      "requires_own_city": true,
+      "min_general_stamina": {"value": null, "unknown": true},
+      "gold_cost": {"value": null, "unknown": true},
+      "food_cost": {"value": null, "unknown": true},
+      "stratagem_types": {
+        "sabotage": {"display_name_cn": "破坏"}
+      }
+    }
+  }
+}
