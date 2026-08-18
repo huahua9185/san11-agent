@@ -30,6 +30,12 @@ class GlobalState:
 @dataclass
 class General:
     index: int
+    # name 是"姓+名"拼接出来的完整姓名（比如"張角"），不是内存里的单一字段——
+    # 2026-08-18 实机验证发现原资料标注的那个 56 字节 name 字段其实是
+    # 姓(5) + 名(5) + 字(46) 三段定长子结构，此前解析代码在第一个 0x00 处截断，
+    # 导致 1100 位武将里 849 位只读出了姓（"張"而不是"張角"）。
+    # 拆出来的三段放在本类末尾（带默认值），这样已有的构造调用不用全部改。
+    # 见 docs/offset_research.md 第 7.5 / 8.4 节。
     name: str
     portrait_id: int
     gender: int
@@ -50,6 +56,12 @@ class General:
     health: int
     display_stats_wound: bytes
     display_stats_normal: bytes
+    # 姓 / 名 / 字 三段原始子字段。name 就是 surname + given_name。
+    # 默认空字符串是为了兼容"只声明了旧 name 字段"的 offsets 文件（见
+    # perception._general_name_parts 的退路说明）以及直接构造 General 的测试。
+    surname: str = ""
+    given_name: str = ""
+    courtesy_name: str = ""
 
 
 @dataclass

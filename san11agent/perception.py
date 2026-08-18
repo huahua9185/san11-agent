@@ -142,15 +142,38 @@ def parse_global_state(reader: MemoryReader, offsets: OffsetsConfig, game_data_b
     )
 
 
+def _general_name_parts(f: dict[str, object]) -> tuple[str, str, str]:
+    """从已读出的字段字典里取出武将的 姓 / 名 / 字 三段。
+
+    2026-08-18 之前，offsets 里 general 只有一个 56 字节的 name 字段，解析时
+    在第一个 0x00 处截断，实际只读出了"姓"。实机验证（1100 条记录全部通过
+    边界校验）确认它其实是 姓(+0x00,5) + 名(+0x05,5) + 字(+0x0A,46) 三段定长
+    子字段，已在 offsets 里拆开。
+
+    这里对"只有旧 name 字段"的 offsets 文件保留一条退路：拿 name 当姓、名和字
+    留空。这样旧的 offsets 文件不会突然解析出空姓名，但也不会假装拆出了并不
+    存在的数据——退化行为是"信息不全"，不是"编造"。
+    """
+    surname = f.get("surname")
+    if surname is None:
+        legacy = f.get("name")
+        return (legacy or "", "", "")
+    return (surname or "", f.get("given_name") or "", f.get("courtesy_name") or "")
+
+
 def parse_generals(reader: MemoryReader, offsets: OffsetsConfig, game_data_base: int) -> list[General]:
     spec = offsets.struct("general")
     result = []
     for i in range(spec.count or 0):
         addr = _record_address(spec, game_data_base, i)
         f = {name: _read_field(reader, addr, fs, offsets.text_encoding) for name, fs in spec.fields.items()}
+        surname, given_name, courtesy_name = _general_name_parts(f)
         result.append(General(
             index=i,
-            name=f["name"],
+            name=surname + given_name,
+            surname=surname,
+            given_name=given_name,
+            courtesy_name=courtesy_name,
             portrait_id=f["portrait_id"],
             gender=f["gender"],
             debut_year=f["debut_year"],

@@ -25,9 +25,9 @@ M2 的过滤器（`san11agent/boundary.py`）本身是纯函数：给定一份�
 交叉验证全部给出历史上合理的势力归属，见 docs/offset_research.md 第
 7.11节。也就是说"这座城池是不是我自己的"这个判断依据**实际上已经可以
 拿到了**，只是要经过这条两步查表的间接路径，而不是一个能直接读的字段——
-下面这段"读不到"的描述已经过时，保留是为了记录原始问题，具体的解决方案
-见 7.11 节，`_filter_city()` 是否要改用这条链路是个需要你确认的设计
-决策，见第3.1节。
+**`_filter_city()` 已于 2026-08-18 改用这条链路**（见第 3.1 节末尾和
+`docs/offset_research.md` 第 8.4 节）。下面这段"读不到"的描述保留是为了记录
+原始问题，不再反映当前行为。
 
 这对 M2 过滤器的实际影响：`_filter_city()` 用 `city.faction_id == player_faction_id`
 判断是否己方。在这个字段被解析为 `None` 的情况下，比较结果恒为 `False`——
@@ -113,12 +113,15 @@ M2 没有尝试拿这个未验证的字段去派生 `player_faction_id`，而是
 .faction_id → Faction[faction_id]` 这条链路在12座城池的交叉验证上全部
 给出历史上合理的结果，详见 `docs/offset_research.md` 第7.11节，代码
 已实现（`san11agent/perception.py` 的 `parse_forces()`，`GameState.forces`）。
-**这是一个需要你确认的设计决策**：是否要把 `_filter_general()`/
-`_filter_city()`/`_filter_troop()` 改成用这条链路判断"是否己方"（需要
-改函数签名，多传入 `forces` 数组，也需要相应更新 `tests/test_boundary.py`
-里的测试 fixture），还是继续用现在的 `player_faction_id` 直接比较、
-但把比较对象换成通过这条链路算出来的值。这次没有擅自改 `boundary.py`
-的过滤逻辑本身，只是把新解出的数据准备好了。
+**→ 2026-08-18 已修复**（用户确认后执行）。新增
+`san11agent/faction_resolve.py` 的 `FactionResolver`，`boundary.py` 的三个
+过滤函数改用它解析归属；`VisibleXxx.faction_id` 也改成装解析后的值，因此
+`legal_actions.py` / `situation_summary.py` 的同类判断自动变正确，无需改动。
+解析失败返回 `None`，自动 fail-closed。详见
+`docs/offset_research.md` 第 8.4 节。
+
+⚠ 仍需注意：三条解析路径里 `of_troop()`（部队）**尚未实机验证**——Troop
+结构体没有 force_id，只能经主将绕两跳，这条路是目前这一层最弱的一环。
 
 ## 4. 战斗随机数种子 / 命中判定预演
 

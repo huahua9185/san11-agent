@@ -41,9 +41,27 @@ def test_pk_offsets_struct_counts():
 
 def test_pk_offsets_known_field_has_offset():
     offsets = load_offsets(PK_OFFSETS)
-    field = offsets.struct("general").field("name")
+    field = offsets.struct("general").field("surname")
     assert field.unknown is False
     assert field.offset == 0x04
+
+
+def test_pk_offsets_general_name_is_split_into_three_segments():
+    """2026-08-18：原资料把 +0x04 起的 56 字节整体标成一个 name 字段，解析时在
+    第一个 0x00 处截断，导致 1100 位武将里 849 位只读出了姓。实机对全部 1100 条
+    记录做边界校验（surname[4] 和 given_name[9] 是否都为 0x00）零违例，确认是
+    姓(5) + 名(5) + 字(46) 三段定长子字段，已拆开。"""
+    general = load_offsets(PK_OFFSETS).struct("general")
+    assert "name" not in general.fields, "旧的整段 name 字段应该已经被拆掉"
+
+    surname, given, courtesy = (general.field(k) for k in ("surname", "given_name", "courtesy_name"))
+    assert (surname.offset, surname.size) == (0x04, 5)
+    assert (given.offset, given.size) == (0x09, 5)
+    assert (courtesy.offset, courtesy.size) == (0x0E, 46)
+    # 三段必须首尾相接、正好填满原来那 56 字节，不留缝也不重叠
+    assert surname.offset + surname.size == given.offset
+    assert given.offset + given.size == courtesy.offset
+    assert courtesy.offset + courtesy.size == 0x04 + 56
 
 
 def test_pk_offsets_unresolved_fields_are_flagged_unknown():

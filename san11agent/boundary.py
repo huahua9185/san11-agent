@@ -6,23 +6,26 @@
 （StaticVisibilitySource，测试用）还是来自真实进程（目前是
 UnresolvedVisibilitySource，因为相关内存字段还没找到，见同一份文档）。
 
-FREE_AGENT_FACTION_ID：约定 faction_id == -1 表示"在野/无势力归属"。这是根据
-M1 现有代码里其它字段的既有惯例推出来的（比如 General.death_year、
-General.special_skill_id、Troop.vice_general_*_id 在"无"的情况下都是 -1）。
-2026-08-18 实机验证：真实进程里 1100 个武将中有 413 个 faction_id 精确等于
--1，数量上与"剧本1(黄巾之乱)里大部分历史人物尚未登场/未被招揽"的预期相符，
--1 作为"无归属"哨兵值的假设成立，见 docs/offset_research.md 第7.10节。
+势力归属怎么判断（2026-08-18 重写）：曾经这里直接比较
+`xxx.faction_id == player_faction_id`，实机验证证明这个前提是错的——
+General/Troop 的 faction_id 根本不是稳定的势力ID（驻守武将的该字段实际等于
+所在城池 index，部队的该字段绝大多数是 -1）。现在统一改走
+`faction_resolve.FactionResolver`，经由 force_id -> Force.faction_id 这条已验证
+的链路解析。解析不出来时返回 None，与 player_faction_id 比较必然为假，也就是
+自动 fail-closed。各条路径的验证状态见 faction_resolve 模块文档——其中部队那条
+（of_troop）**尚未实机验证**，是目前这一层最弱的一环。
 
-⚠️ 但同一次验证也发现：对于**有归属**的武将，faction_id 的具体数值不是
-简单的"势力（势力=lord的政权）索引"——驻守在城池里、未随部队出征的武将，
-faction_id 精确等于其 location（=所在城池的 index），这意味着这个字段在
-"有归属"的情况下实际反映的更可能是"当前指派/绑定的对象"而不是稳定的政治
-势力归属，用它做"是否属于某个具体势力"的比较时要小心，"-1 vs 非-1"这个
-二元判断（本模块唯一用到的用法）依然可靠，但不要扩展为"faction_id 相等
-就代表同一个势力"，同上文档第7.9/7.10节有完整记录。
+VisibleXxx 记录里的 faction_id 字段，装的是【解析后】的势力ID（解析不出来
+就是 None），不是原始记录里那个同名的不可信字段——这样 legal_actions /
+situation_summary 等下游直接比较 faction_id 就是对的，不需要各自再解析一遍。
+
+FREE_AGENT_FACTION_ID（在野哨兵值 -1）保留，并且已在 2026-08-18 实机确认成立
+（1100 位武将里 413 位为 -1）；它回答的是"是不是在野"，和"属于哪个势力"是两个
+不同的问题，前者这个字段可靠，后者不可靠。
 """
 from __future__ import annotations
 
+from .faction_resolve import FREE_AGENT_FACTION_ID, FactionResolver, is_free_agent
 from .game_state import City, Faction, GameState, General, GlobalState, Troop
 from .visibility import VisibilitySource
 from .visible_state import (
@@ -37,7 +40,6 @@ from .visible_state import (
     VisibleTroop,
 )
 
-FREE_AGENT_FACTION_ID = -1
 
 
 def _filter_global_state(g: GlobalState) -> VisibleGlobalState:
@@ -57,7 +59,7 @@ def _filter_global_state(g: GlobalState) -> VisibleGlobalState:
     )
 
 
-def _to_general_public(g: General) -> VisibleGeneralPublic:
+def _to_general_public(g: General, resolved_faction_id: int | None) -> VisibleGeneralPublic:
     return VisibleGeneralPublic(
         index=g.index,
         name=g.name,
@@ -66,7 +68,7 @@ def _to_general_public(g: General) -> VisibleGeneralPublic:
         debut_year=g.debut_year,
         birth_year=g.birth_year,
         death_year=g.death_year,
-        faction_id=g.faction_id,
+        faction_id=resolved_faction_id,
         identity=g.identity,
         office=g.office,
         location=g.location,
@@ -76,7 +78,7 @@ def _to_general_public(g: General) -> VisibleGeneralPublic:
     )
 
 
-def _to_general_full(g: General) -> VisibleGeneralFull:
+def _to_general_full(g: General, resolved_faction_id: int | None) -> VisibleGeneralFull:
     return VisibleGeneralFull(
         index=g.index,
         name=g.name,
@@ -85,7 +87,7 @@ def _to_general_full(g: General) -> VisibleGeneralFull:
         debut_year=g.debut_year,
         birth_year=g.birth_year,
         death_year=g.death_year,
-        faction_id=g.faction_id,
+        faction_id=resolved_faction_id,
         identity=g.identity,
         office=g.office,
         location=g.location,
@@ -102,37 +104,38 @@ def _to_general_full(g: General) -> VisibleGeneralFull:
 
 
 def _filter_general(
-    g: General, player_faction_id: int, visibility: VisibilitySource
+    g: General, player_faction_id: int, visibility: VisibilitySource, resolver: FactionResolver
 ) -> VisibleGeneralPublic | None:
-    if g.faction_id == player_faction_id:
-        return _to_general_full(g)
-    if g.faction_id == FREE_AGENT_FACTION_ID:
+    resolved = resolver.of_general(g)
+    if resolved == player_faction_id:
+        return _to_general_full(g, resolved)
+    if is_free_agent(g):
         if visibility.is_general_discovered(g.index):
-            return _to_general_public(g)
+            return _to_general_public(g, resolved)
         return None
     # 有明确势力归属（非己方、非在野）的已登场武将：公开属性允许暴露。
-    return _to_general_public(g)
+    return _to_general_public(g, resolved)
 
 
-def _to_city_summary(c: City) -> VisibleCitySummary:
+def _to_city_summary(c: City, resolved_faction_id: int | None) -> VisibleCitySummary:
     return VisibleCitySummary(
         index=c.index,
         name=c.name,
         province=c.province,
         adjacent_cities=list(c.adjacent_cities),
-        faction_id=c.faction_id,
+        faction_id=resolved_faction_id,
         map_x=c.map_x,
         map_y=c.map_y,
     )
 
 
-def _to_city_detail(c: City) -> VisibleCityDetail:
+def _to_city_detail(c: City, resolved_faction_id: int | None) -> VisibleCityDetail:
     return VisibleCityDetail(
         index=c.index,
         name=c.name,
         province=c.province,
         adjacent_cities=list(c.adjacent_cities),
-        faction_id=c.faction_id,
+        faction_id=resolved_faction_id,
         map_x=c.map_x,
         map_y=c.map_y,
         governor_general_id=c.governor_general_id,
@@ -155,16 +158,18 @@ def _to_city_detail(c: City) -> VisibleCityDetail:
 
 
 def _filter_city(
-    c: City, player_faction_id: int, visibility: VisibilitySource
+    c: City, player_faction_id: int, visibility: VisibilitySource, resolver: FactionResolver
 ) -> VisibleCitySummary:
-    is_own = c.faction_id == player_faction_id
+    # 不用 c.faction_id：那个字段在 offsets 里至今 unknown，解析结果恒为 None。
+    resolved = resolver.of_city(c)
+    is_own = resolved == player_faction_id
     detail_visible = is_own or visibility.is_city_explored(c.index)
     if detail_visible:
-        return _to_city_detail(c)
-    return _to_city_summary(c)
+        return _to_city_detail(c, resolved)
+    return _to_city_summary(c, resolved)
 
 
-def _to_visible_troop(t: Troop) -> VisibleTroop:
+def _to_visible_troop(t: Troop, resolved_faction_id: int | None) -> VisibleTroop:
     return VisibleTroop(
         index=t.index,
         type=t.type,
@@ -180,7 +185,7 @@ def _to_visible_troop(t: Troop) -> VisibleTroop:
         x=t.x,
         y=t.y,
         has_acted=t.has_acted,
-        faction_id=t.faction_id,
+        faction_id=resolved_faction_id,
         equipment_slots=t.equipment_slots,
         current_unit_type=t.current_unit_type,
         display_stats=t.display_stats,
@@ -191,11 +196,13 @@ def _to_visible_troop(t: Troop) -> VisibleTroop:
 
 
 def _filter_troop(
-    t: Troop, player_faction_id: int, visibility: VisibilitySource
+    t: Troop, player_faction_id: int, visibility: VisibilitySource, resolver: FactionResolver
 ) -> VisibleTroop | None:
-    is_own = t.faction_id == player_faction_id
+    # ⚠ resolver.of_troop() 这条链路尚未实机验证，见 faction_resolve 模块文档。
+    resolved = resolver.of_troop(t)
+    is_own = resolved == player_faction_id
     if is_own or visibility.is_troop_visible(t.index):
-        return _to_visible_troop(t)
+        return _to_visible_troop(t, resolved)
     return None
 
 
@@ -242,17 +249,19 @@ def filter_game_state(state: GameState, visibility: VisibilitySource) -> Visible
       技巧点、势力好感度表始终不暴露。
     """
     player_faction_id = visibility.player_faction_id
+    # 势力归属统一由 resolver 经 force_id 解析，不再直接比较 faction_id 字段。
+    resolver = FactionResolver.from_state(state)
     return VisibleGameState(
         global_state=_filter_global_state(state.global_state),
         generals=[
             v
-            for v in (_filter_general(g, player_faction_id, visibility) for g in state.generals)
+            for v in (_filter_general(g, player_faction_id, visibility, resolver) for g in state.generals)
             if v is not None
         ],
-        cities=[_filter_city(c, player_faction_id, visibility) for c in state.cities],
+        cities=[_filter_city(c, player_faction_id, visibility, resolver) for c in state.cities],
         troops=[
             v
-            for v in (_filter_troop(t, player_faction_id, visibility) for t in state.troops)
+            for v in (_filter_troop(t, player_faction_id, visibility, resolver) for t in state.troops)
             if v is not None
         ],
         factions=[_filter_faction(f, player_faction_id) for f in state.factions],

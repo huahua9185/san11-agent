@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import json
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from san11agent.memory import DumpMemoryReader
 from san11agent.offsets import load_offsets
 from san11agent.perception import (
+    parse_generals,
     AnchorResolutionError,
     ValidationError,
     parse_game_state,
@@ -58,6 +60,55 @@ def test_parse_generals(reader, offsets):
     liubei = state.generals[1]
     assert liubei.name == "刘备"
     assert liubei.faction_id == 1
+
+
+def test_parse_generals_composes_full_name_from_three_segments():
+    """姓/名/字三段拼接。用 MutableMemoryReader 手工摆一条武将记录，布局照搬
+    实机确认的 姓(+0x00,5) + 名(+0x05,5) + 字(+0x0A,46)。
+
+    这里刻意用真实存在的例子（韋昭，字弘嗣）：修复前 name 只会读出"韋"。
+    """
+    from san11agent.memory import MutableMemoryReader
+    from san11agent.offsets import load_offsets as _load
+
+    raw = json.loads(OFFSETS_TEST.read_text(encoding="utf-8"))
+    g = raw["structs"]["general"]
+    g["count"] = 1
+    g["fields"].pop("name")
+    g["fields"]["surname"] = {"offset": "0x00", "size": 5, "type": "fixed_str", "unknown": False}
+    g["fields"]["given_name"] = {"offset": "0x05", "size": 5, "type": "fixed_str", "unknown": False}
+    # 字段挪到结构体后段的空闲区，避开 fixture 里 0x08 起的其它字段
+    g["fields"]["courtesy_name"] = {"offset": "0x54", "size": 8, "type": "fixed_str", "unknown": False}
+    raw["validation"]["expected_general_count"] = 1
+
+    path = FIXTURES / "_tmp_offsets_name_split.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    try:
+        offsets = _load(path)
+        base = 0x1000
+        reader = MutableMemoryReader({base: bytes(0x400)}, module_base=0x400000)
+        rec = base + 0x100  # general.base_offset
+        reader.write_bytes(rec + 0x00, "韋".encode("gbk") + b"\x00" * 3)
+        reader.write_bytes(rec + 0x05, "昭".encode("gbk") + b"\x00" * 3)
+        reader.write_bytes(rec + 0x54, "弘嗣".encode("gbk") + b"\x00" * 4)
+
+        generals = parse_generals(reader, offsets, base)
+        assert generals[0].surname == "韋"
+        assert generals[0].given_name == "昭"
+        assert generals[0].courtesy_name == "弘嗣"
+        assert generals[0].name == "韋昭", "name 必须是姓+名，不能只有姓"
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def test_parse_generals_falls_back_to_legacy_single_name_field(reader, offsets):
+    """兼容退路：offsets 只声明旧的整段 name 字段时，不应该解析出空姓名。
+    退化行为是"信息不全"（名和字为空），不是"编造"或"报错"。"""
+    generals = parse_generals(reader, offsets, 0x1000)
+    assert generals[0].name == "曹操"
+    assert generals[0].surname == "曹操"
+    assert generals[0].given_name == ""
+    assert generals[0].courtesy_name == ""
 
 
 def test_parse_cities(reader, offsets):

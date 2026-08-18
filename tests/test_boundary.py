@@ -12,7 +12,7 @@ import dataclasses
 import pytest
 
 from san11agent.boundary import FREE_AGENT_FACTION_ID, filter_game_state
-from san11agent.game_state import City, Faction, GameState, General, GlobalState, Troop
+from san11agent.game_state import Force, City, Faction, GameState, General, GlobalState, Troop
 from san11agent.visibility import StaticVisibilitySource
 from san11agent.visible_state import (
     VisibleCityDetail,
@@ -158,9 +158,19 @@ def _build_state() -> GameState:
         ),
     ]
 
+    # 2026-08-18：势力归属改走 force_id -> Force.faction_id 这条已验证链路
+    # （见 san11agent/faction_resolve.py 模块文档），所以 fixture 必须提供 forces，
+    # 否则 resolver 解析不出归属、所有记录都会被 fail-closed 成"非己方"。
+    # 上面的武将/城池已经在用 force_id=0（己方）/1（敌方）/-1（在野），这里补上
+    # 对应的军团记录即可。
+    forces = [
+        Force(index=0, faction_id=PLAYER_FACTION_ID, force_number=1, commander_general_id=0),
+        Force(index=1, faction_id=ENEMY_FACTION_ID, force_number=1, commander_general_id=1),
+    ]
+
     return GameState(
         global_state=global_state, generals=generals, cities=cities,
-        troops=troops, factions=factions,
+        troops=troops, factions=factions, forces=forces,
     )
 
 
@@ -392,3 +402,97 @@ def test_forbidden_faction_fields_do_not_leak_on_public_tier_faction(visible_sta
     enemy = next(f for f in visible_state.factions if f.index == ENEMY_FACTION_ID)
     leaked = [name for name in forbidden if hasattr(enemy, name)]
     assert leaked == []
+
+
+# ---------------------------------------------------------------------------
+# 回归测试：势力归属必须走 force 链路解析，不能用原始 faction_id 字段
+#
+# 上面那份 fixture 里 raw faction_id 恰好等于解析后的势力ID，所以它其实证明不了
+# "确实用了 resolver"。这里刻意构造实机里的真实形态——武将的 faction_id 字段
+# 装的是【所在城池 index】而不是势力ID，城池的 faction_id 干脆是 None——
+# 在修复前，这两种记录都会被判成"非己方"（因为 3 != 28、None != 28），
+# 玩家自己的武将和首都都会被降级/藏起来。
+# 见 docs/offset_research.md 第 7.9/7.10 节。
+# ---------------------------------------------------------------------------
+
+_REAL_PLAYER_FACTION = 28   # 实机里张角的势力 index
+_REAL_FORCE_ID = 5          # 张角麾下第一军团
+_CITY_INDEX = 3             # 南皮
+
+
+def _zhangjiao_state() -> GameState:
+    g = dataclasses.replace(
+        _build_state().generals[0],
+        index=0,
+        force_id=_REAL_FORCE_ID,
+        faction_id=_CITY_INDEX,   # ← 实机里这个字段就是城池 index，不是势力ID
+        location=_CITY_INDEX,
+    )
+    c = dataclasses.replace(
+        _build_state().cities[0],
+        index=_CITY_INDEX,
+        force_id=_REAL_FORCE_ID,
+        faction_id=None,          # ← 实机里 city.faction_id 至今 unknown，恒为 None
+    )
+    t = dataclasses.replace(
+        _build_state().troops[0],
+        index=0,
+        commander_general_id=0,
+        faction_id=-1,            # ← 实机里活跃部队这个字段就是 -1
+    )
+    base = _build_state()
+    return dataclasses.replace(
+        base,
+        generals=[g], cities=[c], troops=[t],
+        forces=[Force(index=_REAL_FORCE_ID, faction_id=_REAL_PLAYER_FACTION,
+                      force_number=1, commander_general_id=0)],
+    )
+
+
+def _zhangjiao_visible() -> VisibleGameState:
+    return filter_game_state(
+        _zhangjiao_state(),
+        StaticVisibilitySource(
+            _player_faction_id=_REAL_PLAYER_FACTION,
+            explored_city_indices=frozenset(),
+            visible_troop_indices=frozenset(),
+            discovered_general_indices=frozenset(),
+        ),
+    )
+
+
+def test_own_general_recognized_despite_misleading_raw_faction_id():
+    visible = _zhangjiao_visible()
+    own = visible.generals[0]
+    assert isinstance(own, VisibleGeneralFull), "己方武将必须拿到 full 档，说明走了 force 链路"
+    assert own.faction_id == _REAL_PLAYER_FACTION, "暴露的应该是解析后的势力ID，不是原始的城池index"
+
+
+def test_own_city_recognized_despite_unknown_raw_faction_id():
+    visible = _zhangjiao_visible()
+    own = visible.cities[0]
+    assert isinstance(own, VisibleCityDetail), "己方城池必须拿到 detail 档（未探明也算，因为是自己的）"
+    assert own.faction_id == _REAL_PLAYER_FACTION
+
+
+def test_own_troop_recognized_despite_minus_one_raw_faction_id():
+    visible = _zhangjiao_visible()
+    assert len(visible.troops) == 1, "己方部队必须可见（视野表里没有它，只能靠归属判断）"
+    assert visible.troops[0].faction_id == _REAL_PLAYER_FACTION
+
+
+def test_resolution_failure_fails_closed_not_open():
+    """军团表缺失时，绝不能把非己方误判成己方——宁可自己人也看不全。"""
+    state = dataclasses.replace(_zhangjiao_state(), forces=[])
+    visible = filter_game_state(
+        state,
+        StaticVisibilitySource(
+            _player_faction_id=_REAL_PLAYER_FACTION,
+            explored_city_indices=frozenset(),
+            visible_troop_indices=frozenset(),
+            discovered_general_indices=frozenset(),
+        ),
+    )
+    assert not isinstance(visible.generals[0], VisibleGeneralFull), "解析不出来时不能给 full 档"
+    assert not isinstance(visible.cities[0], VisibleCityDetail), "解析不出来时不能给 detail 档"
+    assert visible.troops == [], "解析不出来且不在视野内的部队必须整支隐藏"
