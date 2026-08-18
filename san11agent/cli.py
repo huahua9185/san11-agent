@@ -4,8 +4,9 @@
     # 离线 dump / fixture 模式（不需要游戏在跑）
     python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --dump path/to/dump.json
 
-    # 真实进程模式（当前 anchor 未解析出来之前会直接报错，这是预期行为）
-    python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --process san11pk.exe
+    # 真实进程模式（2026-08-18 起 anchor 已能解析，见 offsets/pk_1.1_cn.json）
+    # 注意：实机确认的真实进程名是 San11WPK.exe（Steam 繁体中文版），不是 san11pk.exe
+    python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --process San11WPK.exe
 """
 from __future__ import annotations
 
@@ -317,7 +318,7 @@ def build_parser() -> argparse.ArgumentParser:
     snap = sub.add_parser("snapshot", help="解析并打印一份局势快照")
     snap.add_argument("--offsets", required=True, help="offsets json 文件路径")
     snap.add_argument("--dump", help="离线内存 dump json 文件路径（与 --process 二选一）")
-    snap.add_argument("--process", help="游戏进程名，例如 san11pk.exe（与 --dump 二选一）")
+    snap.add_argument("--process", help="游戏进程名，例如 San11WPK.exe（Steam 繁体中文版，与 --dump 二选一）")
     snap.add_argument("--no-validate", action="store_true", help="跳过启动常量校验")
     snap.add_argument("--summary", action="store_true", help="打印简要摘要而不是完整 JSON")
     snap.set_defaults(func=cmd_snapshot)
@@ -328,7 +329,7 @@ def build_parser() -> argparse.ArgumentParser:
     select_city.add_argument("--offsets", required=True, help="offsets json 文件路径")
     select_city.add_argument("--ui-layout", required=True, help="ui_layout json 文件路径")
     select_city.add_argument("--dump", help="离线内存 dump json 文件路径（与 --process 二选一）")
-    select_city.add_argument("--process", help="游戏进程名，例如 san11pk.exe（与 --dump 二选一）")
+    select_city.add_argument("--process", help="游戏进程名，例如 San11WPK.exe（Steam 繁体中文版，与 --dump 二选一）")
     select_city.add_argument("--city-index", type=int, required=True, help="目标城池在 city 数组里的 index")
     select_city.add_argument("--tile-x", type=int, required=True, help="目标城池的地图格子 X 坐标")
     select_city.add_argument("--tile-y", type=int, required=True, help="目标城池的地图格子 Y 坐标")
@@ -343,7 +344,7 @@ def build_parser() -> argparse.ArgumentParser:
         "mem-dump", help="辅助工具一（写端）：从真实进程抓一份原始内存快照，写成 dump json"
     )
     mem_dump.add_argument("--dump", help="以已有 dump json 作为数据源（与 --process 二选一，用于重新切片/改标签）")
-    mem_dump.add_argument("--process", help="游戏进程名，例如 san11pk.exe（与 --dump 二选一）")
+    mem_dump.add_argument("--process", help="游戏进程名，例如 San11WPK.exe（Steam 繁体中文版，与 --dump 二选一）")
     mem_dump.add_argument(
         "--region", action="append", required=True,
         help="要抓取的地址范围，格式 ADDR:SIZE（十六进制），可重复指定多个区域，例如 --region 0x07201958:0x1000",
@@ -385,7 +386,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     probe_anchor.add_argument("--offsets", required=True, help="offsets json 文件路径（用来读 struct 布局和 validation 预期值）")
     probe_anchor.add_argument("--dump", help="离线内存 dump json 文件路径（与 --process 二选一）")
-    probe_anchor.add_argument("--process", help="游戏进程名，例如 san11pk.exe（与 --dump 二选一）")
+    probe_anchor.add_argument("--process", help="游戏进程名，例如 San11WPK.exe（Steam 繁体中文版，与 --dump 二选一）")
     probe_anchor.add_argument("--candidates-file", help="候选锚点列表 json 文件（格式见 anchor_probe.load_candidates_file 文档）")
     probe_anchor.add_argument("--rva", action="append", help="候选 RVA（十六进制，相对模块基址），可重复指定")
     probe_anchor.add_argument("--absolute", action="append", help="候选绝对地址（十六进制），可重复指定")

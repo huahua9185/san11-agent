@@ -1,7 +1,7 @@
 {
   "meta": {
     "label": "pk_1.1_cn",
-    "description": "san11pk.exe 界面固定元素坐标表。M3（执行层脚手架）阶段游戏完全无法运行（用户机器锁屏/远程，且 GAME_DATA_BASE 锚点也未解决），没有任何真实截图或测量数据——这个文件目前只是把格式搭好，所有元素留空。等游戏能实际运行后，需要现场测量（截图量坐标，或用 Spy++ / AutoIt Window Info 之类工具读控件位置）填入，届时把对应条目的 unknown 改成 false 并补上具体数值，同时把 meta.verified 改成 true。见 docs/execution_research.md。",
+    "description": "San11WPK.exe（Steam 繁体中文版，实机确认，见 docs/offset_research.md 第7节；早先误假设为 san11pk.exe）界面固定元素坐标表。M3（执行层脚手架）阶段游戏完全无法运行，没有任何真实截图或测量数据——这个文件目前只是把格式搭好，所有元素留空。2026-08-18 已能实机运行游戏并完成只读内存验证，但本次仍未做界面坐标测量（不在本次任务范围）。等下次能测量时，需要现场测量（截图量坐标，或用 Spy++ / AutoIt Window Info 之类工具读控件位置）填入，届时把对应条目的 unknown 改成 false 并补上具体数值，同时把 meta.verified 改成 true。见 docs/execution_research.md。",
     "assumed_client_resolution": null,
     "verified": false
   },

@@ -12,10 +12,12 @@
       "properties": {
         "label": { "type": "string", "description": "本偏移表的标签，例如 pk_1.1_cn（版本号未确认时仅作占位）" },
         "description": { "type": "string" },
-        "process_name": { "type": "string", "description": "游戏主进程文件名，例如 san11pk.exe" },
+        "process_name": { "type": "string", "description": "游戏主进程文件名，例如 San11WPK.exe（Steam 繁体中文版实机确认）" },
         "assumed_image_base": { "type": ["string", "null"], "description": "来源资料假设的 ImageBase，例如 0x00400000；仅用于换算来源文档里的绝对地址，不代表运行时一定如此" },
         "verified": { "type": "boolean", "description": "这份偏移表是否已经在真实游戏进程上实测校验过" },
         "game_version": { "type": ["string", "null"], "description": "对应的游戏版本号/补丁号，未知时为 null" },
+        "text_encoding": { "type": "string", "description": "fixed_str 字段（武将名/城池名等）的文本编码，例如 gbk（简体中文版）或 cp950/big5（繁体中文版）。省略时默认为 gbk，向后兼容早期只考虑简体中文版的假设。" },
+        "file_identity": { "type": "object", "description": "实机采集到的可执行文件身份信息（文件大小/SHA256/VersionInfo/PE TimeDateStamp等），仅用于人工交叉核对版本，不参与代码逻辑" },
         "sources": {
           "type": "array",
           "items": {

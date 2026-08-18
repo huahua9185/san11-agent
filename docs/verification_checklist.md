@@ -28,17 +28,19 @@
 
 ## 阶段 1：启动游戏，确认版本信息
 
-### 1.1 确认游戏具体版本号/补丁号 [P0][依赖: 无]
+### 1.1 确认游戏具体版本号/补丁号 [P0][依赖: 无] ✅ 部分完成 2026-08-18
 - **验证什么**：`san11pk.exe` 的具体版本号/补丁号/文件大小或哈希。
 - **为什么需要**：`offsets/pk_1.1_cn.json` 的 `meta.game_version` 目前是 `null`，`pk_1.1_cn` 这个标签只是沿用规格文档示例命名，**不代表已确认版本是 1.1**（见 `docs/offset_research.md` 第2节）。311MemoryResearch 资料全仓库都没有标注对应版本，如果你的游戏版本和资料作者的不一致，后面所有偏移都可能对不上，且没有任何独立信号能提前发现——只能靠这一步先确认。
 - **建议怎么做**：游戏内"关于"界面，或右键 `san11pk.exe` → 属性 → 详细信息，或直接告诉我文件大小/MD5，我可以帮你和已知版本信息交叉核对。
 - **填到哪里**：`offsets/pk_1.1_cn.json` → `meta.game_version`；如果确认版本和资料不一致，可能需要重新考虑 `meta.label` 的命名。
+- **2026-08-18 结果**：已采集文件大小/SHA256/VersionInfo/PE TimeDateStamp，见 `offsets/pk_1.1_cn.json` → `meta.file_identity` 和 `docs/offset_research.md` 第7.1节。`meta.game_version` 仍为 `null`——游戏内"关于"界面显示的版本号字符串本次没有采集（需要键鼠操作打开菜单，不在本次只读勘察范围）。
 
-### 1.2 确认进程名与游戏内置假设一致 [P1][依赖: 无]
+### 1.2 确认进程名与游戏内置假设一致 [P1][依赖: 无] ✅ 已完成 2026-08-18
 - **验证什么**：任务管理器里游戏进程的实际可执行文件名是否确实是 `san11pk.exe`（不同发行渠道——比如 Steam 版——文件名或壳可能不同）。
 - **为什么需要**：`offsets/pk_1.1_cn.json` 的 `meta.process_name` 硬编码为 `"san11pk.exe"`，`san11agent/memory.py` 的 `find_pid_by_process_name()` 按这个名字精确匹配（大小写不敏感），名字不对会导致 `--process` 模式直接报错"没有找到进程"。
 - **建议怎么做**：游戏启动后打开任务管理器"详细信息"页确认进程名。
 - **填到哪里**：如果不一致，改 `offsets/pk_1.1_cn.json` → `meta.process_name`。
+- **2026-08-18 结果**：真实进程名是 `San11WPK.exe`（Steam 繁体中文版），与假设不一致，已更新 `offsets/pk_1.1_cn.json` → `meta.process_name` 及代码里的示例/文档，见 `docs/offset_research.md` 第7.1节。
 
 ---
 
@@ -54,14 +56,15 @@
 
 ## 阶段 3：定位内存锚点 GAME_DATA_BASE 【全局关键路径】
 
-### 3.1 GAME_DATA_BASE 锚点定位方法 [P0][依赖: 阶段1/2完成，游戏进入正式对局]
+### 3.1 GAME_DATA_BASE 锚点定位方法 [P0][依赖: 阶段1/2完成，游戏进入正式对局] ✅ 已完成（medium confidence）2026-08-18
 - **验证什么**：`0x07201958` 这个资料里给出的绝对地址，到底是编译期固定的静态地址（`模块基址 + 固定RVA`），还是运行时堆分配、每次重启会变的指针目标（需要指针链）。
 - **为什么需要**：这是**整个项目里唯一的、卡住所有真实内存读取的问题**。`offsets/pk_1.1_cn.json` 的 `anchor.resolution_method` 目前是 `"unknown"`，`perception.py` 的 `resolve_anchor()` 在这个值下对真实进程会直接抛 `AnchorResolutionError` 拒绝继续——General/City/Troop/Faction/GlobalState 全部数组都基于这个地址算偏移，不解决它，阶段4、5 的一切工作都无法开始，M1 之后所有里程碑的真实进程验证都被卡住。
 - **建议怎么做**（二选一或都做，用 Cheat Engine）：
   1. **验证"静态地址"假说**：进程附加后，直接查看地址 `0x07201958` 处的内存内容，看是否稳定存在有意义的数据（比如武将姓名的 GBK 字节）。如果**重启游戏后这个绝对地址还是同一份数据**，说明是静态地址，此时用 `模块基址`（Cheat Engine 里能直接看到，一般就是 `0x00400000`）反推 RVA = `0x07201958 - 模块基址`，写入 `resolution_method: "static_rva"` + `rva`。
-  2. **验证"堆指针"假说**（更可能，见 `docs/offset_research.md` 第3节的 RVA 过大分析）：在 Cheat Engine 里对 `0x07201958` 这个地址做"什么写入了这个地址"或指针扫描（Pointer Scan），找一条从 `san11pk.exe+固定偏移` 出发、经过 1~2 层解引用能稳定指向数据基址的指针链。**重启游戏一次，确认这条指针链依然成立**（这是判断"真的是稳定指针链"还是"偶然对上"的关键一步）。写入 `resolution_method: "pointer_chain"` + `pointer_chain`。
+  2. **验证"堆指针"假说**（更可能，见 `docs/offset_research.md` 第3节的 RVA 过大分析）：在 Cheat Engine 里对 `0x07201958` 这个地址做"什么写入了这个地址"或指针扫描（Pointer Scan），找一条从 `San11WPK.exe+固定偏移` 出发、经过 1~2 层解引用能稳定指向数据基址的指针链。**重启游戏一次，确认这条指针链依然成立**（这是判断"真的是稳定指针链"还是"偶然对上"的关键一步）。写入 `resolution_method: "pointer_chain"` + `pointer_chain`。
   3. 如果你手头有能跑起来的 CE 表或 SCP 插件源码，直接看它们是怎么定位这个基址的，可能比重新扫描更快。
 - **填到哪里**：`offsets/pk_1.1_cn.json` → `anchor.resolution_method`（改成 `static_rva` 或 `pointer_chain`）、`anchor.rva` 或 `anchor.pointer_chain`、`anchor.confidence`（改成 `high`）；`meta.verified` 暂不要改（还需要阶段4的字段验证通过才算数）。
+- **2026-08-18 结果**：不用 Cheat Engine，改用项目自带的 `probe-anchor` 工具直接对真实进程验证。`static_rva`（rva=`0x6E01958`，即把 `0x07201958` 当绝对地址反推）通过了 `validate_constants()` 的全部校验（武将/城池/势力数量精确匹配）。已写入 `resolution_method: "static_rva"`、`rva`，但 `confidence` 定为 `medium` 而非 `high`——本条目"重启游戏后确认地址依然成立"这一步没有做（只读勘察不重启用户正在跑的游戏），**这是下次上机的第一优先级**，通过后再改 `high`。详见 `docs/offset_research.md` 第7.3节。
 
 ---
 
@@ -69,15 +72,16 @@
 
 > 前提：阶段 3 完成，`anchor.resolution_method` 已经不是 `unknown`。这一阶段目标是确认"已经填了数值、但从未在真实进程上测过"的字段到底对不对——`offsets/pk_1.1_cn.json` 的 `meta.verified` 目前整体是 `false`，本阶段做完才能考虑把它改成 `true`。
 
-### 4.1 用 `snapshot` 命令跑一次真实进程，看启动校验能否通过 [P0][依赖: 3.1]
+### 4.1 用 `snapshot` 命令跑一次真实进程，看启动校验能否通过 [P0][依赖: 3.1] ✅ 已完成 2026-08-18
 - **验证什么**：`validate_constants()`（`perception.py`）里的合理性校验——武将数=1100、城池数=42、势力数=42、剧本编号在 `[1,60]`、开局年份在 `[150,280]`——是否都能通过。
 - **为什么需要**：这是项目里现成的、最快的"偏移表整体对不对"信号。校验失败几乎肯定意味着锚点或某个基础 struct 偏移算错了，值得先跑一次而不是逐字段人工核对。
 - **建议怎么做**：
   ```
-  python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --process san11pk.exe --summary
+  python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --process San11WPK.exe --summary
   ```
   （用 `C:\Users\hhhh\AppData\Local\Programs\Python\Python312\python.exe`，不是 `python`/`python3` 别名）。校验不通过会明确打印哪个数字对不上，据此判断是锚点问题还是某个 struct 偏移问题。
 - **填到哪里**：无需改文件；如果校验失败，回到 3.1 或本阶段其余项排查。若通过，是后续把 `meta.verified` 改 `true` 的必要条件之一。
+- **2026-08-18 结果**：跑通过，无报错。武将数=1100/城池数=42/势力数=42/剧本编号=7/开局年份=251，全部通过。跑的过程中发现城池/武将姓名解码乱码，排查后是文本编码问题（简体GBK vs 繁体cp950），已修复，详见 `docs/offset_research.md` 第7.4节。`meta.verified` 仍保持 `false`——4.2（troop 基址二选一）和 4.3（逐字段抽查）尚未做。
 
 ### 4.2 Troop 基址的 `0x100` 差值二选一 [P0][依赖: 3.1]
 - **验证什么**：`troop.base_offset` 到底应该是 `0x169630`（当前默认值，按公式算出）还是 `0x169730`（资料原文独立给出的绝对地址对应值），两者相差 `0x100`（256字节）。
@@ -313,7 +317,7 @@
 - **填到哪里**：如果不起作用，`san11agent/input_backend.py` 需要新增/替换实现（代码改动，届时另行处理）。
 
 #### 8.19 窗口查找启发式是否适用 [P2][依赖: 阶段1（游戏已启动）]
-- **验证什么**：`window.py` `_find_main_window_for_pid()` 用"属于目标pid、可见、标题非空"的第一个顶层窗口作为游戏主窗口，这个启发式对 `san11pk.exe` 是否有效（尤其如果游戏是无边框全屏、或标题为空）。
+- **验证什么**：`window.py` `_find_main_window_for_pid()` 用"属于目标pid、可见、标题非空"的第一个顶层窗口作为游戏主窗口，这个启发式对 `San11WPK.exe` 是否有效（尤其如果游戏是无边框全屏、或标题为空）。
 - **为什么需要**：如果启发式失效，`Win32GameWindow.attach_by_pid()` 会找不到窗口，`--live` 模式直接报错。
 - **建议怎么做**：可以用任意窗口枚举工具（比如 Spy++）查看游戏窗口的标题和可见性属性；或者更简单——直接跑一次 `select-city --live`，看这一步是否报错。
 - **填到哪里**：`san11agent/window.py` 的 `_find_main_window_for_pid()`，如果启发式不适用需要调整判断条件。
@@ -342,9 +346,9 @@
    三份及以上快照时会额外做"相邻快照两两 diff"的交叉比对，报告"每次过渡都变化
    的地址"和"只在某一次过渡里变化的地址"。示例：
    ```
-   python -m san11agent.cli mem-dump --process san11pk.exe --region 0x07201958:0x2000 --out before.json --label before
+   python -m san11agent.cli mem-dump --process San11WPK.exe --region 0x07201958:0x2000 --out before.json --label before
    （切换到内政界面）
-   python -m san11agent.cli mem-dump --process san11pk.exe --region 0x07201958:0x2000 --out after.json --label after
+   python -m san11agent.cli mem-dump --process San11WPK.exe --region 0x07201958:0x2000 --out after.json --label after
    python -m san11agent.cli mem-diff before.json after.json --base 0x07201958
    ```
 2. **锚点候选批量验证工具**（`probe-anchor` 子命令）：给定一批候选 RVA/绝对地址/
@@ -352,7 +356,7 @@
    `perception.validate_constants()` 现成的启动常量校验，报告每个候选通过/不通过、
    不通过时具体是哪个常量、期望值/实际读到的值分别是什么。示例：
    ```
-   python -m san11agent.cli probe-anchor --offsets offsets/pk_1.1_cn.json --process san11pk.exe \
+   python -m san11agent.cli probe-anchor --offsets offsets/pk_1.1_cn.json --process San11WPK.exe \
        --rva 0x1958 --pointer-chain 0x1a2b3c,0x10,0x20
    ```
 

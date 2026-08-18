@@ -249,7 +249,7 @@ if sys.platform == "win32":
         return modules[0] or 0
 
     def find_pid_by_process_name(process_name: str) -> int | None:
-        """按可执行文件名（如 san11pk.exe，大小写不敏感）查找进程 PID。找不到返回 None。"""
+        """按可执行文件名（如 San11WPK.exe，大小写不敏感）查找进程 PID。找不到返回 None。"""
         target = process_name.lower()
         for pid in _enum_pids():
             if pid == 0:

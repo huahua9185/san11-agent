@@ -1,28 +1,46 @@
 {
   "meta": {
     "label": "pk_1.1_cn",
-    "description": "《三国志11：威力加强版》san11pk.exe 的候选内存偏移表。标签 pk_1.1_cn 沿用项目规格文档里的示例命名，不代表已确认版本号就是 1.1——具体版本号未知，见 docs/offset_research.md 第2节。verified=false 表示这份表从未在真实进程上实测过，全部数值来自第三方开源资料的静态分析。",
-    "process_name": "san11pk.exe",
+    "description": "《三国志11：威力加强版》(实机确认进程名为 San11WPK.exe，非本文件早先假设的 san11pk.exe) 的候选内存偏移表。标签 pk_1.1_cn 沿用项目规格文档里的示例命名，不代表已确认版本号就是 1.1——具体版本号未知，见 docs/offset_research.md 第2节和第7节。verified=false 表示这份表尚未完成逐字段实测校验（troop 基址二选一、部分字段字节序等仍待确认），但 2026-08-18 已用真实 Steam 繁体中文版进程完成了第一轮成功验证：anchor 解析 + 武将/城池/势力数组解析 + validate_constants() 全部通过，武将数/城池数/势力数与预期精确一致，说明整体偏移表和这个 Steam 繁中版本高度兼容，见 docs/offset_research.md 第7节完整记录。",
+    "process_name": "San11WPK.exe",
     "assumed_image_base": "0x00400000",
     "verified": false,
     "game_version": null,
+    "text_encoding": "cp950",
+    "file_identity": {
+      "note": "2026-08-18 在实机上采集，用于将来对照开源资料/交叉核实版本，不代表已知的官方版本号",
+      "install_path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\San11WPK\\San11WPK.exe",
+      "distribution": "Steam，繁体中文",
+      "file_size_bytes": 5591136,
+      "sha256": "F2A304B118E72673F4A788B1E87322FA891FF57218A8B89E671D4F8CB6ACA041",
+      "file_version": "1.0.0.0",
+      "product_version": "1.0.0.0",
+      "company_name": "KOEI TECMO GAMES CO., LTD.",
+      "product_name": "三國志11 with 威力增強版",
+      "legal_copyright": "(C)2006-2017 KOEI TECMO GAMES CO., LTD. All rights reserved.",
+      "version_info_language": "繁体中文(中国台湾)",
+      "pe_timedatestamp": "0x5A7BE1A1",
+      "pe_timedatestamp_utc": "2018-02-08T05:35:29Z",
+      "pe_image_base": "0x00400000",
+      "pe_size_of_image": "0x098D3000"
+    },
     "sources": [
       {
         "name": "sjn4048/311MemoryResearch",
         "url": "https://github.com/sjn4048/311MemoryResearch",
         "license": "Apache-2.0",
-        "note": "主要数据来源：内存资料/地址资料.txt（约1497-1846行的结构体整理表），并用 内存资料/整理/Func-情报02-获取城市信息.txt、内存资料/整理/Func-情报03-获取武将信息【未】.txt、内存资料/函数[部队攻击].txt 三份反汇编笔记交叉核对。仓库全程未注明对应的游戏版本号/补丁号/校验和。"
+        "note": "主要数据来源：内存资料/地址资料.txt（约1497-1846行的结构体整理表），并用 内存资料/整理/Func-情报02-获取城市信息.txt、内存资料/整理/Func-情报03-获取武将信息【未】.txt、内存资料/函数[部队攻击].txt 三份反汇编笔记交叉核对。仓库全程未注明对应的游戏版本号/补丁号/校验和，且原始资料面向简体中文版；本文件的 process_name 已改为实机确认的 Steam 繁体中文版 San11WPK.exe，两者是否为完全同一份内存布局理论上存疑，但 2026-08-18 的实机验证（见下方 anchor.note）显示偏移表在这个繁中 Steam 版上工作正常。"
       }
     ]
   },
   "anchor": {
-    "resolution_method": "unknown",
-    "rva": null,
+    "resolution_method": "static_rva",
+    "rva": "0x6E01958",
     "pointer_chain": null,
     "fixture_absolute_address": null,
     "observed_absolute_address": "0x07201958",
-    "confidence": "low",
-    "note": "来源资料只给出了这一个绝对地址，完全没有说明它是怎么定位到的：既没有给出'模块基址+固定RVA'的RVA值，也没有给出指针链。按 assumed_image_base=0x00400000 换算出的 RVA 约为 0x06E01958（约110MB），大得不寻常，更可能是这个地址本身是运行时堆分配的、每次重启会变化的指针目标，而不是编译期固定的静态地址。resolution_method 在这个问题解决之前必须保持 unknown：ProcessMemoryReader 在 unknown 状态下会拒绝解析并明确报错，不会把 observed_absolute_address 当作可用地址直接使用。需要用户提供指针链或确认锚点定位方法。"
+    "confidence": "medium",
+    "note": "2026-08-18 实机验证（进程 San11WPK.exe，Steam 繁体中文版，见 meta.file_identity）：真实进程 module_base 读回确为 0x00400000，与 assumed_image_base 一致；用 static_rva=0x06E01958（= observed_absolute_address 0x07201958 - module_base 0x00400000）解析出 GAME_DATA_BASE=0x07201958，再跑 perception.validate_constants() 全部通过——武将数=1100、城池数=42、势力数=42 与预期精确相等，剧本编号=7、开局年份=251 均在合理范围内。这次验证同时解决了本文件早先'RVA约110MB大得不寻常'的疑虑：实测该 exe 的 PE SizeOfImage 达 0x098D3000（约153MB，远大于典型PE），0x06E01958 完全落在镜像范围内，与'编译期静态地址'假说一致，不再需要怀疑它是运行时堆分配。confidence 定为 medium 而非 high 的原因：这只是单次运行的验证，docs/verification_checklist.md 3.1 建议的'重启游戏后确认地址依然成立'这一步尚未做（本次任务范围是只读勘察，不重启用户正在运行的游戏），建议下次拿到机会时补做，通过后可将 confidence 提升为 high 并把 meta.verified 相关判断一并更新。"
   },
   "structs": {
     "global": {
@@ -90,7 +108,7 @@
         "name": {
           "offset": "0x04", "size": 56, "type": "fixed_str", "unknown": false,
           "confidence": "high", "source": "地址资料.txt + Func-情报03-获取武将信息【未】.txt",
-          "note": "姓名字+读音，GBK编码定长字节数组"
+          "note": "姓名字+读音，定长字节数组。原资料写GBK，2026-08-18在Steam繁体中文版实机验证发现应为cp950(big5)。同时发现：这56字节并非单一字符串，而是三段定长子字段拼接——offset+0x00起5字节'姓'、+0x05起5字节'名'（各段2个双字节字符+至少1个0x00终止/填充）、其余约46字节是'字'(courtesy name)的空终止字符串。实测武将[0]='阿會'(姓,5B)+'喃'(名,5B)+空(字) => 姓名合并'阿會喃'，是真实存在的南蛮武将；武将[1]='韋'+'昭'+'弘嗣' => 姓名'韋昭'、字'弘嗣'，与史实吻合。当前 perception.py 的 read_fixed_str() 只在第一个0x00处截断，等价于只读出'姓'，武将全名和表现层显示会缺失'名'和'字'——这是一个新发现的、待后续里程碑修复的解析缺口，本次只记录发现、未改动解析逻辑（超出本次只读勘察范围），子字段边界(5/5/46字节)是从多个真实武将样本反推得到的观测结果，不是猜测，但尚未对全部1100条记录做穷举验证"
         },
         "portrait_id": { "offset": "0x3C", "size": 4, "type": "i32", "unknown": false, "confidence": "medium", "source": "地址资料.txt" },
         "gender": { "offset": "0x40", "size": 4, "type": "i32", "unknown": false, "confidence": "medium", "source": "地址资料.txt" },
@@ -131,7 +149,10 @@
       "struct_size": "0x248",
       "count": 42,
       "fields": {
-        "name": { "offset": "0x04", "size": 8, "type": "fixed_str", "unknown": false, "confidence": "high", "source": "地址资料.txt + Func-情报02" },
+        "name": {
+          "offset": "0x04", "size": 8, "type": "fixed_str", "unknown": false, "confidence": "high", "source": "地址资料.txt + Func-情报02",
+          "note": "2026-08-18 实机验证：Steam繁体中文版下用meta.text_encoding=cp950(big5)解码，城池[0..9]依次得到 襄平/北平/薊/南皮/平原/晉陽/鄴/北海/下邳/小沛，均为合理的三国志11繁体地名，确认offset/size正确，且该版本文本编码是cp950而非GBK"
+        },
         "province": { "offset": "0x18", "size": 4, "type": "i32", "unknown": false, "confidence": "medium", "source": "地址资料.txt" },
         "adjacent_cities": {
           "offset": "0x1C", "size": 4, "type": "i32_array", "array_len": 6, "unknown": false,

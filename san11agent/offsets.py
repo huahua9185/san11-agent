@@ -81,6 +81,7 @@ class OffsetsConfig:
     process_name: str
     verified: bool
     game_version: str | None
+    text_encoding: str
     anchor: AnchorSpec
     structs: dict[str, StructSpec]
     validation: dict[str, Any]
@@ -182,6 +183,7 @@ def load_offsets(path: str | Path) -> OffsetsConfig:
         process_name=meta["process_name"],
         verified=bool(meta["verified"]),
         game_version=meta.get("game_version"),
+        text_encoding=meta.get("text_encoding", "gbk"),
         anchor=anchor,
         structs=structs,
         validation=raw.get("validation", {}),

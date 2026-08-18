@@ -14,14 +14,18 @@ PK_OFFSETS = REPO_ROOT / "offsets" / "pk_1.1_cn.json"
 def test_pk_offsets_file_loads():
     offsets = load_offsets(PK_OFFSETS)
     assert offsets.label == "pk_1.1_cn"
-    assert offsets.process_name == "san11pk.exe"
+    assert offsets.process_name == "San11WPK.exe"
     assert offsets.verified is False
 
 
-def test_pk_offsets_anchor_is_honestly_unknown():
-    """核心断言：锚点解析方式必须诚实标记为 unknown，不能悄悄塞一个绝对地址当真值用。"""
+def test_pk_offsets_anchor_is_verified_static_rva():
+    """2026-08-18 实机验证：static_rva=0x6E01958 在真实进程上通过了启动常量校验
+    （武将/城池/势力数量精确匹配），resolution_method 已从 unknown 更新为
+    static_rva，不再是"诚实的未知"，而是"诚实的、已记录验证过程的已知"——
+    仍然不是瞎猜，只是猜测的对象从"要不要读"变成了"用什么方法读"。"""
     offsets = load_offsets(PK_OFFSETS)
-    assert offsets.anchor.resolution_method == "unknown"
+    assert offsets.anchor.resolution_method == "static_rva"
+    assert offsets.anchor.rva == 0x06E01958
     assert offsets.anchor.observed_absolute_address == 0x07201958
 
 

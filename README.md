@@ -1,6 +1,6 @@
 # san11-agent
 
-《三国志11：威力加强版》(san11pk.exe) LLM 代理研究项目。让 LLM 像人类玩家一样操作游戏、推进一局对局，衡量 AI 与人类玩家的决策差距。个人研究项目，游戏为本地单机离线游戏。
+《三国志11：威力加强版》(实机确认 Steam 繁体中文版进程名为 San11WPK.exe) LLM 代理研究项目。让 LLM 像人类玩家一样操作游戏、推进一局对局，衡量 AI 与人类玩家的决策差距。个人研究项目，游戏为本地单机离线游戏。
 
 完整项目规格见对话记录 / 项目 wiki（本仓库暂未收录规格文档本身）。核心约束：**信息边界**——中间层必须显式过滤，只暴露人类玩家在界面上能看到的信息，M2 已实现；**执行层**——键鼠模拟走 Win32 SendInput，动作可重入、失败即归位重来，M3 已搭好脚手架；**LegalActions**——AI 只能从"当前合法动作"的结构化列表里选，不能自己猜规则、不会输出非法指令，M4 做了内政阶段这一半；**战略层**——LLM 只做高层决策（每 N 回合一次），战术层用规则把意图翻译成动作，M5 本次搭好了这条链路的地基（假 LLM 后端），见下方"当前状态"。
 
@@ -278,8 +278,9 @@ pytest
 # 命令行工具：离线 dump 模式，打印快照
 python -m san11agent.cli snapshot --offsets tests/fixtures/offsets_test.json --dump tests/fixtures/synthetic_dump.json --summary
 
-# 命令行工具：真实进程模式（预期会因为 anchor unknown 而报错退出，这是当前阶段的正确行为）
-python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --process san11pk.exe
+# 命令行工具：真实进程模式（2026-08-18 实机验证过 anchor，见 offsets/pk_1.1_cn.json；
+# 真实进程名是 San11WPK.exe，Steam 繁体中文版，不是早先假设的 san11pk.exe）
+python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --process San11WPK.exe
 
 # 命令行工具：M3 执行链路，离线演练模式（不发送真实输入，用 --dump 只读内存所以最终会轮询超时，用来验证链路本身跑不跑得通）
 python -m san11agent.cli select-city --offsets tests/fixtures/offsets_execution_test.json --ui-layout tests/fixtures/ui_layout_test.json --dump tests/fixtures/synthetic_execution_dump.json --city-index 3 --tile-x 5 --tile-y 5 --poll-timeout 0.2

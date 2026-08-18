@@ -75,10 +75,10 @@ M3 执行链路（"读城池坐标 -> 滚动地图 -> 点击 -> 轮询确认选�
    是空的。
 6. **窗口查找启发式**（`window.py` `_find_main_window_for_pid()`）：用
    "属于目标 pid、可见、标题非空"的第一个顶层窗口作为游戏主窗口，没有针对
-   san11pk.exe 实机验证过。如果游戏窗口是无边框全屏、或标题为空，这个启发
+   San11WPK.exe 实机验证过（截至2026-08-18仍未验证，见 docs/offset_research.md 第7节）。如果游戏窗口是无边框全屏、或标题为空，这个启发
    式会找不到窗口。
 7. **SendInput 是否会被游戏感知，未经验证**（`input_backend.py`）：
-   `SendInputBackend` 注入的是标准 Win32 输入消息。如果 san11pk.exe 用
+   `SendInputBackend` 注入的是标准 Win32 输入消息。如果 San11WPK.exe 用
    DirectInput 或 Raw Input 直接轮询硬件状态而不是从系统消息队列取输入，
    SendInput 可能完全不起作用。备选方案是 pydirectinput 或虚拟 HID 驱动，
    需要你确认后再切换实现，这次没有做。

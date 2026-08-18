@@ -58,8 +58,14 @@ def resolve_anchor(reader: MemoryReader, offsets: OffsetsConfig) -> int:
     raise AnchorResolutionError(f"未知的 resolution_method={method!r}")
 
 
-def _read_field(reader: MemoryReader, record_address: int, spec: FieldSpec):
-    """按 FieldSpec.type 读取一个字段；unknown 字段直接返回 None，不读内存。"""
+def _read_field(reader: MemoryReader, record_address: int, spec: FieldSpec, text_encoding: str = "gbk"):
+    """按 FieldSpec.type 读取一个字段；unknown 字段直接返回 None，不读内存。
+
+    text_encoding 只影响 fixed_str 字段（武将名/城池名等定长字符串），来自
+    OffsetsConfig.text_encoding——不同发行版（简体 gbk / 繁体 cp950 等）文本
+    编码不同，但字段布局（偏移/大小）可以相同，所以编码作为整份 offsets 文件
+    的一个整体属性，不需要每个字段单独标注。
+    """
     if spec.unknown or spec.offset is None:
         return None
     address = record_address + spec.offset
@@ -79,7 +85,7 @@ def _read_field(reader: MemoryReader, record_address: int, spec: FieldSpec):
     if t == "f32":
         return reader.read_f32(address)
     if t == "fixed_str":
-        return reader.read_fixed_str(address, spec.size)
+        return reader.read_fixed_str(address, spec.size, encoding=text_encoding)
     if t == "bytes":
         return reader.read_bytes(address, spec.size)
     if t == "i32_array":
@@ -112,7 +118,10 @@ def read_struct_fields(
     """
     spec = offsets.struct(struct_name)
     base = game_data_base + (spec.base_offset or 0)
-    return {name: _read_field(reader, base, field_spec) for name, field_spec in spec.fields.items()}
+    return {
+        name: _read_field(reader, base, field_spec, offsets.text_encoding)
+        for name, field_spec in spec.fields.items()
+    }
 
 
 def parse_global_state(reader: MemoryReader, offsets: OffsetsConfig, game_data_base: int) -> GlobalState:
@@ -138,7 +147,7 @@ def parse_generals(reader: MemoryReader, offsets: OffsetsConfig, game_data_base:
     result = []
     for i in range(spec.count or 0):
         addr = _record_address(spec, game_data_base, i)
-        f = {name: _read_field(reader, addr, fs) for name, fs in spec.fields.items()}
+        f = {name: _read_field(reader, addr, fs, offsets.text_encoding) for name, fs in spec.fields.items()}
         result.append(General(
             index=i,
             name=f["name"],
@@ -170,7 +179,7 @@ def parse_cities(reader: MemoryReader, offsets: OffsetsConfig, game_data_base: i
     result = []
     for i in range(spec.count or 0):
         addr = _record_address(spec, game_data_base, i)
-        f = {name: _read_field(reader, addr, fs) for name, fs in spec.fields.items()}
+        f = {name: _read_field(reader, addr, fs, offsets.text_encoding) for name, fs in spec.fields.items()}
         result.append(City(
             index=i,
             name=f["name"],
@@ -204,7 +213,7 @@ def parse_troops(reader: MemoryReader, offsets: OffsetsConfig, game_data_base: i
     result = []
     for i in range(spec.count or 0):
         addr = _record_address(spec, game_data_base, i)
-        f = {name: _read_field(reader, addr, fs) for name, fs in spec.fields.items()}
+        f = {name: _read_field(reader, addr, fs, offsets.text_encoding) for name, fs in spec.fields.items()}
         result.append(Troop(
             index=i,
             type=f["type"],
@@ -236,7 +245,7 @@ def parse_factions(reader: MemoryReader, offsets: OffsetsConfig, game_data_base:
     result = []
     for i in range(spec.count or 0):
         addr = _record_address(spec, game_data_base, i)
-        f = {name: _read_field(reader, addr, fs) for name, fs in spec.fields.items()}
+        f = {name: _read_field(reader, addr, fs, offsets.text_encoding) for name, fs in spec.fields.items()}
         result.append(Faction(
             index=i,
             ruler_general_id=f["ruler_general_id"],

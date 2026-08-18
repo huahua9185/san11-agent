@@ -7,7 +7,7 @@
   select-city 子命令，默认就是这个，要加 --live 才会换成 SendInputBackend）。
 
 已知限制（已在提交报告"设计取舍"一节列出）：SendInput 注入的是标准 Win32
-输入消息。如果 san11pk.exe 是用 DirectInput 或原始输入(Raw Input)直接轮询
+输入消息。如果 San11WPK.exe 是用 DirectInput 或原始输入(Raw Input)直接轮询
 硬件状态、而不是从系统消息队列取输入，SendInput 可能不会被游戏感知到——
 这一点在游戏能实际运行之前无法验证。如果验证后发现确实不行，备选方案是
 pydirectinput 或虚拟 HID 驱动，需要你确认后再切换实现，不在这次改动范围内。
