@@ -122,6 +122,7 @@ docs/offset_research.md        M1：内存偏移的调研报告——来源、�
 docs/visibility_research.md    M2：可见性状态的调研报告——探明/视野/武将发现相关缺口
 docs/execution_research.md     M3：执行层调研报告——camera/selection 内存缺口、ui_layout 坐标缺口、所有未经验证的设计假设
 docs/legal_actions_research.md M4：LegalActions 设计取舍报告——Action 类型体系、约束建模、规则表 unknown 语义的取舍、需要你确认的问题
+docs/verification_checklist.md  汇总 M1~M4 全部待验证事项，按"启动游戏→定位锚点→验证偏移→定位缺失字段→测坐标→验证规则"的实机操作顺序排列，供游戏能运行后按顺序执行
 offsets/schema.json       offsets 文件的格式定义（人类可读的权威文档）
 offsets/pk_1.1_cn.json    候选偏移表（未在真实进程验证过，meta.verified=false；含 M3 新增的 camera/selection struct）
 ui_layout/schema.json     ui_layout 文件的格式定义（客户区固定元素坐标表，跟 offsets 平行但不是内存偏移）
