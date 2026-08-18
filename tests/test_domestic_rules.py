@@ -16,8 +16,6 @@ _ALL_KINDS = {
     "recruit_troops",
     "train_troops",
     "security_patrol",
-    "levy_gold",
-    "levy_food",
     "diplomacy",
     "stratagem",
 }
@@ -95,11 +93,57 @@ def test_pk_rules_costs_are_honestly_unknown():
         assert rule.food_cost.is_known is False, kind
 
 
-def test_pk_rules_build_facility_types_match_user_request():
+def test_pk_rules_build_facility_types_match_ingame_menu():
+    """2026-08-18：原测试名叫 ..._match_user_request，断言的是需求里列的5种设施
+    （farm/market/barracks/stable/crossbow_tower）。用户点开游戏「都市」→「開發」
+    截图后确认实际有19种，且其中 crossbow_tower(弩楼) 根本不是城池开发设施
+    （它是部队在战场上造的军事建筑），属于分类错误。现改为断言实机确认的19种。
+    """
     rules = load_domestic_rules(PK_RULES)
-    assert set(rules.action("build_facility").sub_types.keys()) == {
-        "farm", "market", "barracks", "stable", "crossbow_tower",
+    sub_types = rules.action("build_facility").sub_types
+    assert set(sub_types.keys()) == {
+        # 商业/金钱系
+        "market", "mint", "black_market", "great_market", "fish_market",
+        "drill_ground", "envoy_platform",
+        # 农业 + 府系
+        "farm", "granary", "military_farm",
+        "military_office", "personnel_office", "diplomacy_office", "stratagem_office",
+        # 军事/生产系
+        "barracks", "smithy", "stable", "workshop", "shipyard",
     }
+    # 原表5种里真实存在的4种，繁体名称对得上
+    assert sub_types["farm"].display_name_cn == "農場"
+    assert sub_types["market"].display_name_cn == "市場"
+    assert sub_types["barracks"].display_name_cn == "兵舍"
+    assert sub_types["stable"].display_name_cn == "廐舍"
+    # 弩楼不是开发设施，必须不在列表里
+    assert "crossbow_tower" not in sub_types
+
+
+def test_pk_rules_facility_gold_costs_are_known_per_subtype():
+    """2026-08-18：设施造价是本规则表里第一批有实机依据的数值（来自「開發」界面
+    截图，50~400 不等）。因为造价按子类型区分、没有统一值，所以动作层级的
+    gold_cost 仍然必须是 unknown——下游要判断钱够不够，得看具体子类型。"""
+    rules = load_domestic_rules(PK_RULES)
+    rule = rules.action("build_facility")
+    assert rule.gold_cost.is_known is False, "动作层级不应该有统一造价"
+
+    sub_types = rule.sub_types
+    assert all(st.gold_cost.is_known for st in sub_types.values()), "19种设施都应有已知造价"
+    assert sub_types["black_market"].gold_cost.value == 50   # 最便宜
+    assert sub_types["market"].gold_cost.value == 200
+    assert sub_types["barracks"].gold_cost.value == 300
+    assert sub_types["mint"].gold_cost.value == 400          # 最贵档
+    assert {st.gold_cost.value for st in sub_types.values()} == {50, 200, 300, 400}
+
+
+def test_sub_type_gold_cost_defaults_to_unknown_when_absent():
+    """外交/计略的子类型目前没有造价数据，必须安静地默认 unknown，
+    而不是报错或被当成 0。"""
+    rules = load_domestic_rules(PK_RULES)
+    for kind in ("diplomacy", "stratagem"):
+        for st in rules.action(kind).sub_types.values():
+            assert st.gold_cost.is_known is False, f"{kind}.{st.id}"
 
 
 # ---------------------------------------------------------------------------

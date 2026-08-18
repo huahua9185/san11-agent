@@ -13,7 +13,7 @@ from san11agent.clock import FakeClock
 from san11agent.domestic_rules import DomesticRulesConfig
 from san11agent.domestic_rules import load_domestic_rules
 from san11agent.intent import DEFAULT_INTENT, DomesticFocus
-from san11agent.legal_actions import LevyGoldAction
+from san11agent.legal_actions import BuildFacilityAction
 from san11agent.strategy_llm import FakeStrategyLLM, format_strategy_response
 from san11agent.strategy_loop import (
     FakeActionExecutor,
@@ -135,7 +135,7 @@ def test_loop_executes_tactical_decisions_every_turn(tmp_path):
         assert len(result.decisions) == 1
         assert result.decisions[0].general_index == GENERAL_A
     assert len(executor.calls) == 4
-    assert all(isinstance(a, LevyGoldAction) for a in executor.calls)  # ECONOMY 重心 -> LevyGoldAction
+    assert all(isinstance(a, BuildFacilityAction) for a in executor.calls)  # ECONOMY 重心 -> BuildFacilityAction(市场系)
 
 
 def test_loop_persists_memo_to_disk_after_successful_llm_call(tmp_path):

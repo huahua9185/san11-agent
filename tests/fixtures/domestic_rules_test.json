@@ -11,68 +11,118 @@
       "display_name_cn": "设施建设",
       "requires_own_city": true,
       "requires_facility_slot": true,
-      "min_general_stamina": {"value": null, "unknown": true},
-      "gold_cost": {"value": null, "unknown": true},
-      "food_cost": {"value": null, "unknown": true},
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      },
       "facility_types": {
-        "farm": {"display_name_cn": "农田"},
-        "market": {"display_name_cn": "市场"}
+        "farm": {
+          "display_name_cn": "农田"
+        },
+        "market": {
+          "display_name_cn": "市场"
+        }
       }
     },
     "recruit_troops": {
       "display_name_cn": "征兵",
       "requires_own_city": true,
-      "min_general_stamina": {"value": null, "unknown": true},
-      "gold_cost": {"value": null, "unknown": true},
-      "food_cost": {"value": null, "unknown": true}
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      }
     },
     "train_troops": {
       "display_name_cn": "训练",
       "requires_own_city": true,
-      "min_general_stamina": {"value": null, "unknown": true},
-      "gold_cost": {"value": null, "unknown": true},
-      "food_cost": {"value": null, "unknown": true}
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      }
     },
     "security_patrol": {
       "display_name_cn": "治安/巡查",
       "requires_own_city": true,
-      "min_general_stamina": {"value": null, "unknown": true},
-      "gold_cost": {"value": null, "unknown": true},
-      "food_cost": {"value": null, "unknown": true}
-    },
-    "levy_gold": {
-      "display_name_cn": "征收（金）",
-      "requires_own_city": true,
-      "min_general_stamina": {"value": null, "unknown": true},
-      "gold_cost": {"value": null, "unknown": true},
-      "food_cost": {"value": null, "unknown": true}
-    },
-    "levy_food": {
-      "display_name_cn": "征收（粮）",
-      "requires_own_city": true,
-      "min_general_stamina": {"value": null, "unknown": true},
-      "gold_cost": {"value": null, "unknown": true},
-      "food_cost": {"value": null, "unknown": true}
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      }
     },
     "diplomacy": {
       "display_name_cn": "外交",
       "requires_own_city": true,
-      "min_general_stamina": {"value": null, "unknown": true},
-      "gold_cost": {"value": null, "unknown": true},
-      "food_cost": {"value": null, "unknown": true},
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      },
       "diplomacy_types": {
-        "alliance": {"display_name_cn": "同盟"},
-        "ceasefire": {"display_name_cn": "停战"}
+        "alliance": {
+          "display_name_cn": "同盟"
+        },
+        "ceasefire": {
+          "display_name_cn": "停战"
+        }
       }
     },
     "stratagem": {
       "display_name_cn": "计略",
       "requires_own_city": true,
-      "min_general_stamina": {"value": null, "unknown": true},
-      "gold_cost": {"value": null, "unknown": true},
-      "food_cost": {"value": null, "unknown": true},
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      },
       "stratagem_types": {
-        "sabotage": {"display_name_cn": "破坏"}
+        "sabotage": {
+          "display_name_cn": "破坏"
+        }
       }
     }
   }

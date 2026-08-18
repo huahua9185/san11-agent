@@ -19,8 +19,6 @@ from san11agent.intent import CityDirective, DomesticFocus, StrategicIntent
 from san11agent.legal_actions import (
     BuildFacilityAction,
     DiplomacyAction,
-    LevyFoodAction,
-    LevyGoldAction,
     RecruitTroopsAction,
     SecurityPatrolAction,
     StratagemAction,
@@ -133,16 +131,26 @@ def test_exactly_one_decision_per_general_present_in_legal_actions(rules):
 # ---------------------------------------------------------------------------
 
 
-def test_economy_focus_prefers_levy_gold(rules):
+def test_economy_focus_picks_build_facility_among_all_action_kinds(rules):
+    """2026-08-18：原先断言 ECONOMY 首选 LevyGoldAction，但"征收"指令实机确认
+    不存在、ActionKind 已删除。现在 ECONOMY 和 AGRICULTURE 都首选
+    BUILD_FACILITY，两者的区别落在 facility_type 子类型上（市场 vs 农田）。
+
+    注意和下方 test_economy_focus_prefers_market_facility 的区别：那个用的是
+    只含 build_facility 的 _facility_only_rules()，测的是"子类型怎么选"；这个
+    用的是含全部动作类型的 rules fixture，测的是"在所有动作类型里先挑哪个"，
+    正是原 levy 测试留下的那个空位。"""
     legal = _build_legal_actions(rules)
     decisions = select_domestic_actions(_intent(DomesticFocus.ECONOMY), legal, rules)
-    assert isinstance(decisions[0].action, LevyGoldAction)
+    assert isinstance(decisions[0].action, BuildFacilityAction)
+    assert decisions[0].action.facility_type == "market"
 
 
-def test_agriculture_focus_prefers_levy_food(rules):
+def test_agriculture_focus_picks_build_facility_among_all_action_kinds(rules):
     legal = _build_legal_actions(rules)
     decisions = select_domestic_actions(_intent(DomesticFocus.AGRICULTURE), legal, rules)
-    assert isinstance(decisions[0].action, LevyFoodAction)
+    assert isinstance(decisions[0].action, BuildFacilityAction)
+    assert decisions[0].action.facility_type == "farm"
 
 
 def test_military_focus_prefers_recruit_troops(rules):
@@ -185,7 +193,7 @@ def test_city_directive_for_a_different_city_does_not_apply(rules):
         DomesticFocus.ECONOMY, directives=(CityDirective(city_index=999, focus=DomesticFocus.MILITARY),)
     )
     decisions = select_domestic_actions(intent, legal, rules)
-    assert isinstance(decisions[0].action, LevyGoldAction)  # 没被覆盖，仍然是 default_focus=ECONOMY 的结果
+    assert isinstance(decisions[0].action, BuildFacilityAction)  # 没被覆盖，仍然是 default_focus=ECONOMY 的结果
 
 
 # ---------------------------------------------------------------------------

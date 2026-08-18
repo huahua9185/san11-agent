@@ -53,30 +53,36 @@ class TacticalDecision:
 
 # 每种内政重心，优先尝试的 ActionKind 顺序。排在前面的先试，武将在这条动作
 # 上没有对应的合法动作就往后退，全部试完还没有就走最终的"保底随便选"分支。
+# 2026-08-18：原先 ECONOMY 首选 LEVY_GOLD、AGRICULTURE 首选 LEVY_FOOD，但实机
+# 截图确认"征收"指令在三国志11里根本不存在（金粮按回合自动结算），两个
+# ActionKind 已删除，见 docs/offset_research.md 第8.2节①。删除后这两个重心
+# 都改为首选 BUILD_FACILITY——它们之间的区别由下面的
+# _FOCUS_FACILITY_PREFERENCE 承担（ECONOMY 选市场系、AGRICULTURE 选农场系），
+# 这比原来靠两个不存在的指令来区分更贴近游戏真实机制。
 _FOCUS_ACTION_PRIORITY: dict[DomesticFocus, tuple[ActionKind, ...]] = {
     DomesticFocus.ECONOMY: (
-        ActionKind.LEVY_GOLD, ActionKind.BUILD_FACILITY, ActionKind.TRAIN_TROOPS,
-        ActionKind.SECURITY_PATROL, ActionKind.LEVY_FOOD, ActionKind.RECRUIT_TROOPS,
+        ActionKind.BUILD_FACILITY, ActionKind.TRAIN_TROOPS,
+        ActionKind.SECURITY_PATROL, ActionKind.RECRUIT_TROOPS,
         ActionKind.DIPLOMACY, ActionKind.STRATAGEM,
     ),
     DomesticFocus.AGRICULTURE: (
-        ActionKind.LEVY_FOOD, ActionKind.BUILD_FACILITY, ActionKind.SECURITY_PATROL,
-        ActionKind.LEVY_GOLD, ActionKind.TRAIN_TROOPS, ActionKind.RECRUIT_TROOPS,
+        ActionKind.BUILD_FACILITY, ActionKind.SECURITY_PATROL,
+        ActionKind.TRAIN_TROOPS, ActionKind.RECRUIT_TROOPS,
         ActionKind.DIPLOMACY, ActionKind.STRATAGEM,
     ),
     DomesticFocus.MILITARY: (
         ActionKind.RECRUIT_TROOPS, ActionKind.TRAIN_TROOPS, ActionKind.BUILD_FACILITY,
-        ActionKind.SECURITY_PATROL, ActionKind.LEVY_GOLD, ActionKind.LEVY_FOOD,
+        ActionKind.SECURITY_PATROL,
         ActionKind.DIPLOMACY, ActionKind.STRATAGEM,
     ),
     DomesticFocus.SECURITY: (
-        ActionKind.SECURITY_PATROL, ActionKind.BUILD_FACILITY, ActionKind.LEVY_GOLD,
-        ActionKind.LEVY_FOOD, ActionKind.TRAIN_TROOPS, ActionKind.RECRUIT_TROOPS,
+        ActionKind.SECURITY_PATROL, ActionKind.BUILD_FACILITY,
+        ActionKind.TRAIN_TROOPS, ActionKind.RECRUIT_TROOPS,
         ActionKind.DIPLOMACY, ActionKind.STRATAGEM,
     ),
     DomesticFocus.BALANCED: (
-        ActionKind.LEVY_GOLD, ActionKind.LEVY_FOOD, ActionKind.SECURITY_PATROL,
-        ActionKind.RECRUIT_TROOPS, ActionKind.TRAIN_TROOPS, ActionKind.BUILD_FACILITY,
+        ActionKind.SECURITY_PATROL, ActionKind.RECRUIT_TROOPS,
+        ActionKind.TRAIN_TROOPS, ActionKind.BUILD_FACILITY,
         ActionKind.DIPLOMACY, ActionKind.STRATAGEM,
     ),
 }

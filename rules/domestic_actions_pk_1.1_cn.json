@@ -12,93 +12,410 @@
       "requires_own_city": true,
       "requires_facility_slot": true,
       "min_general_stamina": {
-        "value": null, "unknown": true, "confidence": "none", "source": "",
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
         "note": "未找到可靠数值来源，需要实机确认每种设施建设是否有不同的体力消耗。"
       },
       "gold_cost": {
-        "value": null, "unknown": true, "confidence": "none", "source": "",
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
         "note": "不同设施类型的建设费用大概率不同（比如市场应该比农田贵），本表暂时不区分，统一未知。"
       },
       "food_cost": {
-        "value": null, "unknown": true, "confidence": "none", "source": "",
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
         "note": "未确认建设是否消耗粮草（也可能只消耗金）。"
       },
       "facility_types": {
-        "farm": { "display_name_cn": "农田", "note": "提升该城农业/粮食产出，具体机制未核实" },
-        "market": { "display_name_cn": "市场", "note": "提升该城商业/金钱产出，具体机制未核实" },
-        "barracks": { "display_name_cn": "兵营", "note": "推测与征兵速度/上限有关，未核实" },
-        "stable": { "display_name_cn": "马厩", "note": "推测与骑兵部队相关，未核实" },
-        "crossbow_tower": { "display_name_cn": "弩楼", "note": "推测与城池防御/守城加成有关，未核实" }
+        "market": {
+          "display_name_cn": "市場",
+          "gold_cost": {
+            "value": 200,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）。选中时下方显示：效果=提高資金收入，期間50日，耐久500，限制=可吸收合併"
+        },
+        "mint": {
+          "display_name_cn": "造幣廠",
+          "gold_cost": {
+            "value": 400,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "black_market": {
+          "display_name_cn": "黑市",
+          "gold_cost": {
+            "value": 50,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）。全部19种设施里最便宜的一个"
+        },
+        "great_market": {
+          "display_name_cn": "大市場",
+          "gold_cost": {
+            "value": 400,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "fish_market": {
+          "display_name_cn": "魚市",
+          "gold_cost": {
+            "value": 400,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "drill_ground": {
+          "display_name_cn": "鍊兵所",
+          "gold_cost": {
+            "value": 200,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "envoy_platform": {
+          "display_name_cn": "待節台",
+          "gold_cost": {
+            "value": 200,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）。字形辨认有轻微不确定"
+        },
+        "farm": {
+          "display_name_cn": "農場",
+          "gold_cost": {
+            "value": 200,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）。这是原表 'farm/农田' 对应的真实设施"
+        },
+        "granary": {
+          "display_name_cn": "穀倉",
+          "gold_cost": {
+            "value": 400,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "military_farm": {
+          "display_name_cn": "軍屯農",
+          "gold_cost": {
+            "value": 400,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "military_office": {
+          "display_name_cn": "軍事府",
+          "gold_cost": {
+            "value": 200,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "personnel_office": {
+          "display_name_cn": "人材府",
+          "gold_cost": {
+            "value": 200,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "diplomacy_office": {
+          "display_name_cn": "外交府",
+          "gold_cost": {
+            "value": 200,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "stratagem_office": {
+          "display_name_cn": "計略府",
+          "gold_cost": {
+            "value": 200,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "barracks": {
+          "display_name_cn": "兵舍",
+          "gold_cost": {
+            "value": 300,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）。这是原表 'barracks/兵营' 对应的真实设施"
+        },
+        "smithy": {
+          "display_name_cn": "鍛冶廠",
+          "gold_cost": {
+            "value": 300,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "stable": {
+          "display_name_cn": "廐舍",
+          "gold_cost": {
+            "value": 300,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）。这是原表 'stable/马厩' 对应的真实设施"
+        },
+        "workshop": {
+          "display_name_cn": "工房",
+          "gold_cost": {
+            "value": 300,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        },
+        "shipyard": {
+          "display_name_cn": "造船廠",
+          "gold_cost": {
+            "value": 300,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏内「都市」→「開發」界面截图（2026-08-18）",
+            "note": "图标下方标注的建设资金；选中「市場」时下方汇总栏显示「資金 200/8440」，与图标标注一致，确认该数字就是建设费用"
+          },
+          "note": "2026-08-18 用户「開發」界面截图确认，金额为图标下方标注的建设费用（资金）"
+        }
       },
-      "note": "2026-08-18 部分确认：游戏「都市」菜单里对应的入口应该是第1项「開發」（菜单7项为 開發/吸收合併/徵兵/生產兵裝/巡察/商人/研究技巧，没有直接叫'建设'的项）。但**没有再点进「開發」里面**，所以下面这五种设施类型（农田/市场/兵营/马厩/弩楼）是否是该版本完整/准确的清单，验证清单8.10 仍未解决。已知的新线索：城池信息面板显示「設施數 0/12」，说明每座城池的设施上限是12个（对应的内存字段尚未定位）。target_tile 参数目前只能取 City.domestic_land_x/domestic_land_y 这一组坐标（M1 offsets 里城池只解析了一组建设用地坐标，不是完整的空位列表），不代表真的定位到了某个具体空位——enumerate_legal_actions() 产出的每个 BuildFacilityAction 都会在 unverified_constraints 里带上 'target_tile_precision' 标记这一点。"
+      "note": "⚠ 2026-08-18 重大修正（验证清单8.10已解决）：用户点开「都市」→「開發」截图了完整设施列表。原表列的5种（农田/市场/兵营/马厩/弩楼）**严重不完整且有一个是错的**——实际有 19 种设施；原表5种里 农田→農場、市场→市場、兵营→兵舍、马厩→廐舍 四种确实存在（名字是繁体写法），但**「弩樓」在开发设施列表里根本不存在**——弩楼在三国志11里是部队在战场上建造的军事建筑，不是城池开发设施，属于分类错误。现已按截图替换为完整的19种。英文键名是本项目自己起的，不是游戏内部标识符；两处字形辨认有轻微不确定（鍊兵所/待節台）。\n\n本次同时拿到了每种设施的**建设费用（资金）**，已填入各自的 gold_cost（50~400不等），这是本规则表里第一批有实机依据的数值。注意 build_facility 顶层的 gold_cost 仍保持 unknown——因为费用是按子类型区分的，没有统一值，下游要判断资金是否够应该看具体子类型的 gold_cost。\n\n仍未验证：体力/行动力消耗（截图显示「行動力 20/235」，推测这次开发消耗20点行动力，但行动力是势力级的每回合资源池，和本表建模的 min_general_stamina（武将个人体力）不是一回事，需要进一步确认这一代到底用哪个；粮草消耗；以及各设施的具体效果数值。\n\ntarget_tile 精度问题（验证清单8.11）**已确认是真问题**：截图显示「空地 15/15」，证明城内建设用地确实是**多格网格**（南皮15格，而平原城池面板显示「設施數 0/12」是12格，说明格数还因城而异），不是 City.domestic_land_x/domestic_land_y 这一组坐标所暗示的单点。要精确枚举'建在哪一格'，需要先在 M1 层面把完整空位列表解析出来（offsets 里 city struct 需要扩展），在那之前 enumerate_legal_actions() 产出的每个 BuildFacilityAction 仍会在 unverified_constraints 里带上 'target_tile_precision' 标记。"
     },
     "recruit_troops": {
       "display_name_cn": "征兵",
       "requires_own_city": true,
-      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
-      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认，推测征兵按人数付费，本表不建模'征多少人'这个数量参数，只建模'能否发起这个指令'。" },
-      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认。"
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认，推测征兵按人数付费，本表不建模'征多少人'这个数量参数，只建模'能否发起这个指令'。"
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认。"
+      },
       "note": "2026-08-18 用户截图确认：对应游戏「都市」菜单第3项「徵兵」，指令确实存在，名称吻合。征哪支部队/征多少兵不在本次枚举范围内——Troop 数据结构目前没有与城池的直接关联字段（GameState.Troop 没有 city_index），LegalActions 只表达'可以在这座城对这位武将发起征兵指令'这个动作本身。"
     },
     "train_troops": {
       "display_name_cn": "训练",
       "requires_own_city": true,
-      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
-      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
-      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认，推测训练不消耗粮草，只消耗体力，但没有依据，仍标 unknown。" },
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认。"
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认。"
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认，推测训练不消耗粮草，只消耗体力，但没有依据，仍标 unknown。"
+      },
       "note": "2026-08-18 用户截图确认：对应游戏「軍事」菜单第1项「訓練」——注意它在「軍事」菜单下，不在「都市」菜单下（「軍事」三项为 訓練/出征/輸送）。本表把它归类为'内政动作'仍然合理（它是在城内对武将下达的、不涉及出征的指令），只是游戏的菜单归类和本表的分类维度不同，将来 M3 执行层要点菜单时需要知道去「軍事」而不是「都市」里找。训练哪支具体部队不在本次枚举范围内，原因同 recruit_troops（Troop 无 city_index 字段）。"
     },
     "security_patrol": {
       "display_name_cn": "治安/巡查",
       "requires_own_city": true,
-      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
-      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认，推测该指令不花钱，只花体力，但没有依据。" },
-      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认。"
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认，推测该指令不花钱，只花体力，但没有依据。"
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认。"
+      },
       "note": "2026-08-18 用户截图确认（验证清单8.8已解决）：游戏「都市」菜单里只有**一个**叫「巡察」的指令（注意是'察'不是'查'），没有单独的'治安'指令——'治安'是城池的一个数值属性（界面显示'治安 73/100'，对应 offsets 里的 city.security 字段），不是一条指令。所以本表把两者合并成一个 ActionKind 是正确的，但 display_name_cn 应该以游戏内实际名称「巡察」为准。原先'不确定是一个还是两个指令'的疑问已消除。"
-    },
-    "levy_gold": {
-      "display_name_cn": "征收（金）",
-      "requires_own_city": true,
-      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
-      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "征收是'获得'金钱的指令，这里的 gold_cost 字段语义是'执行该指令所需的最低城池金钱余额'（如果有的话，比如需要垫付人力成本），不是'征收所得'——目前未找到任何依据说明是否存在这种门槛，标 unknown 即等同于'不设最低余额限制'。" },
-      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
-      "note": "⚠⚠ 2026-08-18 严重存疑，很可能整个指令在这个游戏里不存在：用户截图了「都市」菜单的完整7项（開發/吸收合併/徵兵/生產兵裝/巡察/商人/研究技巧），以及「軍事」「人材」「外交」「計略」「君主」全部五个其它顶层菜单，**没有任何一项是'征收'**。同时城池信息面板显示'資金收入 365 / 兵糧收入 5475'，说明这一代的金钱/粮草是按回合自动结算收入的，不需要玩家手动发起征收指令——'征收'很可能是三国志系列其它作品（比如9代/10代）的机制，被误当作11代的机制写进了本表。**没有直接删除这个 ActionKind**，因为删除涉及 legal_actions.py 的 ActionKind 枚举、LevyGoldAction dataclass、domestic_tactics.py 的多处引用、以及 tests/test_domestic_rules.py 的 _ALL_KINDS 断言，属于跨模块的代码改动，需要用户确认后再做。在删除之前，enumerate_legal_actions() 仍然会枚举出这个动作，下游拿到的动作列表里会包含一个游戏里根本执行不了的指令，这是已知问题。原有说明保留：征收通常会有'过度征收降低治安/民忠'的副作用，这类副作用不影响'能不能发起这个指令'的判断，不在 LegalActions 枚举范围内。"
-    },
-    "levy_food": {
-      "display_name_cn": "征收（粮）",
-      "requires_own_city": true,
-      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
-      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
-      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "同 levy_gold 的 gold_cost 说明，语义是执行门槛，不是征收所得。" },
-      "note": "⚠⚠ 2026-08-18 严重存疑，同 levy_gold：用户截图确认全部六个顶层菜单里都没有'征收'指令，这一代的粮草是按回合自动结算收入的。验证清单8.9 原本问的是'levy_gold 和 levy_food 该不该合并成一个征收指令'，实机答案是**两个都不该存在**。同样出于'删除涉及跨模块代码改动'的考虑没有直接删，需要用户确认，详见 levy_gold 的 note。"
     },
     "diplomacy": {
       "display_name_cn": "外交",
       "requires_own_city": true,
-      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
-      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "部分外交手段（比如赠金/婚姻）大概率需要金钱成本，未核实具体数值，也未区分子类型。" },
-      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认。"
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "部分外交手段（比如赠金/婚姻）大概率需要金钱成本，未核实具体数值，也未区分子类型。"
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认。"
+      },
       "diplomacy_types": {
-        "goodwill": { "display_name_cn": "親善", "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第1项" },
-        "alliance": { "display_name_cn": "同盟", "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第2项" },
-        "break_alliance": { "display_name_cn": "破棄", "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第3项（解除同盟）。字形辨认有轻微不确定：也可能是'摒棄'，但按三国志11系列惯例'同盟破棄'更合理" },
-        "ceasefire": { "display_name_cn": "停戰協定", "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第4项。截图里这一项显示为灰色（当前不可用，推测因为需要先处于交战状态），但指令本身存在" },
-        "demand_surrender": { "display_name_cn": "降伏勸告", "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第5项（劝降）" },
-        "exchange_prisoners": { "display_name_cn": "交換俘虜", "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第6项" },
-        "request_reinforcements": { "display_name_cn": "請求援軍", "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第7项" }
+        "goodwill": {
+          "display_name_cn": "親善",
+          "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第1项"
+        },
+        "alliance": {
+          "display_name_cn": "同盟",
+          "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第2项"
+        },
+        "break_alliance": {
+          "display_name_cn": "破棄",
+          "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第3项（解除同盟）。字形辨认有轻微不确定：也可能是'摒棄'，但按三国志11系列惯例'同盟破棄'更合理"
+        },
+        "ceasefire": {
+          "display_name_cn": "停戰協定",
+          "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第4项。截图里这一项显示为灰色（当前不可用，推测因为需要先处于交战状态），但指令本身存在"
+        },
+        "demand_surrender": {
+          "display_name_cn": "降伏勸告",
+          "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第5项（劝降）"
+        },
+        "exchange_prisoners": {
+          "display_name_cn": "交換俘虜",
+          "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第6项"
+        },
+        "request_reinforcements": {
+          "display_name_cn": "請求援軍",
+          "note": "2026-08-18 用户截图确认，游戏内「外交」菜单第7项"
+        }
       },
       "note": "⚠ 2026-08-18 重大修正：本表原先列的5个子类型（同盟/停战/婚姻/贸易/恫吓）是根据'游戏机制常识'整理的，**实机截图证明其中3个（婚姻/贸易/恫吓）在这个版本的外交菜单里根本不存在**，很可能是把三国志系列其它作品的机制误安到11代上了。现已按用户截图替换为真实的7个子类型。子类型的 id（英文键名）是本项目自己起的，不是游戏内部标识符。仍未验证：每个子类型各自的资源消耗、前置条件。本表也没有对'是否已与该势力接触/接壤'这类前置条件建模——GameState 里没有对应字段能判断'是否已知晓某势力的存在'，enumerate_legal_actions() 会对所有非己方势力都枚举外交动作，这可能过度宽松，已列入提交报告的已知限制。"
     },
     "stratagem": {
       "display_name_cn": "计略",
       "requires_own_city": true,
-      "min_general_stamina": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认，推测计略类指令通常需要较高智力/体力门槛，但武将适性/智力筛选目前数据模型里没有可用字段，见 docs/legal_actions_research.md。" },
-      "gold_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
-      "food_cost": { "value": null, "unknown": true, "confidence": "none", "source": "", "note": "未确认。" },
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认，推测计略类指令通常需要较高智力/体力门槛，但武将适性/智力筛选目前数据模型里没有可用字段，见 docs/legal_actions_research.md。"
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认。"
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "未确认。"
+      },
       "stratagem_types": {
-        "two_tigers": { "display_name_cn": "二虎競食", "note": "2026-08-18 用户截图确认，游戏内「計略」菜单第1项。典故计策：挑动两个敌对势力互相攻击" },
-        "drive_tiger_devour_wolf": { "display_name_cn": "驅虎吞狼", "note": "2026-08-18 用户截图确认，游戏内「計略」菜单第2项" },
-        "spread_rumor": { "display_name_cn": "流言", "note": "2026-08-18 用户截图确认，游戏内「計略」菜单第3项。这是原表5个猜测子类型里唯一猜对的一个" }
+        "two_tigers": {
+          "display_name_cn": "二虎競食",
+          "note": "2026-08-18 用户截图确认，游戏内「計略」菜单第1项。典故计策：挑动两个敌对势力互相攻击"
+        },
+        "drive_tiger_devour_wolf": {
+          "display_name_cn": "驅虎吞狼",
+          "note": "2026-08-18 用户截图确认，游戏内「計略」菜单第2项"
+        },
+        "spread_rumor": {
+          "display_name_cn": "流言",
+          "note": "2026-08-18 用户截图确认，游戏内「計略」菜单第3项。这是原表5个猜测子类型里唯一猜对的一个"
+        }
       },
       "note": "⚠ 2026-08-18 重大修正：本表原先列的5个子类型（离间/煽动/流言/破坏/劫略）是根据'游戏机制常识'整理的，**实机截图证明这个菜单里实际只有3项（二虎競食/驅虎吞狼/流言），原表5个里只有'流言'猜对**，其余4个在菜单里不存在。注意：截图里这3项都是可用状态、没有灰色项，而其它菜单（外交/人材/君主）都有灰色的不可用项，说明这个游戏的菜单会把不可用指令显示为灰色而不是隐藏——因此'計略只有3项'大概率就是完整清单，而不是'其余的因为当前条件不满足被藏起来了'。但这个推论基于单次观察，如果以后在别的游戏状态下看到更多计略项，需要回来修正。子类型的 id（英文键名）是本项目自己起的，不是游戏内部标识符。计略目标城池的可达性（比如是否要求与目标接壤/在一定范围内）仍未建模，enumerate_legal_actions() 会把所有非己方（且归属已知）的城池都列为合法目标，这可能过度宽松。"
     }

@@ -55,8 +55,6 @@ class ActionKind(Enum):
     RECRUIT_TROOPS = "recruit_troops"
     TRAIN_TROOPS = "train_troops"
     SECURITY_PATROL = "security_patrol"
-    LEVY_GOLD = "levy_gold"
-    LEVY_FOOD = "levy_food"
     DIPLOMACY = "diplomacy"
     STRATAGEM = "stratagem"
 
@@ -101,20 +99,6 @@ class SecurityPatrolAction(ActionBase):
 
 
 @dataclass(frozen=True, kw_only=True)
-class LevyGoldAction(ActionBase):
-    """征收（金）。"""
-
-    kind: ActionKind = field(default=ActionKind.LEVY_GOLD, init=False)
-
-
-@dataclass(frozen=True, kw_only=True)
-class LevyFoodAction(ActionBase):
-    """征收（粮）。"""
-
-    kind: ActionKind = field(default=ActionKind.LEVY_FOOD, init=False)
-
-
-@dataclass(frozen=True, kw_only=True)
 class DiplomacyAction(ActionBase):
     """外交。目标势力是否已建立联系未建模，见模块说明。"""
 
@@ -137,8 +121,6 @@ Action = (
     | RecruitTroopsAction
     | TrainTroopsAction
     | SecurityPatrolAction
-    | LevyGoldAction
-    | LevyFoodAction
     | DiplomacyAction
     | StratagemAction
 )
@@ -185,8 +167,6 @@ def _simple_actions(
         (ActionKind.RECRUIT_TROOPS, RecruitTroopsAction),
         (ActionKind.TRAIN_TROOPS, TrainTroopsAction),
         (ActionKind.SECURITY_PATROL, SecurityPatrolAction),
-        (ActionKind.LEVY_GOLD, LevyGoldAction),
-        (ActionKind.LEVY_FOOD, LevyFoodAction),
     ):
         if not rules.has_action(kind.value):
             continue

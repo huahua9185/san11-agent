@@ -45,6 +45,11 @@ class SubTypeSpec:
     id: str
     display_name_cn: str
     note: str = ""
+    # 子类型自己的建设/发动费用。2026-08-18 起 build_facility 的 19 种设施各自
+    # 有实机确认的资金造价（50~400 不等），所以费用必须按子类型表达——动作层级
+    # 的 ActionRuleSpec.gold_cost 对 build_facility 而言没有统一值，仍是 unknown。
+    # 未提供时默认 unknown，语义与其它 RuleValue 一致（不拦截、只标记未验证）。
+    gold_cost: RuleValue = _UNKNOWN_RULE_VALUE
 
 
 @dataclass(frozen=True)
@@ -112,6 +117,7 @@ def _load_sub_types(raw_action: dict[str, Any]) -> dict[str, SubTypeSpec]:
                 id=sub_id,
                 display_name_cn=sub_raw["display_name_cn"],
                 note=sub_raw.get("note", ""),
+                gold_cost=_load_rule_value(sub_raw.get("gold_cost")),
             )
     return sub_types
 
