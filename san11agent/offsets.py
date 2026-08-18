@@ -152,6 +152,16 @@ def _load_anchor(raw: dict[str, Any]) -> AnchorSpec:
     )
 
 
+def load_anchor_candidate(raw: dict[str, Any]) -> AnchorSpec:
+    """解析单个"候选锚点"描述——和 offsets 文件里 anchor 字段同样的 JSON 形状
+    （resolution_method/rva/pointer_chain/fixture_absolute_address/...）。
+
+    供 anchor_probe.py 批量验证 GAME_DATA_BASE 候选地址时复用，不需要另外
+    实现一遍 hex 字符串 / 指针链解析逻辑。
+    """
+    return _load_anchor(raw)
+
+
 def load_offsets(path: str | Path) -> OffsetsConfig:
     raw = json.loads(Path(path).read_text(encoding="utf-8-sig"))
 

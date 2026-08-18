@@ -327,11 +327,33 @@
 1. **`MapProjectionError`（camera 未知触发）和真正的"滚动多次找不到目标格子"是否应该区别对待**：目前两者都被同一个 `except` 分支捕获，会被归位重试 `max_retries` 次；但 `UILayoutError`（ui_layout 未知触发）不会被捕获，直接抛出不重试。这个不一致点在 `docs/execution_research.md` 第3节第8条已经指出，如果你认为"配置缺失"（camera 或 ui_layout 任一未知）都不该重试，`execution.py` 里需要调整一处 `except` 分支。
 2. **`rules/*.json` 的 `unknown` 语义选择"不拦截、只标记"**（`domestic_rules.py` 顶部文档字符串有完整说明）：这是和 `offsets.py`"unknown 就拒绝读取"相反的默认行为。当前选择是为了让 M4 现阶段能产出动作列表；如果你更看重"宁可枚举不全，也不要输出未经验证资源消耗的动作"，`legal_actions.py` 的 `_check_resource()` 一处逻辑需要反转。
 
-## 附录B：如果有个小工具会让这次验证轻松很多——建议，本次未实现
+## 附录B：辅助验证小工具（已实现）
 
-调研过程中发现现有代码库里**没有**任何"读一大块原始内存并做前后对比"或"内存扫描"的能力——`san11agent/cli.py` 的 `snapshot` 命令只能按**已知**的 offsets 解析出结构化数据，对"还不知道偏移在哪"的探索阶段（阶段5的九项、阶段3的锚点扫描）完全帮不上忙，只能依赖外部工具（Cheat Engine）。如果这次验证时间充裕，以下两个小工具会明显减少来回折腾，但**这次没有动手写**，先在这里提出来，看你是否需要我另开一次任务实现：
+这两个工具已经实现，接入了 `san11agent/cli.py`，复用现有的 `MemoryReader`/
+`DumpMemoryReader` 抽象和 `perception.py` 的校验逻辑，不需要新的依赖。核心逻辑在
+`san11agent/mem_snapshot.py`、`san11agent/mem_diff.py`、`san11agent/anchor_probe.py`，
+单元测试在 `tests/test_mem_snapshot.py`、`tests/test_mem_diff.py`、
+`tests/test_anchor_probe.py`、`tests/test_cli.py`。
 
-1. **原始内存快照 + diff 工具**：给定一个地址范围（比如 `GAME_DATA_BASE` 附近若干 KB），dump 成类似 `DumpMemoryReader` 已经支持的 JSON 格式（`memory.py` 已有这个格式的读取逻辑，只是没有"从真实进程写出这种格式"的一端），前后两次 dump 直接在 Python 里 diff 出变化的字节偏移。这样阶段5的"对比切换界面/拖地图/点城池前后快照差异"就不需要在 Cheat Engine 里手动比对，能直接定位到候选偏移，反过来验证也更快。
-2. **锚点候选验证小工具**：给定 `ProcessMemoryReader.module_base` 和几个候选 RVA/指针链，批量尝试解引用，打印每个候选算出的地址处的字节内容（如果看起来像武将姓名的 GBK 字节，大概率就是对的），减少在 Cheat Engine 里手动敲地址的次数。
+1. **原始内存快照 + diff 工具**（`mem-dump` + `mem-diff` 子命令）：给定一个或多个
+   地址范围，从真实进程抓取快照写成 dump json；`mem-diff` 对比两份或多份快照，
+   按连续区间分组报告哪些地址变了、变化前后的字节内容（附带 u8/u16/i32/GBK 等
+   几种类型解读），支持按地址范围/最小变化字节数过滤、按地址或变化幅度排序。
+   三份及以上快照时会额外做"相邻快照两两 diff"的交叉比对，报告"每次过渡都变化
+   的地址"和"只在某一次过渡里变化的地址"。示例：
+   ```
+   python -m san11agent.cli mem-dump --process san11pk.exe --region 0x07201958:0x2000 --out before.json --label before
+   （切换到内政界面）
+   python -m san11agent.cli mem-dump --process san11pk.exe --region 0x07201958:0x2000 --out after.json --label after
+   python -m san11agent.cli mem-diff before.json after.json --base 0x07201958
+   ```
+2. **锚点候选批量验证工具**（`probe-anchor` 子命令）：给定一批候选 RVA/绝对地址/
+   指针链（命令行参数或候选文件），对每个候选解析出 GAME_DATA_BASE，跑一遍
+   `perception.validate_constants()` 现成的启动常量校验，报告每个候选通过/不通过、
+   不通过时具体是哪个常量、期望值/实际读到的值分别是什么。示例：
+   ```
+   python -m san11agent.cli probe-anchor --offsets offsets/pk_1.1_cn.json --process san11pk.exe \
+       --rva 0x1958 --pointer-chain 0x1a2b3c,0x10,0x20
+   ```
 
-这两个工具都可以复用现有的 `MemoryReader`/`ProcessMemoryReader` 抽象，不需要新的依赖，工作量不大，但会不会有用取决于你实际打算用 Cheat Engine 还是纯 Python 脚本做扫描——如果你更习惯 CE 图形界面操作，这两个工具可能意义不大，可以先跳过。
+详细用法、设计取舍、测试覆盖见对应的实现报告（聊天记录）。

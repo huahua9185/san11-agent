@@ -107,6 +107,15 @@ class DumpMemoryReader(MemoryReader):
     def module_base(self) -> int:
         return self._module_base
 
+    @property
+    def regions(self) -> list[tuple[int, bytes]]:
+        """按起始地址升序排列的 (起始地址, 原始字节) 列表。
+
+        供 mem_diff.py 等需要直接遍历"这份快照覆盖了哪些地址范围"的工具使用，
+        不经过 read_bytes()"必须完整落在单个区间内"的限制。
+        """
+        return [(r.start, r.data) for r in self._regions]
+
     def read_bytes(self, address: int, size: int) -> bytes:
         end = address + size
         for region in self._regions:
