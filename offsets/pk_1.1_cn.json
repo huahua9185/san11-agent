@@ -205,6 +205,36 @@
         "display_construction": { "offset": "0xCB", "size": 1, "type": "u8", "unknown": false, "confidence": "medium", "source": "地址资料.txt" }
       }
     },
+    "camera": {
+      "base_offset": null,
+      "struct_size": null,
+      "count": 1,
+      "fields": {
+        "offset_x": {
+          "offset": null, "unknown": true,
+          "note": "地图摄像机横向偏移。M3（执行层脚手架）阶段没有专门为这个字段做内存研究——游戏当前无法运行（见 docs/execution_research.md），沿用的 311MemoryResearch 资料里也没有检索到迷雾/视野之外的、跟'地图滚动/摄像机'相关的字段。需要之后专门定位，比如对比拖动/滚动地图前后的内存快照差异。"
+        },
+        "offset_y": {
+          "offset": null, "unknown": true,
+          "note": "同 offset_x，纵向偏移，同样未定位，见 docs/execution_research.md。"
+        },
+        "zoom_level": {
+          "offset": null, "unknown": true,
+          "note": "地图缩放级别。未定位；即便定位到字段本身，它的数值含义（是否线性对应缩放比例、是否是索引进一张预设缩放表）也需要实机验证，见 docs/execution_research.md 和 san11agent/map_projection.py 里换算公式的说明。"
+        }
+      }
+    },
+    "selection": {
+      "base_offset": null,
+      "struct_size": null,
+      "count": 1,
+      "fields": {
+        "selected_city_index": {
+          "offset": null, "unknown": true,
+          "note": "当前被选中/高亮的城池在 city 数组里的 index。M3 执行链路用它来轮询确认'点击城池'这个动作是否生效，目前没有找到对应字段，需要之后专门定位，比如对比点击不同城池前后的内存快照差异。见 docs/execution_research.md。"
+        }
+      }
+    },
     "faction": {
       "base_offset": "0x7AF8",
       "struct_size": "0x12C",

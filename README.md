@@ -2,9 +2,59 @@
 
 《三国志11：威力加强版》(san11pk.exe) LLM 代理研究项目。让 LLM 像人类玩家一样操作游戏、推进一局对局，衡量 AI 与人类玩家的决策差距。个人研究项目，游戏为本地单机离线游戏。
 
-完整项目规格见对话记录 / 项目 wiki（本仓库暂未收录规格文档本身）。核心约束：**信息边界**——中间层必须显式过滤，只暴露人类玩家在界面上能看到的信息。M2 已经实现这一层过滤器，见下方"当前状态"。
+完整项目规格见对话记录 / 项目 wiki（本仓库暂未收录规格文档本身）。核心约束：**信息边界**——中间层必须显式过滤，只暴露人类玩家在界面上能看到的信息，M2 已实现；**执行层**——键鼠模拟走 Win32 SendInput，动作可重入、失败即归位重来，M3 已搭好脚手架，见下方"当前状态"。
 
-## 当前状态：M2 — 信息边界过滤器
+## 当前状态：M3 — 执行层最小链路脚手架
+
+**本次范围有一个重要前提**：真实游戏当前无法运行（用户机器锁屏、人在远程），
+且 M1 的 GAME_DATA_BASE 锚点仍未解决。所以 M3 这一轮**没有**接触真实游戏，
+只搭建了这条链路的执行层基础设施，用可替换的假后端（dry-run）离线测试，
+等锚点问题解决、游戏能跑时直接换上真实实现。验收目标（来自项目规格）：
+
+> 验证一条完整链路：从内存读某城池格子坐标 → 滚动地图使其进入视野 → 点击 →
+> 轮询确认内存中"当前选中城池"已变更。
+
+- [x] `InputBackend` 键鼠输入抽象（`san11agent/input_backend.py`）：
+  `SendInputBackend`（Win32 SendInput，仅 Windows，真的会发送输入，自动化
+  测试里从未实际调用过）+ `FakeInputBackend`（只记录调用，支持
+  `on_click`/`on_key_press` 回调模拟"游戏对输入做出反应"，供测试用）
+- [x] 窗口/坐标（`san11agent/window.py`）：`ensure_dpi_awareness()` 启动时
+  设置 DPI 感知；`Win32GameWindow.client_to_screen()` 做客户区->屏幕坐标
+  换算；`FakeGameWindow` 供离线测试
+- [x] 界面固定元素坐标表（`ui_layout/`，格式参考 `offsets/` 的做法）+ 加载器
+  （`san11agent/ui_layout.py`）——生产文件 `ui_layout/pk_1.1_cn.json` 目前
+  只搭好了格式，`map_viewport` 等元素全部 `unknown: true`（游戏无法运行，
+  完全没有测量数据）
+- [x] 地图格子坐标 -> 屏幕坐标换算（`san11agent/map_projection.py`）：从
+  内存读摄像机偏移/缩放反算屏幕位置，目标在视野外返回 `None` 交给上层滚动。
+  换算公式（正交网格 + 线性缩放假设）**未经真实游戏验证**，见
+  docs/execution_research.md
+- [x] 通用轮询/超时/重试机制，可注入时钟（`san11agent/clock.py` +
+  `san11agent/polling.py`）：禁止固定 sleep，所有等待走 `poll_until()`，
+  测试用 `FakeClock` 完全不真的等待
+- [x] 归位例程 + 可重入的动作序列（`san11agent/execution.py`
+  `CitySelector`）：失败即连按 Esc 归位、整个动作重来，不做中途状态恢复；
+  归位目前只能做到"发 Esc"，无法校验是否真的回到已知界面（`GlobalState.phase`
+  仍是 M1 遗留的 unknown 字段）
+- [x] 完整动作日志（`san11agent/action_log.py`）：时间/意图/参数/结果/
+  执行前后状态差异
+- [x] `offsets/pk_1.1_cn.json` 新增 `camera`（摄像机偏移/缩放）、
+  `selection`（当前选中城池）两个 struct，按 M1 既有原则标 `unknown: true`，
+  不猜测填值
+- [x] CLI `select-city` 子命令（`san11agent/cli.py`），默认演练模式
+  （`FakeInputBackend`，不发送真实输入），加 `--live` 才切换到真实后端
+- [x] 单元测试：假后端 + 假内存（新增 `MutableMemoryReader`）+ 可注入时钟，
+  完全离线，覆盖成功/滚动进视野/超时重试/归位/配置缺失报错等分支
+- [ ] **真实游戏场景下的实际验证**——依赖 `camera`/`selection` 两组新增
+  unknown 字段、`ui_layout` 坐标测量、以及第3节列出的多条设计假设（地图
+  网格形状、滚动输入方式、SendInput 是否被游戏感知等），全部详见
+  docs/execution_research.md
+
+**没有做**（有意，等真实游戏能跑、锚点问题解决后再推进）：跟真实游戏的
+实际联调（发一次真实点击、看游戏是否响应）、LegalActions/Execute 更高层的
+动作接口、LLM 接入、战斗。
+
+## 历史状态：M2 — 信息边界过滤器
 
 在 M1（内存读取与状态解析）之上加了一层白名单式过滤器，把完整 `GameState` 转换成人类可见的 `VisibleGameState`。
 
@@ -14,7 +64,7 @@
 - [x] 对比测试：完整 GameState fixture vs 过滤后结果逐字段断言禁止字段不泄漏 + 白名单字段集合回归测试（`tests/test_boundary.py`、`tests/test_visibility.py`）
 - [ ] 真实进程场景下的实际验证——依赖 M1 的 `city.faction_id` 缺口和 M2 新发现的探明/视野/武将发现缺口，见 `docs/visibility_research.md`
 
-**没有做**（有意，等你验证 M2 后再推进）：M3 及以后（写操作/键鼠模拟、LegalActions/Execute、LLM 接入、战斗）。CLI 暂未接入 `--visible` 之类的过滤开关——见提交报告里的说明。
+CLI 暂未接入 `--visible` 之类的过滤开关——见提交报告里的说明。
 
 ## M1 — 内存读取与状态解析（已完成）
 
@@ -30,27 +80,54 @@
 ```
 docs/offset_research.md      M1：内存偏移的调研报告——来源、可信度评估、所有未解决问题
 docs/visibility_research.md  M2：可见性状态的调研报告——探明/视野/武将发现相关缺口
+docs/execution_research.md   M3：执行层调研报告——camera/selection 内存缺口、ui_layout 坐标缺口、所有未经验证的设计假设
 offsets/schema.json       offsets 文件的格式定义（人类可读的权威文档）
-offsets/pk_1.1_cn.json    候选偏移表（未在真实进程验证过，meta.verified=false）
+offsets/pk_1.1_cn.json    候选偏移表（未在真实进程验证过，meta.verified=false；含 M3 新增的 camera/selection struct）
+ui_layout/schema.json     ui_layout 文件的格式定义（客户区固定元素坐标表，跟 offsets 平行但不是内存偏移）
+ui_layout/pk_1.1_cn.json  界面坐标表（M3 阶段游戏无法运行，全部 unknown，只搭好格式）
 san11agent/
-  memory.py                MemoryReader 抽象 + ProcessMemoryReader(真实进程) + DumpMemoryReader(离线dump)
+  memory.py                MemoryReader 抽象 + ProcessMemoryReader(真实进程) + DumpMemoryReader(离线dump) + MutableMemoryReader(可写，仅供 M3 测试用)
   offsets.py                加载/校验 offsets json
   game_state.py             GameState 数据结构（General/City/Troop/Faction/GlobalState）—— M1，完整未过滤
-  perception.py             anchor 解析 + 按 offsets 把内存字节解析成 GameState + 启动常量校验
-  cli.py                     命令行快照工具
+  perception.py             anchor 解析 + 按 offsets 把内存字节解析成 GameState + 启动常量校验 + read_struct_fields() 公共读取逻辑
+  cli.py                     命令行工具：snapshot（快照）+ select-city（M3 执行链路，默认演练模式）
   visibility.py              M2：VisibilitySource 抽象 + StaticVisibilitySource(离线) + UnresolvedVisibilitySource(真实进程占位)
   visible_state.py           M2：白名单式人类可见状态类型（VisibleGameState 及其子结构）
   boundary.py                M2：filter_game_state()，GameState -> VisibleGameState 的过滤器本体
+  clock.py                   M3：Clock 抽象 + SystemClock(真实) + FakeClock(测试用可控时钟)
+  polling.py                 M3：poll_until() 通用轮询/超时机制，可注入 Clock
+  action_log.py              M3：ActionLog/ActionLogEntry，完整动作日志（时间/意图/参数/结果/状态差异）
+  window.py                  M3：GameWindow 抽象 + Win32GameWindow(真实，ClientToScreen) + FakeGameWindow(测试) + ensure_dpi_awareness()
+  input_backend.py           M3：InputBackend 抽象 + SendInputBackend(真实 Win32 SendInput) + FakeInputBackend(测试，支持回调)
+  ui_layout.py                M3：加载 ui_layout/*.json 界面固定元素坐标表
+  execution_state.py         M3：CameraState/SelectionState 解析（复用 perception.read_struct_fields）
+  map_projection.py          M3：地图格子坐标 -> 客户区坐标换算（project_tile_to_client）
+  execution.py               M3：CitySelector 执行链路——滚动进视野→点击→轮询确认→失败归位重来
 tests/
   test_offsets.py            offsets 文件加载与校验的单元测试
   test_perception.py          GameState 解析的单元测试（合成 fixture）
-  test_cli.py                  命令行工具的单元测试
+  test_cli.py                  命令行工具（snapshot）的单元测试
+  test_cli_select_city.py      命令行工具（select-city）的冒烟测试
   test_visibility.py           VisibilitySource 各实现的单元测试
   test_boundary.py             M2 核心：完整 GameState fixture vs 过滤结果的对比测试 + 白名单字段回归测试
+  test_memory.py                MutableMemoryReader 单元测试
+  test_clock.py                 FakeClock 单元测试
+  test_polling.py               poll_until() 单元测试（超时/重试，不真的等待）
+  test_action_log.py            ActionLog/diff_state 单元测试
+  test_window.py                FakeGameWindow/ensure_dpi_awareness 单元测试
+  test_input_backend.py         FakeInputBackend 单元测试 + SendInput 坐标换算纯函数测试
+  test_ui_layout.py             ui_layout 加载器单元测试
+  test_map_projection.py        地图坐标换算单元测试
+  test_execution_state.py       CameraState/SelectionState 解析单元测试
+  test_execution.py             M3 核心：CitySelector 全链路测试（成功/滚动/超时重试/归位/配置缺失报错）
   fixtures/
-    offsets_test.json          仅供测试用的最小偏移表（结构形状同生产文件，数值是编的）
-    build_synthetic_dump.py    生成合成内存 dump 的脚本
-    synthetic_dump.json        生成出来的合成内存 dump（build_synthetic_dump.py 的输出，已提交方便直接跑测试）
+    offsets_test.json                    M1/M2 用：仅供测试的最小偏移表（结构形状同生产文件，数值是编的）
+    offsets_execution_test.json          M3 用：只含 camera/selection 的最小偏移表
+    ui_layout_test.json                  M3 用：含已知坐标的 ui_layout 测试 fixture
+    build_synthetic_dump.py              生成 M1/M2 合成内存 dump 的脚本
+    synthetic_dump.json                  M1/M2 合成内存 dump（已提交方便直接跑测试）
+    build_synthetic_execution_dump.py    生成 M3 CLI 冒烟测试用合成内存 dump 的脚本
+    synthetic_execution_dump.json        M3 合成内存 dump（已提交方便直接跑测试）
 ```
 
 ## ⚠ 已知缺口
@@ -59,24 +136,30 @@ tests/
 
 **M2**（详见 docs/visibility_research.md）：探明城池/视野内部队/已发现在野武将这三类可见性状态，在现有内存资料里完全没有找到对应字段。真实进程场景下调用 `UnresolvedVisibilitySource` 的对应方法会显式抛出 `VisibilityUnknownError`。另外，M1 里 `city.faction_id` 本身也是 unknown，导致过滤器目前无法在真实进程数据上正确判断"这座城是不是我的"——会保守地把所有城池当非己方处理（只给摘要，不泄漏，但也不好用），这两个缺口解决前，M2 过滤器在真实对局里还用不起来，但离线测试证明了过滤逻辑本身是对的。
 
+**M3**（详见 docs/execution_research.md）：`camera`（摄像机偏移/缩放）、`selection`（当前选中城池）两组新增内存字段完全未定位；`ui_layout/pk_1.1_cn.json` 里的界面坐标（`map_viewport`）完全没有真实测量数据。这两类缺口解决前，`CitySelector` 在真实进程场景下会在坐标换算那一步显式报错，不会用编出来的坐标点击。另外，这次新写的地图坐标换算公式、地图滚动的输入方式（假设方向键）、SendInput 是否被游戏感知，都是**未经真实游戏验证的设计假设**，不是已确认的事实——详见 docs/execution_research.md 第3节和第5节"需要你确认的问题"。
+
 ## 运行
 
-开发机上 `python`/`pip` 命令本身是 Windows Store 的执行别名占位符（不可用），但机器上装有独立的 Python 3.12（`%LOCALAPPDATA%\Programs\Python\Python312\python.exe`），已用它实际跑过下面的命令并确认可用（M1+M2 共 55 个测试全通过）。
+开发机上 `python`/`pip` 命令本身是 Windows Store 的执行别名占位符（不可用），但机器上装有独立的 Python 3.12（`%LOCALAPPDATA%\Programs\Python\Python312\python.exe`），已用它实际跑过下面的命令并确认可用（M1+M2+M3 共 112 个测试全通过，全部离线、不依赖真实游戏、不真的等待）。
 
 ```bash
 pip install -r requirements-dev.txt
 
 # 生成合成测试 dump（仓库里已经带了一份生成好的，一般不需要重新生成）
 python tests/fixtures/build_synthetic_dump.py
+python tests/fixtures/build_synthetic_execution_dump.py
 
 # 跑单元测试
 pytest
 
-# 命令行工具：离线 dump 模式
+# 命令行工具：离线 dump 模式，打印快照
 python -m san11agent.cli snapshot --offsets tests/fixtures/offsets_test.json --dump tests/fixtures/synthetic_dump.json --summary
 
 # 命令行工具：真实进程模式（预期会因为 anchor unknown 而报错退出，这是当前阶段的正确行为）
 python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --process san11pk.exe
+
+# 命令行工具：M3 执行链路，离线演练模式（不发送真实输入，用 --dump 只读内存所以最终会轮询超时，用来验证链路本身跑不跑得通）
+python -m san11agent.cli select-city --offsets tests/fixtures/offsets_execution_test.json --ui-layout tests/fixtures/ui_layout_test.json --dump tests/fixtures/synthetic_execution_dump.json --city-index 3 --tile-x 5 --tile-y 5 --poll-timeout 0.2
 ```
 
-运行时依赖：无第三方库，只用了标准库（`ctypes`/`json`/`dataclasses`/`argparse`）。测试依赖：`pytest`（见 `requirements-dev.txt`）。M2 的过滤器暂未接入 CLI（`san11agent.cli` 还没有 `--visible` 之类的开关），只能通过 Python API（`san11agent.boundary.filter_game_state`）调用——见提交报告里的说明。
+运行时依赖：无第三方库，只用了标准库（`ctypes`/`json`/`dataclasses`/`argparse`）。测试依赖：`pytest`（见 `requirements-dev.txt`）。M2 的过滤器暂未接入 CLI（`san11agent.cli` 还没有 `--visible` 之类的开关），只能通过 Python API（`san11agent.boundary.filter_game_state`）调用——见提交报告里的说明。M3 的 `select-city` 子命令默认是演练模式（`FakeInputBackend`，不发送真实输入），要真的操作游戏窗口需要显式加 `--live`（仅 Windows，且目前 camera/selection 字段/ui_layout 坐标都是 unknown，实际跑不通，见上方"已知缺口"）。

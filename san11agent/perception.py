@@ -99,10 +99,24 @@ def _record_address(struct_spec: StructSpec, game_data_base: int, index: int) ->
     return array_base + index * struct_spec.struct_size
 
 
-def parse_global_state(reader: MemoryReader, offsets: OffsetsConfig, game_data_base: int) -> GlobalState:
-    spec = offsets.struct("global")
+def read_struct_fields(
+    reader: MemoryReader, offsets: OffsetsConfig, game_data_base: int, struct_name: str
+) -> dict[str, object]:
+    """按 offsets 里某个单例结构体（count=1，比如 global）的字段表，从
+    game_data_base + struct.base_offset 处读出所有字段，返回 {字段名: 值} 的字典。
+
+    只适用于单例结构体。数组结构体（general/city/troop/faction）各自有按
+    index 展开的 parse_*() 函数，不复用这个。M3 的 execution_state.py 复用这个
+    函数读 camera/selection 这两个同样是单例的结构体，不需要重新实现一遍
+    "按 offsets 读单例结构体字段"这套逻辑。
+    """
+    spec = offsets.struct(struct_name)
     base = game_data_base + (spec.base_offset or 0)
-    f = {name: _read_field(reader, base, field_spec) for name, field_spec in spec.fields.items()}
+    return {name: _read_field(reader, base, field_spec) for name, field_spec in spec.fields.items()}
+
+
+def parse_global_state(reader: MemoryReader, offsets: OffsetsConfig, game_data_base: int) -> GlobalState:
+    f = read_struct_fields(reader, offsets, game_data_base, "global")
     return GlobalState(
         scenario_id=f["scenario_id"],
         start_year=f["start_year"],

@@ -131,6 +131,52 @@ class DumpMemoryReader(MemoryReader):
         return cls(regions, module_base)
 
 
+class MutableMemoryReader(MemoryReader):
+    """可写的离线内存镜像 —— 仅供 M3 执行层测试使用。
+
+    用途：模拟"游戏对输入做出反应、内存里的值发生了变化"，比如测试里在
+    FakeInputBackend 的 on_click 回调里调用 write_bytes() 改写"当前选中城池"
+    字段，让上层的轮询逻辑能观察到真实变化，而不需要真的等待或猜测时序。
+
+    重要边界：这里的"写"只是测试替身自己内部状态的写，不代表、也不应该被
+    理解为本项目具备"写真实游戏进程内存"的能力——真实进程场景下
+    ProcessMemoryReader 仍然只做 ReadProcessMemory，是纯只读的。本项目和真实
+    游戏之间唯一的交互渠道是键鼠输入（见 input_backend.py），不通过写内存
+    模拟操作或改变游戏状态。
+    """
+
+    def __init__(self, regions: dict[int, bytes], module_base: int):
+        self._regions = {addr: bytearray(data) for addr, data in regions.items()}
+        self._module_base = module_base
+
+    @property
+    def module_base(self) -> int:
+        return self._module_base
+
+    def _find_region(self, address: int, size: int) -> tuple[int, bytearray]:
+        end = address + size
+        for start, data in self._regions.items():
+            if start <= address and end <= start + len(data):
+                return start, data
+        raise MemoryReadError(
+            f"内存里没有覆盖地址范围 [0x{address:X}, 0x{end:X})，"
+            f"已加载区域: {[(hex(a), hex(a + len(d))) for a, d in self._regions.items()]}"
+        )
+
+    def read_bytes(self, address: int, size: int) -> bytes:
+        start, data = self._find_region(address, size)
+        off = address - start
+        return bytes(data[off:off + size])
+
+    def write_bytes(self, address: int, data: bytes) -> None:
+        start, region = self._find_region(address, len(data))
+        off = address - start
+        region[off:off + len(data)] = data
+
+    def write_i32(self, address: int, value: int) -> None:
+        self.write_bytes(address, struct.pack("<i", value))
+
+
 # ---------------------------------------------------------------------------
 # 真实 Windows 进程实现
 # ---------------------------------------------------------------------------

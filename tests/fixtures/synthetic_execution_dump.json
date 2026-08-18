@@ -1,0 +1,9 @@
+{
+  "module_base": "0x00400000",
+  "regions": [
+    {
+      "address": "0x1000",
+      "data_base64": "AAAAAAAAAABkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/////AAAAAAAAAAAAAAAA"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "san11agent/ui-layout-schema",
+  "title": "san11-agent UI layout file",
+  "description": "游戏客户区内固定界面元素的相对坐标表。注意：这里存的是屏幕像素坐标，不是内存偏移（跟 offsets/ 不是同一类数据，来源、验证方式都不同——offsets 靠逆向内存研究，这里靠实际截图/测量运行中的游戏窗口）。所有坐标相对客户区左上角 (0,0)，通过 GameWindow.client_to_screen() 换算成屏幕绝对坐标。坐标未经真实游戏测量前必须写 unknown:true，不能猜测填值，做法与 offsets/schema.json 一致。",
+  "type": "object",
+  "required": ["meta", "elements"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["label", "verified"],
+      "properties": {
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "assumed_client_resolution": {
+          "type": ["array", "null"],
+          "description": "测量这些坐标时假设的客户区分辨率 [宽, 高]；游戏客户区实际大小和这个不一致时，这里的坐标很可能不准，需要重新测量或做等比缩放（后者本身也是未经验证的假设）。",
+          "items": { "type": "integer" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "verified": { "type": "boolean", "description": "是否已经在真实运行的游戏窗口上测量/验证过" }
+      }
+    },
+    "elements": {
+      "type": "object",
+      "description": "命名的界面元素。普通按钮只需要 x/y；地图视口(map_viewport)额外带 width/height（视口矩形大小）和 tile_width/tile_height（缩放=1时每个地图格子的像素尺寸，供 map_projection.py 用）。",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["unknown"],
+        "properties": {
+          "x": { "type": ["integer", "null"] },
+          "y": { "type": ["integer", "null"] },
+          "width": { "type": ["integer", "null"] },
+          "height": { "type": ["integer", "null"] },
+          "tile_width": { "type": ["integer", "null"] },
+          "tile_height": { "type": ["integer", "null"] },
+          "unknown": { "type": "boolean" },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

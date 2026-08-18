@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "label": "test_fixture",
+    "description": "仅供单元测试用，坐标是为了测试方便编的，不代表真实游戏窗口。",
+    "assumed_client_resolution": [800, 600],
+    "verified": true
+  },
+  "elements": {
+    "map_viewport": {
+      "x": 100, "y": 50, "width": 400, "height": 300,
+      "tile_width": 20, "tile_height": 20,
+      "unknown": false
+    },
+    "end_turn_button": {
+      "x": 750, "y": 20,
+      "unknown": false
+    },
+    "unmeasured_button": {
+      "x": null, "y": null,
+      "unknown": true,
+      "note": "测试用：故意标记未知，验证 require_known() 会报错"
+    }
+  }
+}

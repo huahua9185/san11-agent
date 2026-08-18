@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "label": "pk_1.1_cn",
+    "description": "san11pk.exe 界面固定元素坐标表。M3（执行层脚手架）阶段游戏完全无法运行（用户机器锁屏/远程，且 GAME_DATA_BASE 锚点也未解决），没有任何真实截图或测量数据——这个文件目前只是把格式搭好，所有元素留空。等游戏能实际运行后，需要现场测量（截图量坐标，或用 Spy++ / AutoIt Window Info 之类工具读控件位置）填入，届时把对应条目的 unknown 改成 false 并补上具体数值，同时把 meta.verified 改成 true。见 docs/execution_research.md。",
+    "assumed_client_resolution": null,
+    "verified": false
+  },
+  "elements": {
+    "map_viewport": {
+      "x": null, "y": null, "width": null, "height": null,
+      "tile_width": null, "tile_height": null,
+      "unknown": true,
+      "note": "地图显示区域在客户区内的矩形范围，以及每个地图格子在缩放=1时的像素尺寸。map_projection.py 的地图坐标换算依赖这几个值，目前全部未知，见 docs/execution_research.md。"
+    }
+  }
+}

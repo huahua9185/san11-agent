@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "label": "execution_test_fixture",
+    "description": "仅供 M3 执行层单元测试使用的合成偏移表：只包含 camera/selection 两个单例结构体，字段布局是为了测试方便手工编排的，不代表任何真实游戏版本。跟 tests/fixtures/offsets_test.json（M1/M2 用）分开，避免把执行层测试专用的、编造出来的 camera/selection 已知值混进 M1/M2 那份『刻意保持 city.map_x/faction_id 等字段 unknown』的语义测试里。",
+    "process_name": "fake_test.exe",
+    "verified": true,
+    "game_version": "test-only",
+    "sources": []
+  },
+  "anchor": {
+    "resolution_method": "fixed_for_fixture",
+    "fixture_absolute_address": "0x1000",
+    "confidence": "high",
+    "note": "仅测试用：固定地址，不经过 module_base 换算"
+  },
+  "structs": {
+    "camera": {
+      "base_offset": "0x0",
+      "struct_size": null,
+      "count": 1,
+      "fields": {
+        "offset_x": {"offset": "0x00", "size": 4, "type": "i32", "unknown": false},
+        "offset_y": {"offset": "0x04", "size": 4, "type": "i32", "unknown": false},
+        "zoom_level": {"offset": "0x08", "size": 4, "type": "i32", "unknown": false}
+      }
+    },
+    "selection": {
+      "base_offset": "0x20",
+      "struct_size": null,
+      "count": 1,
+      "fields": {
+        "selected_city_index": {"offset": "0x00", "size": 4, "type": "i32", "unknown": false}
+      }
+    }
+  },
+  "validation": {}
+}
