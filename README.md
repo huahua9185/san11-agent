@@ -2,9 +2,67 @@
 
 《三国志11：威力加强版》(san11pk.exe) LLM 代理研究项目。让 LLM 像人类玩家一样操作游戏、推进一局对局，衡量 AI 与人类玩家的决策差距。个人研究项目，游戏为本地单机离线游戏。
 
-完整项目规格见对话记录 / 项目 wiki（本仓库暂未收录规格文档本身）。核心约束：**信息边界**——中间层必须显式过滤，只暴露人类玩家在界面上能看到的信息，M2 已实现；**执行层**——键鼠模拟走 Win32 SendInput，动作可重入、失败即归位重来，M3 已搭好脚手架；**LegalActions**——AI 只能从"当前合法动作"的结构化列表里选，不能自己猜规则、不会输出非法指令，M4 本次先做了内政阶段这一半，见下方"当前状态"。
+完整项目规格见对话记录 / 项目 wiki（本仓库暂未收录规格文档本身）。核心约束：**信息边界**——中间层必须显式过滤，只暴露人类玩家在界面上能看到的信息，M2 已实现；**执行层**——键鼠模拟走 Win32 SendInput，动作可重入、失败即归位重来，M3 已搭好脚手架；**LegalActions**——AI 只能从"当前合法动作"的结构化列表里选，不能自己猜规则、不会输出非法指令，M4 做了内政阶段这一半；**战略层**——LLM 只做高层决策（每 N 回合一次），战术层用规则把意图翻译成动作，M5 本次搭好了这条链路的地基（假 LLM 后端），见下方"当前状态"。
 
-## 当前状态：M4（上半场）— LegalActions（内政阶段）
+## 当前状态：M5（地基）— 战略备忘录 + 战略层调用框架
+
+**本次范围有一个重要前提**：真实游戏当前无法运行（用户机器锁屏、人在远程），
+且不接任何真实 LLM API（用户明确要求）。所以本次**只做能离线测试的部分**：
+战略备忘录读写、局势摘要、LLM 战略层接口（用假后端）、高层意图类型、内政
+战术层、主循环——全部用 `FakeStrategyLLM`/`FakeGameStateSource`/
+`FakeActionExecutor` 离线跑通，不调用任何真实模型、不操作真实游戏。验收
+目标（来自项目规格）：
+
+> **M5 — LLM 接入**：战略备忘录 + 战略层调用，跑通"AI 决策 -> 执行 -> 推进
+> 回合"的完整循环，能连续自动推进若干回合。
+
+- [x] **战略备忘录**（`san11agent/strategy_memo.py`）：Markdown 正文 +
+  极简元数据头（`schema_version`/`turn`/`checksum`，纯 `key: value`，不引入
+  PyYAML），原子写（临时文件 + `Path.replace()`）+ 写入前自动备份上一版
+  （`<path>.bak`）+ 校验和检测损坏（`StrategyMemoCorruptedError`）+ 长度
+  预算超限拒绝写入（`StrategyMemoTooLongError`，不做自动截断/自动摘要）
+- [x] **局势摘要**（`san11agent/situation_summary.py`）：**核心约束同 M4**
+  ——`summarize_situation()` 只建立在 M2 的 `VisibleGameState` 之上，完全
+  不引用完整 `GameState`，`tests/test_situation_summary.py` 有专门的架构
+  守卫测试（模块不绑定完整 GameState 类型名、AST 检查只 import 了
+  `visible_state`/`legal_actions`、参数类型标注核实）守住这一点
+- [x] **高层意图类型体系**（`san11agent/intent.py`）：结构化 `StrategicIntent`
+  （不是自由文本），`default_focus`（内政重心，5种封闭枚举）+
+  `city_directives`（按城池覆盖 + 记录镇守人选）+ `target_faction_index`/
+  `expansion_notes`（攻打哪个势力/扩张方向，本次只做类型占位，不驱动动作
+  ——没有战斗/出征执行层可以消费，见 docs/strategy_research.md 第3节）
+- [x] **LLM 战略层接口**（`san11agent/strategy_llm.py`）：`StrategyLLM`
+  抽象（`decide(prompt) -> str`，返回原始文本贴近真实 LLM 形态）+
+  `FakeStrategyLLM`（可脚本化/可用 callable 驱动，完全离线不联网）+
+  `build_strategy_prompt()`（局势摘要 + 备忘录 + JSON 输出格式说明三段拼接）
+  + `parse_llm_response()`（fail closed 解析，逐字段校验，非法内容抛
+  `StrategyParseError` 并点名具体字段）
+- [x] **内政战术执行层**（`san11agent/domestic_tactics.py`）：**核心约束**
+  ——`select_domestic_actions()` 返回的每个动作，必须是传入的
+  `legal_actions`（M4 `enumerate_legal_actions()` 的产出）里的同一个对象，
+  不能编造，`tests/test_domestic_tactics.py` 用身份检查（不是结构相等）
+  守住这一点；实现是一张"重心 -> 动作类型优先级"的固定规则表，每个决策都
+  带 `reason` 字段（可观测性要求）
+- [x] **主循环**（`san11agent/strategy_loop.py`）：串起"读状态 ->
+  (每N回合)调LLM更新备忘录/意图 -> 战术层出动作 -> 执行 -> 推进回合"，
+  `GameStateSource`/`ActionExecutor` 两处抽象都只有假实现（复用 M3
+  `FakeInputBackend` 的思路，只记录/只推进计数器，不做真实操作）；LLM
+  返回非法内容/连续失败/备忘录超长/备忘录损坏，四类失败各有独立的处理
+  策略，见 docs/strategy_research.md 第6节
+- [x] 单元测试：`tests/test_strategy_memo.py` + `tests/test_situation_summary.py`
+  + `tests/test_strategy_llm.py` + `tests/test_domestic_tactics.py` +
+  `tests/test_strategy_loop.py`（M5 新增共 67 个测试），全部离线，不真的
+  等待、不调用任何真实 API、不依赖真实游戏进程
+- [ ] **真实 LLM 接入**——本次完全没有涉及，`StrategyLLM` 只有假实现
+- [ ] **真实游戏场景下的实际验证**——主循环里的两处抽象
+  （`GameStateSource`/`ActionExecutor`）都还没有真实实现，依赖 M1~M4 现有
+  的全部缺口（锚点/坐标/规则数值）先解决
+- [ ] 多条设计取舍需要你确认（备忘录超长时拒绝写入 vs 自动截断/自动摘要、
+  连续 LLM 失败后整个循环停止 vs 继续用旧意图跑、`target_faction_index`
+  等字段目前只记录不消费是否可接受等），全部列在 docs/strategy_research.md
+  第7节
+
+## 历史状态：M4（上半场）— LegalActions（内政阶段）
 
 **本次范围有一个重要前提，和 M3 一样**：真实游戏当前无法运行（用户机器锁屏、
 人在远程），所以本次**只做 LegalActions**（枚举当前合法动作），不做 Execute
@@ -122,7 +180,8 @@ docs/offset_research.md        M1：内存偏移的调研报告——来源、�
 docs/visibility_research.md    M2：可见性状态的调研报告——探明/视野/武将发现相关缺口
 docs/execution_research.md     M3：执行层调研报告——camera/selection 内存缺口、ui_layout 坐标缺口、所有未经验证的设计假设
 docs/legal_actions_research.md M4：LegalActions 设计取舍报告——Action 类型体系、约束建模、规则表 unknown 语义的取舍、需要你确认的问题
-docs/verification_checklist.md  汇总 M1~M4 全部待验证事项，按"启动游戏→定位锚点→验证偏移→定位缺失字段→测坐标→验证规则"的实机操作顺序排列，供游戏能运行后按顺序执行
+docs/strategy_research.md      M5：战略层设计取舍报告——备忘录格式/避免损坏/长度控制、局势摘要、意图类型体系、战术层"只能挑选不能编造"的保证、主循环调用节奏与失败处理策略、需要你确认的问题
+docs/verification_checklist.md  汇总 M1~M4 全部待验证事项，按"启动游戏→定位锚点→验证偏移→定位缺失字段→测坐标→验证规则"的实机操作顺序排列，供游戏能运行后按顺序执行（M5 本次不接真实游戏/真实 LLM，没有新增需要实机验证的事项）
 offsets/schema.json       offsets 文件的格式定义（人类可读的权威文档）
 offsets/pk_1.1_cn.json    候选偏移表（未在真实进程验证过，meta.verified=false；含 M3 新增的 camera/selection struct）
 ui_layout/schema.json     ui_layout 文件的格式定义（客户区固定元素坐标表，跟 offsets 平行但不是内存偏移）
@@ -149,6 +208,12 @@ san11agent/
   execution.py               M3：CitySelector 执行链路——滚动进视野→点击→轮询确认→失败归位重来
   domestic_rules.py          M4：加载/校验 rules/*.json 内政动作规则表（RuleValue/ActionRuleSpec/DomesticRulesConfig）
   legal_actions.py           M4：内政阶段 Action 类型体系（8种 ActionKind）+ enumerate_legal_actions()——只依赖 VisibleGameState
+  intent.py                  M5：高层战略意图类型体系（DomesticFocus/CityDirective/StrategicIntent）
+  strategy_memo.py           M5：战略备忘录读写（格式/原子写/备份/校验和/长度预算）
+  situation_summary.py       M5：VisibleGameState -> 给 LLM 看的局势摘要（summarize_situation/render_situation_text）——只依赖 VisibleGameState
+  strategy_llm.py            M5：StrategyLLM 抽象 + FakeStrategyLLM + 提示词组织（build_strategy_prompt）+ 输出解析（parse_llm_response）
+  domestic_tactics.py        M5：内政战术执行层——select_domestic_actions() 把 StrategicIntent 翻译成 M4 合法动作，只能挑选不能编造
+  strategy_loop.py           M5：主循环 StrategyLoop——串起状态源/LLM/战术层/执行后端，GameStateSource/ActionExecutor 均为假实现
 tests/
   test_offsets.py            offsets 文件加载与校验的单元测试
   test_perception.py          GameState 解析的单元测试（合成 fixture）
@@ -168,6 +233,11 @@ tests/
   test_execution.py             M3 核心：CitySelector 全链路测试（成功/滚动/超时重试/归位/配置缺失报错）
   test_domestic_rules.py        M4：规则表加载器单元测试（生产文件 + 测试 fixture + 格式错误）
   test_legal_actions.py         M4 核心：44个测试——架构守卫（只依赖 VisibleGameState）、约束枚举、资源阈值拦截、可观测性
+  test_strategy_memo.py         M5：战略备忘录读写单元测试（格式往返/原子写/备份/长度拒绝/校验和损坏检测/恢复）
+  test_situation_summary.py     M5：局势摘要单元测试——架构守卫（只依赖 VisibleGameState）+ 摘要内容正确性
+  test_strategy_llm.py          M5：StrategyLLM 单元测试——提示词组织、FakeStrategyLLM 两种驱动方式、parse_llm_response 逐字段容错
+  test_domestic_tactics.py      M5 核心：内政战术层单元测试——身份检查"动作确实来自 legal_actions"、重心优先级映射、防御性报错
+  test_strategy_loop.py         M5 核心：主循环端到端测试——连续多回合空跑、调用节奏、LLM非法/超长/备忘录损坏等失败处理策略
   fixtures/
     offsets_test.json                    M1/M2 用：仅供测试的最小偏移表（结构形状同生产文件，数值是编的）
     offsets_execution_test.json          M3 用：只含 camera/selection 的最小偏移表
@@ -189,9 +259,11 @@ tests/
 
 **M4**（详见 docs/legal_actions_research.md）：`rules/domestic_actions_pk_1.1_cn.json` 里全部资源消耗数值（体力/金/粮阈值）都是 unknown——这些不是内存偏移问题，是游戏规则数值本身没有实机验证途径，unknown 时 LegalActions 不会拦截，只会记录进 `Action.unverified_constraints`（这个"不拦截"的默认行为本身是需要你确认的取舍，见报告第2节）。另外，"武将是否在这座城"（`location == city.index`）、"治安/巡查是否应合并"、"五种设施类型是否完整准确"等多条设计假设**未经真实游戏验证**，详见 docs/legal_actions_research.md 第4节"需要你确认的设计取舍"。武将适性/特技完全没有对应数据模型字段，本次没有实现相关约束（不是漏做，是数据模型目前不支持）。
 
+**M5**（详见 docs/strategy_research.md）：本次完全不接真实 LLM API、不接真实游戏，`StrategyLLM`/`GameStateSource`/`ActionExecutor` 三处抽象接口都只有假实现——真实 LLM 接入、真实 Execute（把内政 Action 变成键鼠输入）都留给后续里程碑，且后者依赖 M1~M4 现有的全部内存/坐标/规则数值缺口先解决。另外，`llm_call_interval`（每N回合调用一次）的默认值、备忘录超长时"拒绝写入"而非"自动截断/自动摘要"、连续 LLM 失败后"整个循环停止"而非"继续用旧意图跑"，都是**没有依据支撑的占位取舍**，需要你确认，详见 docs/strategy_research.md 第7节。
+
 ## 运行
 
-开发机上 `python`/`pip` 命令本身是 Windows Store 的执行别名占位符（不可用），但机器上装有独立的 Python 3.12（`%LOCALAPPDATA%\Programs\Python\Python312\python.exe`），已用它实际跑过下面的命令并确认可用（M1+M2+M3+M4 共 156 个测试全通过，全部离线、不依赖真实游戏、不真的等待）。
+开发机上 `python`/`pip` 命令本身是 Windows Store 的执行别名占位符（不可用），但机器上装有独立的 Python 3.12（`%LOCALAPPDATA%\Programs\Python\Python312\python.exe`），已用它实际跑过下面的命令并确认可用（M1~M5 共 264 个测试全通过，全部离线、不依赖真实游戏、不调用任何真实 LLM API、不真的等待）。
 
 ```bash
 pip install -r requirements-dev.txt
@@ -213,4 +285,4 @@ python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --process san
 python -m san11agent.cli select-city --offsets tests/fixtures/offsets_execution_test.json --ui-layout tests/fixtures/ui_layout_test.json --dump tests/fixtures/synthetic_execution_dump.json --city-index 3 --tile-x 5 --tile-y 5 --poll-timeout 0.2
 ```
 
-运行时依赖：无第三方库，只用了标准库（`ctypes`/`json`/`dataclasses`/`argparse`）。测试依赖：`pytest`（见 `requirements-dev.txt`）。M2 的过滤器暂未接入 CLI（`san11agent.cli` 还没有 `--visible` 之类的开关），只能通过 Python API（`san11agent.boundary.filter_game_state`）调用——见提交报告里的说明。M3 的 `select-city` 子命令默认是演练模式（`FakeInputBackend`，不发送真实输入），要真的操作游戏窗口需要显式加 `--live`（仅 Windows，且目前 camera/selection 字段/ui_layout 坐标都是 unknown，实际跑不通，见上方"已知缺口"）。M4 的 LegalActions 同样暂未接入 CLI，只能通过 Python API（`san11agent.legal_actions.enumerate_legal_actions`）调用——本次只做到"能离线枚举出结构化 Action 列表"，接入命令行/未来的对局循环留给后续里程碑。
+运行时依赖：无第三方库，只用了标准库（`ctypes`/`json`/`dataclasses`/`argparse`/`hashlib`/`shutil`）。测试依赖：`pytest`（见 `requirements-dev.txt`）。M2 的过滤器暂未接入 CLI（`san11agent.cli` 还没有 `--visible` 之类的开关），只能通过 Python API（`san11agent.boundary.filter_game_state`）调用——见提交报告里的说明。M3 的 `select-city` 子命令默认是演练模式（`FakeInputBackend`，不发送真实输入），要真的操作游戏窗口需要显式加 `--live`（仅 Windows，且目前 camera/selection 字段/ui_layout 坐标都是 unknown，实际跑不通，见上方"已知缺口"）。M4 的 LegalActions 同样暂未接入 CLI，只能通过 Python API（`san11agent.legal_actions.enumerate_legal_actions`）调用。M5 延续同样的做法，`san11agent.strategy_loop.StrategyLoop` 同样暂未接入 CLI，只能通过 Python API 组装（`FakeStrategyLLM`/`FakeGameStateSource`/`FakeActionExecutor`，见 `tests/test_strategy_loop.py` 里的完整用法示例）——本次只做到"能离线连续空跑若干回合"，接入命令行/接真实 LLM/接真实游戏留给后续里程碑。
