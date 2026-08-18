@@ -57,9 +57,14 @@ def test_pk_offsets_unresolved_fields_are_flagged_unknown():
     assert offsets.struct("global").field("phase").unknown is True
 
 
-def test_troop_base_offset_has_two_unresolved_candidates():
+def test_troop_base_offset_resolved_to_0x169730():
+    """2026-08-18 用户提供'裴元紹隊'部队信息截图，实机验证 0x169730 是正确候选
+    （0x169630 在真实进程上找不到任何匹配记录，已排除）。两个候选仍都保留在
+    base_offset_candidates 里作为验证过程的记录，但 base_offset 本身已经是
+    确定值，不再是"待选一个"的状态。"""
     offsets = load_offsets(PK_OFFSETS)
     troop = offsets.struct("troop")
+    assert troop.base_offset == 0x169730
     assert len(troop.base_offset_candidates) == 2
 
 

@@ -83,11 +83,12 @@
 - **填到哪里**：无需改文件；如果校验失败，回到 3.1 或本阶段其余项排查。若通过，是后续把 `meta.verified` 改 `true` 的必要条件之一。
 - **2026-08-18 结果**：跑通过，无报错。武将数=1100/城池数=42/势力数=42/剧本编号=7/开局年份=251，全部通过。跑的过程中发现城池/武将姓名解码乱码，排查后是文本编码问题（简体GBK vs 繁体cp950），已修复，详见 `docs/offset_research.md` 第7.4节。`meta.verified` 仍保持 `false`——4.2（troop 基址二选一）和 4.3（逐字段抽查）尚未做。
 
-### 4.2 Troop 基址的 `0x100` 差值二选一 [P0][依赖: 3.1]
+### 4.2 Troop 基址的 `0x100` 差值二选一 [P0][依赖: 3.1] ✅ 已完成 2026-08-18
 - **验证什么**：`troop.base_offset` 到底应该是 `0x169630`（当前默认值，按公式算出）还是 `0x169730`（资料原文独立给出的绝对地址对应值），两者相差 `0x100`（256字节）。
 - **为什么需要**：部队（Troop）是 M1 五张核心表之一，`GameState.troops` 全部基于这个基址；选错会导致读出来的部队数据整体错位（读到的其实是相邻部队记录里的字段）。当前默认用的是 `0x169630`，但资料本身对这个值存疑，见 `docs/offset_research.md` 第3节"数值矛盾"。
 - **建议怎么做**：读一条已知部队（比如你亲自派出的一支部队）的 `commander_general_id`（`+0x0C`）和 `troop_count`（`+0x18`），分别用两个候选基址算出的地址读取，哪个读出来的主将ID和你在游戏里实际派的武将对得上、兵力数字合理，就是对的。
 - **填到哪里**：`offsets/pk_1.1_cn.json` → `structs.troop.base_offset`（确认后可以把 `base_offset_candidates` 数组删掉或保留作记录）。
+- **2026-08-18 结果**：用户提供"裴元紹隊"部队信息截图。`0x169630` 在真实进程里遍历全部部队记录，找不到任何一条匹配；`0x169730` 立刻命中 troop[6]，commander_general_id=503(裴元紹)，troop_count/gold/food/morale/display_attack/display_defense/display_construction 与截图逐项精确相等。已确认写入 `base_offset: "0x169730"`。详见 `docs/offset_research.md` 第7.9节。
 
 ### 4.3 抽查高/中置信度字段与游戏内实际显示比对 [P1][依赖: 3.1, 4.1] 🟡 部分完成 2026-08-18
 - **验证什么**：`confidence: "high"`/`"medium"` 的字段（武将姓名/统率武力智力政治魅力/城池钱粮兵力/势力信息等，`offsets/pk_1.1_cn.json` 里绝大多数字段）是否真的读出了和游戏界面一致的数值。这些字段虽然有交叉印证的资料支持，但**从未在真实进程上实测过**（`meta.verified: false`）。
@@ -97,7 +98,7 @@
   - `general.display_stats_wound` / `display_stats_normal`（受伤/未受伤显示属性顺序）
   - `general.location` 的编码规则（是否真的是">87 表示在部队中，减87=部队ID"）
 - **填到哪里**：核对通过的字段，把 `confidence` 从 `medium`/`low` 提升到 `high`；核对不上的，改成 `unknown: true` 并写清楚原因。全部核对完、4.1 校验通过后，可以把 `meta.verified` 改成 `true`。
-- **2026-08-18 结果**：用户发来两张城池详情截图（南皮/濮陽），逐字段核对 `city.gold`/`city.food`/`city.troops`/`city.security`/`city.governor_general_id`（经姓氏交叉核对），**五个字段十项数值全部精确吻合**，均已提升到 `confidence: high`。同时验证了 `current_xun` 换算日期公式（30旬+184-1-1=184-11-1）与截图日期一致。但截图里的"耐久"/"現役"两个字段扫描后确认不在 City 记录范围内（可能需要走设施子结构）。`general.base_stats` 字节顺序、`display_stats_wound/normal`、`general.location` 编码规则这三项**仍未核对**（需要你确认具体某位武将的属性/位置状态），`meta.verified` 仍为 `false`。详见 `docs/offset_research.md` 第7.8节。
+- **2026-08-18 结果**：用户发来两张城池详情截图（南皮/濮陽），逐字段核对 `city.gold`/`city.food`/`city.troops`/`city.security`/`city.governor_general_id`（经姓氏交叉核对），**五个字段十项数值全部精确吻合**，均已提升到 `confidence: high`。同时验证了 `current_xun` 换算日期公式（30旬+184-1-1=184-11-1）与截图日期一致。截图里的"耐久"/"現役"两个字段扫描后确认不在 City 记录范围内（可能需要走设施子结构）。详见 `docs/offset_research.md` 第7.8节。**后续追加**：用户又发来武将花名册+部队信息截图，补上了 `general.base_stats` 字节顺序（9位精确匹配，confidence提升为high）、`general.location` 编码规则（见8.1/8.2）、`general.identity`（新发现2=太守/3=一般）、`troop.display_stats` 语义（等于指挥官的display_stats_normal）的核对，见第7.9节。仍未测的：`general.display_stats_wound`（受伤状态，无样本）、`faction.*` 全部字段；`general.faction_id`/`troop.faction_id` 核对后发现语义存疑（见7.9节"新发现的异常"），confidence 反而从 high 下调为 medium。`meta.verified` 仍为 `false`（这些遗留项 + camera/selection/phase/city.faction_id等未知字段仍未解决）。
 
 ---
 
@@ -211,23 +212,26 @@
 
 ### 数据语义类（依赖阶段4/5，需要能读到对应字段的值）
 
-#### 8.1 `general.location` 编码规则 [P1][依赖: 4.3]
+#### 8.1 `general.location` 编码规则 [P1][依赖: 4.3] ✅ 已完成 2026-08-18
 - **验证什么**：">87 表示在部队中，减87=部队ID，≤87 是别的编码"这条注释里的猜测是否成立。
 - **为什么需要**：`legal_actions.py` 的 `default_is_general_in_city()`（第150行）默认假设 `location == city.index` 来判断"武将是否在这座城"，这个假设的合理性直接依赖 `location` 字段的编码规则是否如此。
 - **建议怎么做**：观察若干武将在"在城中"和"在部队中"两种状态下 `location` 的实际数值，看是否符合">87在部队中"的规律。
 - **填到哪里**：`offsets/pk_1.1_cn.json` → `structs.general.fields.location.note`（更新说明），如需要新增编码规则文档。
+- **2026-08-18 结果**：抽样9位驻守城池的武将 location==city.index；1位带兵在外的武将（裴元紹，location=93）经计算 93-87=6，正好等于他所带部队的 troop index。两种情况都各有真实样本印证，规则成立。详见 `docs/offset_research.md` 第7.9节。
 
-#### 8.2 `location == city.index` 假设是否成立 [P0][依赖: 8.1]
+#### 8.2 `location == city.index` 假设是否成立 [P0][依赖: 8.1] ✅ 已完成 2026-08-18
 - **验证什么**："武将在这座城"是否真的等价于 `General.location == City.index`。
 - **为什么需要**：这是 M4 `enumerate_legal_actions()` 判断"这位武将能不能在这座城发起内政动作"的默认实现，如果假设错了，会导致武将被错误地排除或错误地放行。
 - **建议怎么做**：找几位明确在某座城里任职的武将，核对其 `location` 值是否等于该城 `index`。
 - **填到哪里**：如果假设成立，在 `docs/legal_actions_research.md` 里补充确认记录；如果不成立，需要修改 `legal_actions.py` 的 `default_is_general_in_city()`。
+- **2026-08-18 结果**：成立，见 8.1 的结果。9位驻守城池的武将 location 精确等于所在城池 index（比如張燕 location=3，城池[3]是南皮，与張燕是南皮太守吻合）。`docs/legal_actions_research.md` 尚未同步补充这条确认记录（不在本次改动范围）。
 
-#### 8.3 `FREE_AGENT_FACTION_ID = -1` 假设 [P1][依赖: 4.3]
+#### 8.3 `FREE_AGENT_FACTION_ID = -1` 假设 [P1][依赖: 4.3] ⚠️ 相关异常已发现，本条仍未验证
 - **验证什么**："在野武将"（无势力归属）的 `faction_id` 是否真的是 `-1`。
 - **为什么需要**：`boundary.py` 第31行这个常量是根据其它字段（`death_year`/`special_skill_id`/`vice_general_*_id` 在"无"时都用 `-1`）的代码风格类推出来的假设，不是资料明确写的事实。用错会导致 M2 过滤器对在野武将的可见性判断错误。
 - **建议怎么做**：找一位确认在野（无主）的武将，核对其 `faction_id` 字段实际值。
 - **填到哪里**：`san11agent/boundary.py` 第31行注释更新为已确认状态，或改成实测到的正确哨兵值。
+- **2026-08-18 相关发现（不是这一条本身的答案）**：验证 8.1/8.2 时意外发现 `general.faction_id` 的语义比预期复杂——驻守城池的武将 `faction_id` 精确等于 `location`（=城池index），带兵在外的武将 `faction_id` 又是另一个和 location 不同的小整数（4），都不像典型的"势力索引"。这个字段的 confidence 已从 high 下调为 medium，见 `docs/offset_research.md` 第7.9节"新发现的异常"。这意味着 8.3 本条即使测出"在野武将的 faction_id=-1"，也不能默认这个字段在其它状态下语义稳定，需要一并考虑 7.9 节的发现。
 
 #### 8.4 `faction.player_marker` 语义 [P2][依赖: 4.3]
 - **验证什么**：这个字段到底是"索引"还是"布尔标志"。
