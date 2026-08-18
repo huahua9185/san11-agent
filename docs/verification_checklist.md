@@ -226,12 +226,12 @@
 - **填到哪里**：如果假设成立，在 `docs/legal_actions_research.md` 里补充确认记录；如果不成立，需要修改 `legal_actions.py` 的 `default_is_general_in_city()`。
 - **2026-08-18 结果**：成立，见 8.1 的结果。9位驻守城池的武将 location 精确等于所在城池 index（比如張燕 location=3，城池[3]是南皮，与張燕是南皮太守吻合）。`docs/legal_actions_research.md` 尚未同步补充这条确认记录（不在本次改动范围）。
 
-#### 8.3 `FREE_AGENT_FACTION_ID = -1` 假设 [P1][依赖: 4.3] ⚠️ 相关异常已发现，本条仍未验证
+#### 8.3 `FREE_AGENT_FACTION_ID = -1` 假设 [P1][依赖: 4.3] ✅ 已完成 2026-08-18（且发现更严重的关联问题）
 - **验证什么**："在野武将"（无势力归属）的 `faction_id` 是否真的是 `-1`。
 - **为什么需要**：`boundary.py` 第31行这个常量是根据其它字段（`death_year`/`special_skill_id`/`vice_general_*_id` 在"无"时都用 `-1`）的代码风格类推出来的假设，不是资料明确写的事实。用错会导致 M2 过滤器对在野武将的可见性判断错误。
 - **建议怎么做**：找一位确认在野（无主）的武将，核对其 `faction_id` 字段实际值。
 - **填到哪里**：`san11agent/boundary.py` 第31行注释更新为已确认状态，或改成实测到的正确哨兵值。
-- **2026-08-18 相关发现（不是这一条本身的答案）**：验证 8.1/8.2 时意外发现 `general.faction_id` 的语义比预期复杂——驻守城池的武将 `faction_id` 精确等于 `location`（=城池index），带兵在外的武将 `faction_id` 又是另一个和 location 不同的小整数（4），都不像典型的"势力索引"。这个字段的 confidence 已从 high 下调为 medium，见 `docs/offset_research.md` 第7.9节"新发现的异常"。这意味着 8.3 本条即使测出"在野武将的 faction_id=-1"，也不能默认这个字段在其它状态下语义稳定，需要一并考虑 7.9 节的发现。
+- **2026-08-18 结果**：不需要用户操作，直接统计当前1100条武将记录的 `faction_id` 分布：413位精确等于 `-1`，数量级与剧本1(黄巾之乱)"大部分人物未登场"的预期吻合，**假设成立**。但同时坐实了一个更严重的关联问题：其余"有归属"的武将，`faction_id` 分布形状明显对应"42座城池各驻扎若干人"而不是"十几个势力各领几十到上百人"，说明这个字段对"有归属"武将而言反映的是当前指派的城池、不是稳定的政治势力ID——`san11agent/boundary.py` 的 `_filter_general`/`_filter_troop` 用 `faction_id == player_faction_id` 判断"是否己方"这个核心逻辑，在真实内存下大概率不会按预期工作，已更新 `boundary.py` 顶部注释和 `docs/visibility_research.md` 第3.1节标记为需要在接入真实内存前解决的设计问题。详见 `docs/offset_research.md` 第7.10节。
 
 #### 8.4 `faction.player_marker` 语义 [P2][依赖: 4.3]
 - **验证什么**：这个字段到底是"索引"还是"布尔标志"。

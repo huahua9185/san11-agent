@@ -8,9 +8,18 @@ UnresolvedVisibilitySource，因为相关内存字段还没找到，见同一份
 
 FREE_AGENT_FACTION_ID：约定 faction_id == -1 表示"在野/无势力归属"。这是根据
 M1 现有代码里其它字段的既有惯例推出来的（比如 General.death_year、
-General.special_skill_id、Troop.vice_general_*_id 在"无"的情况下都是 -1），
-offsets 资料本身没有明确写"在野"的具体哨兵值是多少，所以这是一个假设，
-不是已核实的事实——已在报告里列为需要你确认的点。
+General.special_skill_id、Troop.vice_general_*_id 在"无"的情况下都是 -1）。
+2026-08-18 实机验证：真实进程里 1100 个武将中有 413 个 faction_id 精确等于
+-1，数量上与"剧本1(黄巾之乱)里大部分历史人物尚未登场/未被招揽"的预期相符，
+-1 作为"无归属"哨兵值的假设成立，见 docs/offset_research.md 第7.10节。
+
+⚠️ 但同一次验证也发现：对于**有归属**的武将，faction_id 的具体数值不是
+简单的"势力（势力=lord的政权）索引"——驻守在城池里、未随部队出征的武将，
+faction_id 精确等于其 location（=所在城池的 index），这意味着这个字段在
+"有归属"的情况下实际反映的更可能是"当前指派/绑定的对象"而不是稳定的政治
+势力归属，用它做"是否属于某个具体势力"的比较时要小心，"-1 vs 非-1"这个
+二元判断（本模块唯一用到的用法）依然可靠，但不要扩展为"faction_id 相等
+就代表同一个势力"，同上文档第7.9/7.10节有完整记录。
 """
 from __future__ import annotations
 
