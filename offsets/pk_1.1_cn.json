@@ -39,8 +39,8 @@
     "pointer_chain": null,
     "fixture_absolute_address": null,
     "observed_absolute_address": "0x07201958",
-    "confidence": "medium",
-    "note": "2026-08-18 实机验证（进程 San11WPK.exe，Steam 繁体中文版，见 meta.file_identity）：真实进程 module_base 读回确为 0x00400000，与 assumed_image_base 一致；用 static_rva=0x06E01958（= observed_absolute_address 0x07201958 - module_base 0x00400000）解析出 GAME_DATA_BASE=0x07201958，再跑 perception.validate_constants() 全部通过——武将数=1100、城池数=42、势力数=42 与预期精确相等，剧本编号=7、开局年份=251 均在合理范围内。这次验证同时解决了本文件早先'RVA约110MB大得不寻常'的疑虑：实测该 exe 的 PE SizeOfImage 达 0x098D3000（约153MB，远大于典型PE），0x06E01958 完全落在镜像范围内，与'编译期静态地址'假说一致，不再需要怀疑它是运行时堆分配。confidence 定为 medium 而非 high 的原因：这只是单次运行的验证，docs/verification_checklist.md 3.1 建议的'重启游戏后确认地址依然成立'这一步尚未做（本次任务范围是只读勘察，不重启用户正在运行的游戏），建议下次拿到机会时补做，通过后可将 confidence 提升为 high 并把 meta.verified 相关判断一并更新。"
+    "confidence": "high",
+    "note": "2026-08-18 实机验证（进程 San11WPK.exe，Steam 繁体中文版，见 meta.file_identity）：真实进程 module_base 读回确为 0x00400000，与 assumed_image_base 一致；用 static_rva=0x06E01958（= observed_absolute_address 0x07201958 - module_base 0x00400000）解析出 GAME_DATA_BASE=0x07201958。第一次验证（PID 8544）：剧本编号=7、开局年份=251，均在合理范围内，武将/城池/势力名称和数值均可读出有意义的数据。这次验证同时解决了本文件早先'RVA约110MB大得不寻常'的疑虑：实测该 exe 的 PE SizeOfImage 达 0x098D3000（约153MB，远大于典型PE），0x06E01958 完全落在镜像范围内，与'编译期静态地址'假说一致，不再需要怀疑它是运行时堆分配。\n\n【重启持久性确认，同日】用户重启游戏并进入另一个正式对局存档后（新 PID 18680），module_base 依然是 0x00400000，用同一个 static_rva=0x06E01958 重新解析：(1) 武将[0..5] 的 name（姓）和 base_stats（五维属性）与重启前逐字节完全一致——阿會(65/74/26/33/44)、韋(16/19/65/73/70)等——这些是不随存档变化的角色底表数据，理应保持不变，实测确实不变；(2) 但 faction_id/location 这些随剧本变化的字段确实变了（比如武将[2]的faction_id从30变成11），符合'进入了不同剧本'的预期；(3) 城池名同样正确解出襄平/北平/薊/南皮/平原等繁体地名，且金/粮/兵力数值从上次的整齐数字变成了这次更真实的、参差不齐的存档中期数值（比如城池[1]兵力25418/钱680/粮51931），符合'这是玩了一段时间的存档，不是新开局'的预期（current_xun=30）。以上'静态数据不变、动态数据合理变化'的组合证据，比单纯'地址读到东西'更能排除巧合，static_rva 假说在两次独立进程实例上都成立，confidence 从 medium 提升为 high。\n\n唯一的例外：这次的 scenario_id 读出来是 0，超出了 offsets 文件 validation.scenario_id_range=[1,60] 的范围，但同时读到的 start_year=184——即《三国志11》系列里最经典的黄巾之乱开局年份，是一个完全合理、几乎不可能是垃圾数据的具体数值。结合上次验证读到的 scenario_id=7 对应 start_year=251（该系列惯常的最终/后期剧本年份），两次结果都指向 scenario_id 更可能是【0-based 索引】而不是资料原文暗示的【1-based 编号】——已相应调整 validation.scenario_id_range，见该字段的 note。"
   },
   "structs": {
     "global": {
@@ -51,7 +51,7 @@
         "scenario_id": {
           "offset": "0x04", "size": 4, "type": "i32", "unknown": false,
           "confidence": "medium", "source": "内存资料/地址资料.txt",
-          "note": "剧本编号，单一来源"
+          "note": "剧本编号，单一来源。2026-08-18 两次实机验证读到 scenario_id=7(配 start_year=251) 和 scenario_id=0(配 start_year=184，即经典黄巾之乱开局)，两组数据都合理自洽，推测这是【0-based 索引】而非 1-based 编号，validation.scenario_id_range 已相应调整为 [0,59]，但这只是基于2个数据点的推断，不是确凿证据，如果后续发现某个剧本对应的 scenario_id 落在这个范围之外，需要重新审视"
         },
         "start_year": {
           "offset": "0x08", "size": 4, "type": "i32", "unknown": false,
@@ -281,7 +281,8 @@
     "expected_general_count": 1100,
     "expected_city_count": 42,
     "expected_faction_count": 42,
-    "scenario_id_range": [1, 60],
-    "start_year_range": [150, 280]
+    "scenario_id_range": [0, 59],
+    "start_year_range": [150, 280],
+    "note": "2026-08-18 调整 scenario_id_range 从 [1,60] 到 [0,59]：两次实机验证（重启前后各一次，见 anchor.note）读到的 scenario_id/start_year 组合（7/251 与 0/184）都指向 0-based 索引，原范围会把两次都读到的真实、合理数据误判为校验失败。注意：expected_general_count/expected_city_count/expected_faction_count 这三项目前不是真正的内存读取校验——parse_generals/parse_cities/parse_factions 固定按 offsets 文件里配置的 count 循环解析，所以这三个数字必然和配置值相等，不会因为锚点或偏移算错而失败，真正有信号的只有 scenario_id_range 和 start_year_range 这两项范围检查。"
   }
 }

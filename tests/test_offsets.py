@@ -19,14 +19,17 @@ def test_pk_offsets_file_loads():
 
 
 def test_pk_offsets_anchor_is_verified_static_rva():
-    """2026-08-18 实机验证：static_rva=0x6E01958 在真实进程上通过了启动常量校验
-    （武将/城池/势力数量精确匹配），resolution_method 已从 unknown 更新为
-    static_rva，不再是"诚实的未知"，而是"诚实的、已记录验证过程的已知"——
-    仍然不是瞎猜，只是猜测的对象从"要不要读"变成了"用什么方法读"。"""
+    """2026-08-18 实机验证：static_rva=0x6E01958 在真实进程上通过了启动常量校验，
+    resolution_method 已从 unknown 更新为 static_rva，不再是"诚实的未知"，而是
+    "诚实的、已记录验证过程的已知"——仍然不是瞎猜，只是猜测的对象从"要不要读"
+    变成了"用什么方法读"。同日重启游戏、进入另一个存档后重新验证：同一个 rva
+    在新进程实例上依然解析出合理数据（角色底表数据逐字节不变、随存档变化的字段
+    正确变化），排除了"上次只是巧合"的可能，confidence 从 medium 提升到 high。"""
     offsets = load_offsets(PK_OFFSETS)
     assert offsets.anchor.resolution_method == "static_rva"
     assert offsets.anchor.rva == 0x06E01958
     assert offsets.anchor.observed_absolute_address == 0x07201958
+    assert offsets.anchor.confidence == "high"
 
 
 def test_pk_offsets_struct_counts():

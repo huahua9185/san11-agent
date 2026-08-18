@@ -56,7 +56,7 @@
 
 ## 阶段 3：定位内存锚点 GAME_DATA_BASE 【全局关键路径】
 
-### 3.1 GAME_DATA_BASE 锚点定位方法 [P0][依赖: 阶段1/2完成，游戏进入正式对局] ✅ 已完成（medium confidence）2026-08-18
+### 3.1 GAME_DATA_BASE 锚点定位方法 [P0][依赖: 阶段1/2完成，游戏进入正式对局] ✅ 已完成（high confidence）2026-08-18
 - **验证什么**：`0x07201958` 这个资料里给出的绝对地址，到底是编译期固定的静态地址（`模块基址 + 固定RVA`），还是运行时堆分配、每次重启会变的指针目标（需要指针链）。
 - **为什么需要**：这是**整个项目里唯一的、卡住所有真实内存读取的问题**。`offsets/pk_1.1_cn.json` 的 `anchor.resolution_method` 目前是 `"unknown"`，`perception.py` 的 `resolve_anchor()` 在这个值下对真实进程会直接抛 `AnchorResolutionError` 拒绝继续——General/City/Troop/Faction/GlobalState 全部数组都基于这个地址算偏移，不解决它，阶段4、5 的一切工作都无法开始，M1 之后所有里程碑的真实进程验证都被卡住。
 - **建议怎么做**（二选一或都做，用 Cheat Engine）：
@@ -64,7 +64,7 @@
   2. **验证"堆指针"假说**（更可能，见 `docs/offset_research.md` 第3节的 RVA 过大分析）：在 Cheat Engine 里对 `0x07201958` 这个地址做"什么写入了这个地址"或指针扫描（Pointer Scan），找一条从 `San11WPK.exe+固定偏移` 出发、经过 1~2 层解引用能稳定指向数据基址的指针链。**重启游戏一次，确认这条指针链依然成立**（这是判断"真的是稳定指针链"还是"偶然对上"的关键一步）。写入 `resolution_method: "pointer_chain"` + `pointer_chain`。
   3. 如果你手头有能跑起来的 CE 表或 SCP 插件源码，直接看它们是怎么定位这个基址的，可能比重新扫描更快。
 - **填到哪里**：`offsets/pk_1.1_cn.json` → `anchor.resolution_method`（改成 `static_rva` 或 `pointer_chain`）、`anchor.rva` 或 `anchor.pointer_chain`、`anchor.confidence`（改成 `high`）；`meta.verified` 暂不要改（还需要阶段4的字段验证通过才算数）。
-- **2026-08-18 结果**：不用 Cheat Engine，改用项目自带的 `probe-anchor` 工具直接对真实进程验证。`static_rva`（rva=`0x6E01958`，即把 `0x07201958` 当绝对地址反推）通过了 `validate_constants()` 的全部校验（武将/城池/势力数量精确匹配）。已写入 `resolution_method: "static_rva"`、`rva`，但 `confidence` 定为 `medium` 而非 `high`——本条目"重启游戏后确认地址依然成立"这一步没有做（只读勘察不重启用户正在跑的游戏），**这是下次上机的第一优先级**，通过后再改 `high`。详见 `docs/offset_research.md` 第7.3节。
+- **2026-08-18 结果**：不用 Cheat Engine，改用项目自带的 `probe-anchor` 工具直接对真实进程验证。`static_rva`（rva=`0x6E01958`，即把 `0x07201958` 当绝对地址反推）第一轮验证通过。随后用户**重启游戏并进入另一个正式对局存档**，用同一个 rva 重新验证：角色底表数据（姓氏/五维属性）逐字节不变，随存档变化的字段（faction_id/location）正确变化，城池数据从"整齐的开局数值"变成"玩了30旬后参差不齐的真实存档数值"——静态数据不变+动态数据合理变化的组合证据排除了"上次是巧合"的可能。`anchor.confidence` 已从 `medium` 提升为 `high`。副产品：发现 `scenario_id` 更可能是 0-based 索引，已同步调整 `validation.scenario_id_range` 从 `[1,60]` 到 `[0,59]`。详见 `docs/offset_research.md` 第7.3/7.7节。
 
 ---
 
