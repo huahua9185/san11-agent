@@ -15,11 +15,19 @@ M2 的过滤器（`san11agent/boundary.py`）本身是纯函数：给定一份�
 但把过滤器接到真实游戏进程上、真正过滤出对局中某一时刻的人类可见状态，
 依赖两类信息，其中第一类在 M1 阶段就已知是缺口，第二类是 M2 新发现的缺口：
 
-### 1.1 继承自 M1 的缺口：城池所属势力 ID
+### 1.1 继承自 M1 的缺口：城池所属势力 ID —— 2026-08-18 找到了替代解决路径
 
-`offsets/pk_1.1_cn.json` 里 `city.faction_id` 标记为 `unknown: true`
-（见 docs/offset_research.md 4.2 节）。这意味着：即便锚点解析问题解决了、
-真实内存也能读到，**"这座城池是不是我自己的"这个最基本的判断依据目前也读不到**。
+`offsets/pk_1.1_cn.json` 里 `city.faction_id` 直接字段仍然标记为
+`unknown: true`（见 docs/offset_research.md 4.2 节，原资料说要走一个
+未知偏移的虚表函数调用）。但 2026-08-18 发现了一条不需要这个直接字段的
+替代路径：**`City.force_id`（已知，confidence high）→ 新解出的
+`Force[force_id].faction_id` → `Faction[faction_id]`**，在12座城池上
+交叉验证全部给出历史上合理的势力归属，见 docs/offset_research.md 第
+7.11节。也就是说"这座城池是不是我自己的"这个判断依据**实际上已经可以
+拿到了**，只是要经过这条两步查表的间接路径，而不是一个能直接读的字段——
+下面这段"读不到"的描述已经过时，保留是为了记录原始问题，具体的解决方案
+见 7.11 节，`_filter_city()` 是否要改用这条链路是个需要你确认的设计
+决策，见第3.1节。
 
 这对 M2 过滤器的实际影响：`_filter_city()` 用 `city.faction_id == player_faction_id`
 判断是否己方。在这个字段被解析为 `None` 的情况下，比较结果恒为 `False`——
@@ -96,9 +104,21 @@ M2 没有尝试拿这个未验证的字段去派生 `player_faction_id`，而是
 
 详细的原始数据和另一个疑点（`troop.faction_id` 在已确认为真实、活跃的
 部队记录上读到 `-1`，语义更加不明）见 `docs/offset_research.md` 第7.9/
-7.10节。在这个问题被进一步厘清（比如找到一个稳定、专门表示"政治势力"的
-字段，或者确认这次抽样只是巧合）之前，不建议信任 `general.faction_id`/
+7.10节。在这个问题被进一步厘清之前，不建议信任 `general.faction_id`/
 `troop.faction_id` 做任何"是否属于某势力"的判断。
+
+**2026-08-18 追加：已经找到一条可靠的替代路径**——`General`/`City`
+都有已知的 `force_id`（"军团ID"），2026-08-18 新解出了 Force（军团）
+结构体的 `faction_id` 字段，`General/City.force_id → Force[force_id]
+.faction_id → Faction[faction_id]` 这条链路在12座城池的交叉验证上全部
+给出历史上合理的结果，详见 `docs/offset_research.md` 第7.11节，代码
+已实现（`san11agent/perception.py` 的 `parse_forces()`，`GameState.forces`）。
+**这是一个需要你确认的设计决策**：是否要把 `_filter_general()`/
+`_filter_city()`/`_filter_troop()` 改成用这条链路判断"是否己方"（需要
+改函数签名，多传入 `forces` 数组，也需要相应更新 `tests/test_boundary.py`
+里的测试 fixture），还是继续用现在的 `player_faction_id` 直接比较、
+但把比较对象换成通过这条链路算出来的值。这次没有擅自改 `boundary.py`
+的过滤逻辑本身，只是把新解出的数据准备好了。
 
 ## 4. 战斗随机数种子 / 命中判定预演
 

@@ -402,3 +402,60 @@ unknown，不受这个问题影响，因为代码本来就没有依赖它）。
 稳定的政治势力标识）本身就站不住脚。这是一个需要在真正把 M2 接入真实
 内存之前解决的设计问题，建议列为高优先级，见
 `docs/visibility_research.md` 第3.1节。
+
+### 7.11 追加发现并实现：Force（军团）结构体——真正解决势力归属问题的路径，且顺带解决了 `city.faction_id` 这个 M1/M2 都卡住的老缺口
+
+7.10 节末尾提到"faction_id 对有归属武将而言反映的是当前指派的城池"，
+但没解释张角麾下两支军团（force_id=5 和 force_id=6）真正共同隶属的
+"势力"是怎么找到的——答案是原始资料里提到过、但从未被解析过内部字段的
+**Force（军团）结构体**（`GAME_DATA_BASE + 0xB20C`，结构体大小 `0x50`，
+数量 `42`，这三个数字本身来自地址资料.txt 的核心表，见第3节，但内部
+字段布局原资料完全没有研究）。
+
+直接对比 force[5]（张角军团1）和 force[6]（张角军团2）两条记录的全部
+字节，找共同点：`+0x04` 两者都是 `28`——而 `28` 正好是 Faction 数组里
+`ruler_general_id=403`（張角）那条记录的 index！`+0x08` 分别是 `1` 和
+`2`，与截图里武将花名册"軍團"列的"1張角"/"2張角"吻合；`+0x0C` 分别是
+`403`（張角本人）和 `440`（另一位張姓武将，推测是张角的兄弟）。
+
+**用这条新链路——`General.force_id`/`City.force_id` → `Force[force_id]
+.faction_id`（新字段）→ `Faction[faction_id]`——对12座城池做了交叉验证**：
+北平→公孫(瓚)、薊→劉(虞)、南皮/平原/小沛/濮陽→張(角)、晉陽→丁(原)、
+鄴→何(進)、下邳→孫(堅)，全部是符合黄巾之乱剧本背景的、历史上合理的
+势力归属；`force_id=-1` 的襄平/北海/壽春（无归属）也与它们城池数值全为
+`0`（未开发/未纳入任何势力管辖）的观察一致。
+
+**这条链路顺带解决了继承自 M1、卡住 M2/M4 两个下游里程碑的老缺口
+`city.faction_id`**（见第4.2节"缺口"、`docs/visibility_research.md`
+第1.1节）——原资料说这个字段要经过虚表函数调用（`[[城市指针]+0x40]`）
+间接取得，一直没有找到直接路径；现在看来不需要走这条路，`city.force_id`
+本身已知（confidence high），配合新解出的 `Force.faction_id`，两步查表
+就能拿到城池的真正政治势力归属，不需要逆向那个虚表调用了。
+
+**已实现的代码改动**（这次不只是记录发现，因为这条链路已经过充分交叉
+验证、且直接解除两个里程碑的阻塞，值得实现）：
+- `offsets/pk_1.1_cn.json` 新增 `structs.force`，含 `faction_id`/
+  `force_number`/`commander_general_id` 三个字段（confidence 均为
+  medium——这是本项目自己在真实进程上探测出来的，不是第三方资料交叉
+  印证，结构体里还有大量字节完全没有解析，比如两个疑似指向所属城池/
+  武将列表的指针，本次只解析出刚好够用的三个字段）。
+- `san11agent/game_state.py` 新增 `Force` dataclass，`GameState` 新增
+  `forces: list[Force]` 字段。
+- `san11agent/perception.py` 新增 `parse_forces()`，在 `parse_game_state()`
+  里按需调用——**只有当 offsets 文件定义了 `"force"` 这个 struct 才会
+  解析**，没有定义时 `state.forces` 安静地是空列表，不强制要求所有
+  offsets 文件（包括各测试 fixture）都提供这个后来才追加的结构体，向后
+  兼容。
+- 测试：`tests/fixtures/offsets_test.json`/`build_synthetic_dump.py`
+  新增合成的 force 数据，`tests/test_perception.py` 新增
+  `test_parse_forces`（验证正常解析）和
+  `test_parse_forces_empty_when_offsets_lacks_force_struct`（验证向后
+  兼容）。266 项测试全部通过（比上一次多2项）。已在真实进程上跑通
+  `parse_game_state()`，`state.forces[5]` / `state.forces[6]` 读出的
+  `faction_id`/`force_number`/`commander_general_id` 和上面的分析完全
+  一致。
+
+**没有做的**：没有改动 `boundary.py` 的 `_filter_general`/`_filter_city`/
+`_filter_troop` 让它们真正使用这条新链路——这需要改函数签名（要多传入
+`forces` 数组）、改调用方、改现有测试fixture，属于一次有意义的设计变更，
+不是"顺手记录发现"能带过的程度，留给你确认要不要做、要怎么做之后再动手。

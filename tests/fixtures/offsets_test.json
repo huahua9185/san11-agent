@@ -128,6 +128,16 @@
         "researching_tech_id": {"offset": "0x10", "size": 4, "type": "i32", "unknown": false},
         "skill_points": {"offset": "0x14", "size": 2, "type": "u16", "unknown": false}
       }
+    },
+    "force": {
+      "base_offset": "0x850",
+      "struct_size": "0x10",
+      "count": 2,
+      "fields": {
+        "faction_id": {"offset": "0x00", "size": 4, "type": "i32", "unknown": false},
+        "force_number": {"offset": "0x04", "size": 4, "type": "i32", "unknown": false},
+        "commander_general_id": {"offset": "0x08", "size": 4, "type": "i32", "unknown": false}
+      }
     }
   },
   "validation": {

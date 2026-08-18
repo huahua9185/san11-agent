@@ -91,6 +91,38 @@ def test_parse_factions(reader, offsets):
     assert state.factions[0].player_marker == 1
 
 
+def test_parse_forces(reader, offsets):
+    """Force(军团)是 2026-08-18 才追加的结构体，见 docs/offset_research.md
+    第7.10节——它是目前唯一能从 General/City.force_id 正确推导出真正政治
+    势力归属的路径（General.faction_id/Troop.faction_id 本身不可信，见
+    同一节"新发现的异常"）。"""
+    state = parse_game_state(reader, offsets)
+    assert len(state.forces) == 2
+    assert state.forces[0].faction_id == 0
+    assert state.forces[0].force_number == 1
+    assert state.forces[0].commander_general_id == 0
+    assert state.forces[1].force_number == 2
+
+
+def test_parse_forces_empty_when_offsets_lacks_force_struct(tmp_path):
+    """向后兼容：没有定义 force struct 的 offsets 文件（比如其它测试 fixture）
+    不应该报错，forces 应该安静地是空列表，而不是强制要求所有 offsets 文件
+    都提供这个后来才追加的结构体。"""
+    import json
+
+    from san11agent.memory import DumpMemoryReader
+
+    raw = json.loads(OFFSETS_TEST.read_text(encoding="utf-8"))
+    del raw["structs"]["force"]
+    path = tmp_path / "offsets_no_force.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+
+    offsets_without_force = load_offsets(path)
+    reader = DumpMemoryReader.from_json_file(DUMP_TEST)
+    state = parse_game_state(reader, offsets_without_force)
+    assert state.forces == []
+
+
 def test_validate_constants_passes_on_matching_data(reader, offsets):
     state = parse_game_state(reader, offsets, validate=False)
     validate_constants(offsets, state)  # 不应该抛异常

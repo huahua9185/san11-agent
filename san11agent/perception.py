@@ -11,7 +11,7 @@ resolution_method="static_rva" 或 "fixed_for_fixture" 来让解析链路可测�
 """
 from __future__ import annotations
 
-from .game_state import City, Faction, GameState, General, GlobalState, Troop
+from .game_state import City, Faction, Force, GameState, General, GlobalState, Troop
 from .memory import MemoryReader
 from .offsets import FieldSpec, OffsetsConfig, StructSpec
 
@@ -258,6 +258,27 @@ def parse_factions(reader: MemoryReader, offsets: OffsetsConfig, game_data_base:
     return result
 
 
+def parse_forces(reader: MemoryReader, offsets: OffsetsConfig, game_data_base: int) -> list[Force]:
+    """解析"军团"(Force)数组——2026-08-18 才在真实进程上探得，见
+    docs/offset_research.md 第7.10节。不是 M1 原有五张核心表之一，是后续
+    追加的结构体，所以调用方（parse_game_state）在 offsets 文件没有定义
+    "force" 这个 struct 时会跳过，不强制要求所有 offsets 文件都提供它，
+    保持对旧 offsets 文件（比如各测试 fixture）的兼容。
+    """
+    spec = offsets.struct("force")
+    result = []
+    for i in range(spec.count or 0):
+        addr = _record_address(spec, game_data_base, i)
+        f = {name: _read_field(reader, addr, fs, offsets.text_encoding) for name, fs in spec.fields.items()}
+        result.append(Force(
+            index=i,
+            faction_id=f["faction_id"],
+            force_number=f["force_number"],
+            commander_general_id=f["commander_general_id"],
+        ))
+    return result
+
+
 def validate_constants(offsets: OffsetsConfig, state: GameState) -> None:
     """启动时的常量校验：拿解析出来的数据和 offsets.validation 里的预期范围对一下。
 
@@ -304,6 +325,7 @@ def parse_game_state(reader: MemoryReader, offsets: OffsetsConfig, *, validate: 
         cities=parse_cities(reader, offsets, game_data_base),
         troops=parse_troops(reader, offsets, game_data_base),
         factions=parse_factions(reader, offsets, game_data_base),
+        forces=parse_forces(reader, offsets, game_data_base) if "force" in offsets.structs else [],
     )
     if validate:
         validate_constants(offsets, state)

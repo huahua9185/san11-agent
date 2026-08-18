@@ -280,6 +280,26 @@
         }
       }
     },
+    "force": {
+      "base_offset": "0xB20C",
+      "struct_size": "0x50",
+      "count": 42,
+      "note": "军团(Force)——势力麾下的一支独立编制的军队，不是Troop(具体带兵的部队)也不是Faction(政治势力本身)。base_offset/struct_size/count 三个数字本身来自 地址资料.txt 的原始核心表（见 docs/offset_research.md 第3节），但字段级别的内部布局原资料完全没有研究过；2026-08-18 才第一次实机探测出以下三个字段，是本项目自行在真实进程上探测得到的，不是来自第三方资料交叉印证，所以 confidence 定为 medium 而不是 high。结构体里还有大量字节完全没有解析（比如两个疑似指向所属城池/武将列表的指针），本次只解析出了刚好够解决 faction_id 归属问题的这三个字段。",
+      "fields": {
+        "faction_id": {
+          "offset": "0x04", "size": 4, "type": "i32", "unknown": false, "confidence": "medium",
+          "note": "2026-08-18 实机探测：张角麾下两支军团（force[5]、force[6]）在这个偏移上都读到同一个值28，而 28 正好是 Faction 数组里 ruler_general_id=403(张角) 那条记录的 index。用这条链路（General/City.force_id -> Force[force_id].faction_id -> Faction[faction_id]）对12座城池抽样验证：北平→公孫(瓚)、薊→劉(虞)、南皮/平原/小沛/濮陽→張(角)、晉陽→丁(原)、鄴→何(進)、下邳→孫(堅)，全部是历史上合理、与剧本吻合的势力归属，襄平/北海/壽春 force_id=-1(无归属)也与其城池数值全为0一致。这是目前项目里唯一能可靠推导出'这座城/这位武将真正属于哪个势力'的路径——General.faction_id/Troop.faction_id 这两个字段本身不能直接当势力ID用，见各自的note。"
+        },
+        "force_number": {
+          "offset": "0x08", "size": 4, "type": "i32", "unknown": false, "confidence": "medium",
+          "note": "2026-08-18 实机探测：force[5]=1，force[6]=2，与截图里武将花名册'軍團'列显示的'1張角'/'2張角'吻合，推测是'该势力麾下第几支军团'的显示编号（从1开始，同一势力内从1递增），不是全局唯一ID"
+        },
+        "commander_general_id": {
+          "offset": "0x0C", "size": 4, "type": "i32", "unknown": false, "confidence": "medium",
+          "note": "2026-08-18 实机探测：force[5]=403(張角本人)，force[6]=440(另一位張姓武将，推测是张角的兄弟)，推测是该军团的最高指挥官武将index，未找到独立验证来源，仅凭数值合理性判断"
+        }
+      }
+    },
     "camera": {
       "base_offset": null,
       "struct_size": null,

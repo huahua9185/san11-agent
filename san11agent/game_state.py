@@ -116,9 +116,27 @@ class Faction:
 
 
 @dataclass
+class Force:
+    """军团（Force）——势力麾下的一支独立编制的军队，不是"部队"(Troop，
+    具体带兵出征的那支)，也不是"势力"(Faction，政治实体本身)。2026-08-18
+    才在真实进程上首次探得的结构体，见 docs/offset_research.md 第7.10节。
+
+    这是目前项目里唯一能从 General.force_id / City.force_id 正确推导出
+    真正政治势力归属的路径：General/City.force_id -> Force[force_id].faction_id
+    -> Faction[faction_id]。General.faction_id / Troop.faction_id 这两个
+    字段本身不能直接当作势力ID用，见对应字段的 note。
+    """
+    index: int
+    faction_id: int
+    force_number: int
+    commander_general_id: int
+
+
+@dataclass
 class GameState:
     global_state: GlobalState
     generals: list[General] = field(default_factory=list)
     cities: list[City] = field(default_factory=list)
     troops: list[Troop] = field(default_factory=list)
     factions: list[Faction] = field(default_factory=list)
+    forces: list[Force] = field(default_factory=list)

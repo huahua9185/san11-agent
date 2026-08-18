@@ -163,6 +163,21 @@ write_i32(FACTION + 0x0C, 1)   # player_marker
 write_i32(FACTION + 0x10, -1)  # researching_tech_id
 write_u16(FACTION + 0x14, 50)  # skill_points
 
+# ---- force (base_offset 0x850, struct_size 0x10, count 2) ----
+FORCE = 0x850
+FORCE_SIZE = 0x10
+
+
+def write_force(i: int, faction_id: int, force_number: int, commander_general_id: int) -> None:
+    base = FORCE + i * FORCE_SIZE
+    write_i32(base + 0x00, faction_id)
+    write_i32(base + 0x04, force_number)
+    write_i32(base + 0x08, commander_general_id)
+
+
+write_force(0, faction_id=0, force_number=1, commander_general_id=0)
+write_force(1, faction_id=0, force_number=2, commander_general_id=1)
+
 
 def main() -> None:
     out = {
