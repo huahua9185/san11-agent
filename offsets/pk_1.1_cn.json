@@ -96,7 +96,7 @@
         },
         "phase": {
           "offset": null, "size": null, "type": null, "unknown": true,
-          "note": "游戏阶段（内政/战略/战斗/单挑等）标志位。全仓库关键词检索完全没有命中，需要用户提供，或后续通过对比切换界面前后的内存快照差异来定位。"
+          "note": "游戏阶段（战略地图/城池操作/战斗/单挑等）标志位。全仓库关键词检索完全没有命中，需要用户提供，或后续通过对比切换界面前后的内存快照差异来定位。2026-08-18 补充：这个繁体版里点击己方城池弹出的顶层菜单是 都市/軍事/人材/外交/討略/君主 六项（不是简体习惯说的'内政/战略'，见 docs/offset_research.md 第8节），定位这个字段时应该在'战略地图空闲状态'和'打开都市菜单后'之间做快照对比。"
         }
       }
     },
@@ -183,9 +183,15 @@
           "offset": "0x48", "size": 4, "type": "i32", "unknown": false, "confidence": "high", "source": "地址资料.txt + Func-情报02",
           "note": "2026-08-18 用户截图核对：城池[3]南皮 兵糧94400、城池[11]濮陽 兵糧80900，与内存读数逐位精确相等"
         },
-        "trade_price": { "offset": "0x7C", "size": 1, "type": "u8", "unknown": false, "confidence": "medium", "source": "地址资料.txt" },
+        "trade_price": {
+          "offset": "0x7C", "size": 1, "type": "u8", "unknown": false, "confidence": "high", "source": "地址资料.txt",
+          "note": "2026-08-18 用户截图核对：城池[4]平原读到 trade_price=70，界面'市價'显示'兵糧7=資金1'——70/10=7，与显示的兑换比例吻合，推测显示时会把存储值除以10，confidence 从 medium 提升为 high"
+        },
         "has_merchant": { "offset": "0x7D", "size": 1, "type": "u8", "unknown": false, "confidence": "medium", "source": "地址资料.txt" },
-        "morale": { "offset": "0x84", "size": 1, "type": "u8", "unknown": false, "confidence": "medium", "source": "地址资料.txt" },
+        "morale": {
+          "offset": "0x84", "size": 1, "type": "u8", "unknown": false, "confidence": "high", "source": "地址资料.txt",
+          "note": "2026-08-18 用户截图核对：城池[4]平原读到 morale=80，界面'氣力'显示'80/120'，当前值精确相等（未找到上限120对应的字段，可能是固定常量或另一字段），confidence 从 medium 提升为 high"
+        },
         "security": {
           "offset": "0x85", "size": 1, "type": "u8", "unknown": false, "confidence": "high", "source": "地址资料.txt",
           "note": "2026-08-18 用户截图核对：城池[3]南皮 治安73/100、城池[11]濮陽 治安77/100，与内存读数精确相等，confidence 从 medium 提升为 high"
