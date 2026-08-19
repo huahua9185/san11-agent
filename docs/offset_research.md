@@ -453,10 +453,20 @@ unknown，不受这个问题影响，因为代码本来就没有依赖它）。
   `faction_id`/`force_number`/`commander_general_id` 和上面的分析完全
   一致。
 
-**没有做的**：没有改动 `boundary.py` 的 `_filter_general`/`_filter_city`/
-`_filter_troop` 让它们真正使用这条新链路——这需要改函数签名（要多传入
-`forces` 数组）、改调用方、改现有测试fixture，属于一次有意义的设计变更，
-不是"顺手记录发现"能带过的程度，留给你确认要不要做、要怎么做之后再动手。
+**写下这段时没有做的**：没有改动 `boundary.py` 的 `_filter_general`/
+`_filter_city`/`_filter_troop` 让它们真正使用这条新链路——这需要改函数
+签名（要多传入 `forces` 数组）、改调用方、改现有测试fixture，属于一次
+有意义的设计变更，不是"顺手记录发现"能带过的程度，当时留给用户确认要
+不要做。
+
+**→ 已实现，见第 8.4 节**（同日、用户确认后执行）：新增
+`san11agent/faction_resolve.py` 的 `FactionResolver`，`boundary.py` 的
+`_filter_general`/`_filter_city`/`_filter_troop` 三个函数已经改用它解析
+归属，不再直接比较原始 `faction_id` 字段。`legal_actions.py`/
+`situation_summary.py` 不需要单独改动——它们只消费 M2 过滤后的
+`VisibleGameState`，`VisibleXxx.faction_id` 装的就是解析后的值，同类判断
+自动变正确。`of_troop()` 这条路径仍然未经实机验证，见本节前面的验证状态
+表格。
 
 ### 7.12 第三个独立进程实例验证（2026-08-19，用户重启游戏后）
 
