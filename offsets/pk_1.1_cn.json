@@ -529,6 +529,13 @@
           "type": null,
           "unknown": true,
           "note": "同 map_x，推测对应设施结构体 +0x20，同样缺跳转偏移。"
+        },
+        "action_points": {
+          "offset": null,
+          "size": null,
+          "type": null,
+          "unknown": true,
+          "note": "2026-08-19 新发现的字段（游戏内叫'行動力'）。发起都市指令（比如巡察）时确认对话框会显示'行動力 20/54'这样的当前值/上限，随城池不同而不同（同一时刻襄陽54、江夏34），是一个本项目此前完全不知道存在的城池级资源池，很可能才是这类都市指令真正的门槛/限制资源（比枚举里一直假设的 general.stamina 更贴近实际机制，见 docs/verification_checklist.md 7.4节）。扫描过 City struct 全部字节找值等于当前显示值(54/34)的字段，均为0个候选——不在已知的 City struct 偏移范围内，大概率跟 map_x/map_y 一样需要经间接指针访问才能取得，本次没有进一步定位跳转偏移。"
         }
       }
     },

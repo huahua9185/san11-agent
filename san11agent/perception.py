@@ -227,6 +227,7 @@ def parse_cities(reader: MemoryReader, offsets: OffsetsConfig, game_data_base: i
             faction_id=f.get("faction_id"),
             map_x=f.get("map_x"),
             map_y=f.get("map_y"),
+            action_points=f.get("action_points"),
         ))
     return result
 

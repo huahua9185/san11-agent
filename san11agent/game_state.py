@@ -89,6 +89,10 @@ class City:
     faction_id: int | None = None
     map_x: int | None = None
     map_y: int | None = None
+    # "行動力"——2026-08-19 实机发现的城池级资源池，很可能是都市指令真正的
+    # 门槛/限制资源（不是 general.stamina），字段本身仍未定位，见
+    # docs/verification_checklist.md 7.4节和 offsets 文件里的字段 note。
+    action_points: int | None = None
 
 
 @dataclass

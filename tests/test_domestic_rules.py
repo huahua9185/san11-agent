@@ -84,13 +84,25 @@ def test_pk_rules_file_loads():
 
 
 def test_pk_rules_costs_are_honestly_unknown():
-    """核心断言：还没有实机验证途径的资源消耗数值必须标 unknown，不能猜测填值。"""
+    """核心断言：还没有实机验证途径的资源消耗数值必须标 unknown，不能猜测填值。
+
+    security_patrol 例外——2026-08-19 用户在两座城池（襄陽/江夏）各用一组
+    不同武将独立执行「巡察」，前后核对 stamina/资金/兵糧，三项数值均已实机
+    验证（见 rules 文件里该动作的 note），不再是"没有验证途径"，所以从这条
+    "必须 unknown"的断言里排除；换成单独一条断言锁住这三个具体数值，防止
+    以后被误改回猜测值或被静默改动。
+    """
     rules = load_domestic_rules(PK_RULES)
-    for kind in _ALL_KINDS:
+    for kind in _ALL_KINDS - {"security_patrol"}:
         rule = rules.action(kind)
         assert rule.min_general_stamina.is_known is False, kind
         assert rule.gold_cost.is_known is False, kind
         assert rule.food_cost.is_known is False, kind
+
+    patrol = rules.action("security_patrol")
+    assert (patrol.min_general_stamina.value, patrol.min_general_stamina.is_known) == (0, True)
+    assert (patrol.gold_cost.value, patrol.gold_cost.is_known) == (100, True)
+    assert (patrol.food_cost.value, patrol.food_cost.is_known) == (0, True)
 
 
 def test_pk_rules_build_facility_types_match_ingame_menu():
