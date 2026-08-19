@@ -96,6 +96,138 @@ def _print_summary(state) -> None:
         print(f"  ... 其余 {len(state.cities) - 5} 座城池省略")
 
 
+def _parse_int_set(raw: str | None) -> frozenset[int]:
+    """把 "1,2,3" 这样的逗号分隔字符串解析成 frozenset[int]，空/None 时返回空集合。"""
+    if not raw:
+        return frozenset()
+    return frozenset(int(x) for x in raw.split(",") if x.strip())
+
+
+def _build_static_visibility(args: argparse.Namespace):
+    """M2 命令行入口共用：拼一个 StaticVisibilitySource。
+
+    2026-08-19 新增（M2/M4 接入 CLI）。为什么不是 UnresolvedVisibilitySource：
+    真实进程场景下 `探明/视野/发现` 这三个问题的内存字段仍然 unknown（见
+    docs/visibility_research.md），`UnresolvedVisibilitySource` 对任何非己方
+    城池/部队/在野武将都会直接抛 `VisibilityUnknownError`——在真实存档里
+    这几乎必然触发（几乎不可能所有非己方实体都恰好是己方）,会让这两个
+    命令在真实进程下完全用不了。所以命令行默认改用 `StaticVisibilitySource`，
+    三个集合不显式传就是空集合——即"除己方外，默认一律当作未探明/不可见/
+    未发现"，这正是过滤器本身"默认不暴露"的既定保守策略，不是新引入的
+    猜测，只是把它变成一个可以真正跑起来的默认值。想要开放某些已知已探明
+    的城池/可见部队/已发现武将，用 `--explored-cities`/`--visible-troops`/
+    `--discovered-generals` 显式传入。
+    """
+    from .visibility import StaticVisibilitySource
+
+    return StaticVisibilitySource(
+        args.player_faction_id,
+        explored_city_indices=_parse_int_set(args.explored_cities),
+        visible_troop_indices=_parse_int_set(args.visible_troops),
+        discovered_general_indices=_parse_int_set(args.discovered_generals),
+    )
+
+
+def _parse_game_state_from_args(args: argparse.Namespace):
+    offsets = load_offsets(args.offsets)
+    if args.process and not offsets.verified:
+        print(
+            f"[警告] offsets 文件 {args.offsets} 的 meta.verified=false，"
+            f"从未在真实进程上验证过，读到的数据可能是错的。",
+            file=sys.stderr,
+        )
+    reader = _build_reader(args)
+    try:
+        return parse_game_state(reader, offsets, validate=not args.no_validate)
+    finally:
+        close = getattr(reader, "close", None)
+        if close:
+            close()
+
+
+def cmd_visible_state(args: argparse.Namespace) -> int:
+    """M2 命令行入口：把完整 GameState 过滤成 VisibleGameState 并打印。
+
+    2026-08-19 新增。boundary.py 此前只能通过 Python API 调用，这里补上
+    对应的 CLI 子命令，跟 `snapshot` 是同一套读取逻辑，只是多一步过滤。
+    """
+    from .boundary import filter_game_state
+
+    try:
+        state = _parse_game_state_from_args(args)
+    except AnchorResolutionError as exc:
+        print(f"[错误] 无法解析 GAME_DATA_BASE 锚点: {exc}", file=sys.stderr)
+        return 2
+    except ValidationError as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        return 3
+    except Exception as exc:  # noqa: BLE001 - CLI 顶层，转成明确退出信息
+        print(f"[错误] 无法建立内存读取通道: {exc}", file=sys.stderr)
+        return 1
+
+    visibility = _build_static_visibility(args)
+    visible = filter_game_state(state, visibility)
+
+    if args.summary:
+        _print_visible_summary(visible, visibility.player_faction_id)
+    else:
+        print(json.dumps(_game_state_to_jsonable(visible), ensure_ascii=False, indent=2))
+    return 0
+
+
+def _print_visible_summary(visible, player_faction_id: int) -> None:
+    g = visible.global_state
+    print(f"剧本 {g.scenario_id} | 开局 {g.start_year}-{g.start_month}-{g.start_day} | 当前第 {g.current_xun} 旬")
+    print(f"玩家势力: {player_faction_id}")
+    own_cities = [c for c in visible.cities if c.faction_id == player_faction_id]
+    print(f"可见城池数: {len(visible.cities)}（其中己方 {len(own_cities)} 座） | 可见武将数: {len(visible.generals)} | 可见部队数: {len(visible.troops)}")
+    for city in own_cities[:5]:
+        detail = f"兵力={city.troops}/{city.troop_capacity} 钱={city.gold} 粮={city.food}" if hasattr(city, "gold") else "(仅摘要)"
+        print(f"  己方城池[{city.index}] {city.name}: {detail}")
+    if len(own_cities) > 5:
+        print(f"  ... 其余 {len(own_cities) - 5} 座己方城池省略")
+
+
+def cmd_legal_actions(args: argparse.Namespace) -> int:
+    """M4 命令行入口：枚举当前内政阶段的全部合法动作并打印。
+
+    2026-08-19 新增。legal_actions.py 此前只能通过 Python API 调用。这条
+    命令串起完整链路：读内存 -> M1 GameState -> M2 过滤 -> M4 枚举，跟真实
+    生产代码路径一致（不是单独拼一份手工构造的测试数据）。
+    """
+    from .boundary import filter_game_state
+    from .domestic_rules import load_domestic_rules
+    from .legal_actions import describe_action, enumerate_legal_actions
+
+    try:
+        state = _parse_game_state_from_args(args)
+    except AnchorResolutionError as exc:
+        print(f"[错误] 无法解析 GAME_DATA_BASE 锚点: {exc}", file=sys.stderr)
+        return 2
+    except ValidationError as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        return 3
+    except Exception as exc:  # noqa: BLE001 - CLI 顶层，转成明确退出信息
+        print(f"[错误] 无法建立内存读取通道: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        rules = load_domestic_rules(args.rules)
+    except Exception as exc:  # noqa: BLE001 - CLI 顶层，转成明确退出信息
+        print(f"[错误] 无法加载规则表 {args.rules}: {exc}", file=sys.stderr)
+        return 1
+
+    visibility = _build_static_visibility(args)
+    visible = filter_game_state(state, visibility)
+    assigned = _parse_int_set(args.assigned_generals)
+
+    actions = enumerate_legal_actions(visible, args.player_faction_id, assigned, rules)
+    print(f"共 {len(actions)} 条合法动作（玩家势力={args.player_faction_id}，已排除已指派武将={sorted(assigned) or '无'}）")
+    for action in actions:
+        print(f"  {describe_action(action, rules)}")
+    return 0
+
+
 def cmd_select_city(args: argparse.Namespace) -> int:
     """M3 执行链路最小命令行入口：点选一座城池并轮询确认选中状态变更。
 
@@ -397,6 +529,46 @@ def build_parser() -> argparse.ArgumentParser:
     snap.add_argument("--no-validate", action="store_true", help="跳过启动常量校验")
     snap.add_argument("--summary", action="store_true", help="打印简要摘要而不是完整 JSON")
     snap.set_defaults(func=cmd_snapshot)
+
+    def _add_visibility_args(p: argparse.ArgumentParser) -> None:
+        p.add_argument(
+            "--player-faction-id", type=int, required=True,
+            help="玩家自己所属势力在 faction 数组里的 index（不从内存派生，见 visibility.py 模块文档）",
+        )
+        p.add_argument(
+            "--explored-cities", help="已探明的非己方城池 index，逗号分隔（例如 3,7,12），默认空（一律当作未探明）",
+        )
+        p.add_argument(
+            "--visible-troops", help="视野内的非己方部队 index，逗号分隔，默认空（一律当作不可见）",
+        )
+        p.add_argument(
+            "--discovered-generals", help="已发现的在野武将 index，逗号分隔，默认空（一律当作未发现）",
+        )
+
+    visible_state = sub.add_parser(
+        "visible-state", help="M2：把完整 GameState 过滤成人类可见的 VisibleGameState 并打印"
+    )
+    visible_state.add_argument("--offsets", required=True, help="offsets json 文件路径")
+    visible_state.add_argument("--dump", help="离线内存 dump json 文件路径（与 --process 二选一）")
+    visible_state.add_argument("--process", help="游戏进程名，例如 San11WPK.exe（与 --dump 二选一）")
+    visible_state.add_argument("--no-validate", action="store_true", help="跳过启动常量校验")
+    visible_state.add_argument("--summary", action="store_true", help="打印简要摘要而不是完整 JSON")
+    _add_visibility_args(visible_state)
+    visible_state.set_defaults(func=cmd_visible_state)
+
+    legal_actions_cmd = sub.add_parser(
+        "legal-actions", help="M4：枚举当前内政阶段的全部合法动作（读内存 -> M1 -> M2 过滤 -> M4 枚举）"
+    )
+    legal_actions_cmd.add_argument("--offsets", required=True, help="offsets json 文件路径")
+    legal_actions_cmd.add_argument("--rules", required=True, help="内政规则表 json 文件路径，例如 rules/domestic_actions_pk_1.1_cn.json")
+    legal_actions_cmd.add_argument("--dump", help="离线内存 dump json 文件路径（与 --process 二选一）")
+    legal_actions_cmd.add_argument("--process", help="游戏进程名，例如 San11WPK.exe（与 --dump 二选一）")
+    legal_actions_cmd.add_argument("--no-validate", action="store_true", help="跳过启动常量校验")
+    legal_actions_cmd.add_argument(
+        "--assigned-generals", help="本回合已经指派过指令的武将 index，逗号分隔，默认空（无人被排除）",
+    )
+    _add_visibility_args(legal_actions_cmd)
+    legal_actions_cmd.set_defaults(func=cmd_legal_actions)
 
     select_city = sub.add_parser(
         "select-city", help="M3：点选一座城池并轮询确认选中状态变更（默认演练模式，不发送真实输入）"

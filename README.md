@@ -221,7 +221,7 @@ san11agent/
   offsets.py                加载/校验 offsets json
   game_state.py             GameState 数据结构（General/City/Troop/Faction/GlobalState）—— M1，完整未过滤
   perception.py             anchor 解析 + 按 offsets 把内存字节解析成 GameState + 启动常量校验 + read_struct_fields() 公共读取逻辑
-  cli.py                     命令行工具：snapshot（快照）+ select-city（M3 执行链路，默认演练模式）
+  cli.py                     命令行工具：snapshot（快照）+ select-city（M3 执行链路，默认演练模式）+ visible-state（M2过滤，2026-08-19新增）+ legal-actions（M4枚举，2026-08-19新增）
   visibility.py              M2：VisibilitySource 抽象 + StaticVisibilitySource(离线) + UnresolvedVisibilitySource(真实进程占位)
   visible_state.py           M2：白名单式人类可见状态类型（VisibleGameState 及其子结构）
   boundary.py                M2：filter_game_state()，GameState -> VisibleGameState 的过滤器本体
@@ -246,7 +246,7 @@ san11agent/
 tests/
   test_offsets.py            offsets 文件加载与校验的单元测试
   test_perception.py          GameState 解析的单元测试（合成 fixture）
-  test_cli.py                  命令行工具（snapshot）的单元测试
+  test_cli.py                  命令行工具（snapshot/visible-state/legal-actions）的单元测试
   test_cli_select_city.py      命令行工具（select-city）的冒烟测试
   test_visibility.py           VisibilitySource 各实现的单元测试
   test_boundary.py             M2 核心：完整 GameState fixture vs 过滤结果的对比测试 + 白名单字段回归测试
@@ -314,6 +314,12 @@ python -m san11agent.cli snapshot --offsets offsets/pk_1.1_cn.json --process San
 
 # 命令行工具：M3 执行链路，离线演练模式（不发送真实输入，用 --dump 只读内存所以最终会轮询超时，用来验证链路本身跑不跑得通）
 python -m san11agent.cli select-city --offsets tests/fixtures/offsets_execution_test.json --ui-layout tests/fixtures/ui_layout_test.json --dump tests/fixtures/synthetic_execution_dump.json --city-index 3 --tile-x 5 --tile-y 5 --poll-timeout 0.2
+
+# 命令行工具：M2，把完整局势过滤成人类可见视角（2026-08-19 新增）
+python -m san11agent.cli visible-state --offsets offsets/pk_1.1_cn.json --process San11WPK.exe --player-faction-id 6 --summary
+
+# 命令行工具：M4，枚举当前内政阶段全部合法动作（2026-08-19 新增，读内存->M1->M2过滤->M4枚举 完整链路）
+python -m san11agent.cli legal-actions --offsets offsets/pk_1.1_cn.json --process San11WPK.exe --rules rules/domestic_actions_pk_1.1_cn.json --player-faction-id 6
 ```
 
-运行时依赖：无第三方库，只用了标准库（`ctypes`/`json`/`dataclasses`/`argparse`/`hashlib`/`shutil`）。测试依赖：`pytest`（见 `requirements-dev.txt`）。M2 的过滤器暂未接入 CLI（`san11agent.cli` 还没有 `--visible` 之类的开关），只能通过 Python API（`san11agent.boundary.filter_game_state`）调用——见提交报告里的说明。M3 的 `select-city` 子命令默认是演练模式（`FakeInputBackend`，不发送真实输入），要真的操作游戏窗口需要显式加 `--live`（仅 Windows，且目前 camera/selection 字段/ui_layout 坐标都是 unknown，实际跑不通，见上方"已知缺口"）。M4 的 LegalActions 同样暂未接入 CLI，只能通过 Python API（`san11agent.legal_actions.enumerate_legal_actions`）调用。M5 延续同样的做法，`san11agent.strategy_loop.StrategyLoop` 同样暂未接入 CLI，只能通过 Python API 组装（`FakeStrategyLLM`/`FakeGameStateSource`/`FakeActionExecutor`，见 `tests/test_strategy_loop.py` 里的完整用法示例）——本次只做到"能离线连续空跑若干回合"，接入命令行/接真实 LLM/接真实游戏留给后续里程碑。
+运行时依赖：无第三方库，只用了标准库（`ctypes`/`json`/`dataclasses`/`argparse`/`hashlib`/`shutil`）。测试依赖：`pytest`（见 `requirements-dev.txt`）。**2026-08-19 M2/M4 已接入 CLI**：新增 `visible-state`（读内存 -> M1 GameState -> M2 过滤 -> 打印 `VisibleGameState`）和 `legal-actions`（在此基础上再跑 M4 `enumerate_legal_actions()`，打印每条合法动作的人类可读描述）两个子命令，见下方"运行"一节的示例。两者都要求显式传 `--player-faction-id`（不从内存派生，理由见 `visibility.py` 模块文档），可见性（探明城池/视野内部队/已发现在野武将）默认全部为空——即真实进程场景下的保守默认"除己方外一律当作不可见"，可以用 `--explored-cities`/`--visible-troops`/`--discovered-generals`（逗号分隔的 index 列表）显式放开。M3 的 `select-city` 子命令默认是演练模式（`FakeInputBackend`，不发送真实输入），要真的操作游戏窗口需要显式加 `--live`（仅 Windows，且目前 camera/selection 字段/ui_layout 坐标都是 unknown，实际跑不通，见上方"已知缺口"）。M5 延续同样的做法，`san11agent.strategy_loop.StrategyLoop` 同样暂未接入 CLI，只能通过 Python API 组装（`FakeStrategyLLM`/`FakeGameStateSource`/`FakeActionExecutor`，见 `tests/test_strategy_loop.py` 里的完整用法示例）——本次只做到"能离线连续空跑若干回合"，接入命令行/接真实 LLM/接真实游戏留给后续里程碑。

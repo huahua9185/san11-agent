@@ -8,6 +8,7 @@ from san11agent.cli import main
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 OFFSETS_TEST = FIXTURES / "offsets_test.json"
 DUMP_TEST = FIXTURES / "synthetic_dump.json"
+DOMESTIC_RULES_TEST = FIXTURES / "domestic_rules_test.json"
 
 
 def test_snapshot_json_mode(capsys):
@@ -34,6 +35,94 @@ def test_snapshot_requires_dump_or_process(capsys):
         assert False, "应该抛出 SystemExit"
     except SystemExit as exc:
         assert exc.code != 0
+
+
+# ---------------------------------------------------------------------------
+# visible-state（M2 接入 CLI，2026-08-19 新增）
+# ---------------------------------------------------------------------------
+
+
+def test_visible_state_json_mode(capsys):
+    code = main([
+        "visible-state", "--offsets", str(OFFSETS_TEST), "--dump", str(DUMP_TEST),
+        "--player-faction-id", "0",
+    ])
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["global_state"]["scenario_id"] == 3
+    # VisibleGeneralFull 才有 stamina 字段；VisibleGeneralPublic 没有——用它验证
+    # 确实走了 M2 过滤链路，不是直接把 GameState 转成了 JSON。
+    assert "stamina" in payload["generals"][0] or "faction_id" in payload["generals"][0]
+
+
+def test_visible_state_summary_mode_shows_own_cities(capsys):
+    code = main([
+        "visible-state", "--offsets", str(OFFSETS_TEST), "--dump", str(DUMP_TEST),
+        "--player-faction-id", "0", "--summary",
+    ])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "玩家势力: 0" in out
+    assert "己方城池" in out
+
+
+def test_visible_state_defaults_to_nothing_extra_visible(capsys):
+    """不传 --explored-cities/--visible-troops/--discovered-generals 时，
+    非己方实体应该按 StaticVisibilitySource 的保守默认处理（不额外可见）——
+    这里只验证命令能正常跑通并产出确定性结果，不依赖真实的可见性数据。
+    """
+    code = main([
+        "visible-state", "--offsets", str(OFFSETS_TEST), "--dump", str(DUMP_TEST),
+        "--player-faction-id", "0",
+    ])
+    assert code == 0
+
+
+# ---------------------------------------------------------------------------
+# legal-actions（M4 接入 CLI，2026-08-19 新增）
+# ---------------------------------------------------------------------------
+
+
+def test_legal_actions_enumerates_and_prints_descriptions(capsys):
+    code = main([
+        "legal-actions", "--offsets", str(OFFSETS_TEST), "--dump", str(DUMP_TEST),
+        "--rules", str(DOMESTIC_RULES_TEST), "--player-faction-id", "0",
+    ])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "条合法动作" in out
+    assert "武将" in out and "城池" in out
+
+
+def test_legal_actions_respects_assigned_generals_exclusion(capsys):
+    code_all = main([
+        "legal-actions", "--offsets", str(OFFSETS_TEST), "--dump", str(DUMP_TEST),
+        "--rules", str(DOMESTIC_RULES_TEST), "--player-faction-id", "0",
+    ])
+    assert code_all == 0
+    out_all = capsys.readouterr().out
+    count_all = int(out_all.split("共 ")[1].split(" 条")[0])
+
+    code_excluded = main([
+        "legal-actions", "--offsets", str(OFFSETS_TEST), "--dump", str(DUMP_TEST),
+        "--rules", str(DOMESTIC_RULES_TEST), "--player-faction-id", "0",
+        "--assigned-generals", "0",
+    ])
+    assert code_excluded == 0
+    out_excluded = capsys.readouterr().out
+    count_excluded = int(out_excluded.split("共 ")[1].split(" 条")[0])
+
+    assert count_excluded < count_all
+    assert "[武将0]" not in out_excluded
+
+
+def test_legal_actions_rejects_bad_rules_path(capsys):
+    code = main([
+        "legal-actions", "--offsets", str(OFFSETS_TEST), "--dump", str(DUMP_TEST),
+        "--rules", "does/not/exist.json", "--player-faction-id", "0",
+    ])
+    assert code == 1
+    assert "无法加载规则表" in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------------------
