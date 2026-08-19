@@ -24,7 +24,7 @@
     },
     "elements": {
       "type": "object",
-      "description": "命名的界面元素。普通按钮只需要 x/y；地图视口(map_viewport)额外带 width/height（视口矩形大小）和 tile_width/tile_height（缩放=1时每个地图格子的像素尺寸，供 map_projection.py 用）。",
+      "description": "命名的界面元素。普通按钮只需要 x/y；地图视口(map_viewport)额外带 width/height（视口矩形大小）和 tile_width/tile_height（缩放=1时每个地图格子的像素尺寸，供 map_projection.py 用）；弹出菜单类元素（比如 city_top_menu/city_submenu，见 san11agent/menu_execution.py）改用 x/y 表示'菜单第0项相对锚点的偏移'，并带 item_height（相邻项纵向间距）/item_count（这一级菜单的项数），不使用 width/height。",
       "additionalProperties": {
         "type": "object",
         "required": ["unknown"],
@@ -35,6 +35,8 @@
           "height": { "type": ["integer", "null"] },
           "tile_width": { "type": ["integer", "null"] },
           "tile_height": { "type": ["integer", "null"] },
+          "item_height": { "type": ["integer", "null"], "description": "弹出菜单类元素专用：相邻项之间的纵向像素间距。" },
+          "item_count": { "type": ["integer", "null"], "description": "弹出菜单类元素专用：这一级菜单的项数，用于点击前的下标越界检查。" },
           "unknown": { "type": "boolean" },
           "note": { "type": "string" }
         }

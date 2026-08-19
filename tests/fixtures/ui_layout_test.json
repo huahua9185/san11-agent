@@ -19,6 +19,21 @@
       "x": null, "y": null,
       "unknown": true,
       "note": "测试用：故意标记未知，验证 require_known() 会报错"
+    },
+    "city_top_menu": {
+      "x": 10, "y": -30, "item_height": 20, "item_count": 6,
+      "unknown": false,
+      "note": "测试用编造坐标：都市/軍事/人材/外交/計略/君主 6项"
+    },
+    "city_submenu": {
+      "x": 80, "y": 0, "item_height": 20, "item_count": null,
+      "unknown": false,
+      "note": "测试用编造坐标：子菜单第0项相对被点击的顶层菜单项的偏移"
+    },
+    "unmeasured_menu": {
+      "x": null, "y": null, "item_height": null, "item_count": 6,
+      "unknown": true,
+      "note": "测试用：故意标记未知的菜单类元素"
     }
   }
 }

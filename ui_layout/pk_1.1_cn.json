@@ -1,7 +1,7 @@
 {
   "meta": {
     "label": "pk_1.1_cn",
-    "description": "San11WPK.exe（Steam 繁体中文版，实机确认，见 docs/offset_research.md 第7节；早先误假设为 san11pk.exe）界面固定元素坐标表。M3（执行层脚手架）阶段游戏完全无法运行，没有任何真实截图或测量数据——这个文件目前只是把格式搭好，所有元素留空。2026-08-18 已能实机运行游戏并完成只读内存验证，但本次仍未做界面坐标测量（不在本次任务范围）。等下次能测量时，需要现场测量（截图量坐标，或用 Spy++ / AutoIt Window Info 之类工具读控件位置）填入，届时把对应条目的 unknown 改成 false 并补上具体数值，同时把 meta.verified 改成 true。见 docs/execution_research.md。",
+    "description": "San11WPK.exe（Steam 繁体中文版，实机确认，见 docs/offset_research.md 第7节；早先误假设为 san11pk.exe）界面固定元素坐标表。M3（执行层脚手架）阶段游戏完全无法运行，没有任何真实截图或测量数据——这个文件目前只是把格式搭好，所有元素留空。2026-08-18 已能实机运行游戏并完成只读内存验证，但本次仍未做界面坐标测量（不在本次任务范围）。2026-08-19 M3/M4 Execute 扩展（san11agent/menu_execution.py）新增 city_top_menu/city_submenu 两个菜单类元素，同样全部 unknown——菜单项数量/顺序已靠截图确认（见 docs/offset_research.md 8.1节），但屏幕像素坐标仍未测量。等下次能测量时，需要现场测量（截图量坐标，或用 Spy++ / AutoIt Window Info 之类工具读控件位置）填入，届时把对应条目的 unknown 改成 false 并补上具体数值，同时把 meta.verified 改成 true。见 docs/execution_research.md。",
     "assumed_client_resolution": null,
     "verified": false
   },
@@ -11,6 +11,16 @@
       "tile_width": null, "tile_height": null,
       "unknown": true,
       "note": "地图显示区域在客户区内的矩形范围，以及每个地图格子在缩放=1时的像素尺寸。map_projection.py 的地图坐标换算依赖这几个值，目前全部未知，见 docs/execution_research.md。"
+    },
+    "city_top_menu": {
+      "x": null, "y": null, "item_height": null, "item_count": 6,
+      "unknown": true,
+      "note": "双击城池后弹出的顶层指令菜单（都市/軍事/人材/外交/計略/君主，6项，顺序已实机确认见 docs/offset_research.md 8.1节），x/y 是第0项(都市)相对城池在客户区的点击坐标的偏移，item_height 是相邻项纵向间距。2026-08-19 新增（M3/M4 Execute 扩展，见 san11agent/menu_execution.py），坐标本身完全未测量，item_count=6 是唯一已确认的部分（菜单项数不会变，跟像素坐标是两回事）。"
+    },
+    "city_submenu": {
+      "x": null, "y": null, "item_height": null, "item_count": null,
+      "unknown": true,
+      "note": "点击顶层菜单某一项后展开的二级子菜单（比如「軍事」展开出 訓練/出征/輸送），x/y 是子菜单第0项相对'刚点击的那个顶层菜单项'的偏移（不是相对城池锚点——截图显示子菜单纵向对齐在被点开的那一项旁边，见对话记录里的出征菜单截图）。item_count 因顶层菜单项不同而不同（都市7项/軍事3项/外交7项/計略3项等，见 docs/offset_research.md 8.1节），这里留 null 表示'不做统一校验'，menu_execution.py 按每次调用实际传入的候选数校验。2026-08-19 新增，坐标完全未测量。"
     }
   }
 }

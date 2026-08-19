@@ -26,6 +26,19 @@ def test_load_ui_layout_parses_known_elements():
     assert (button.x, button.y) == (750, 20)
 
 
+def test_load_ui_layout_parses_menu_element_fields():
+    config = load_ui_layout(UI_LAYOUT_TEST)
+    top_menu = config.element("city_top_menu")
+    assert (top_menu.x, top_menu.y) == (10, -30)
+    assert top_menu.item_height == 20
+    assert top_menu.item_count == 6
+    assert top_menu.unknown is False
+    # 普通元素不声明 item_height/item_count 时应该保持 None，不是 0 或别的默认值。
+    viewport = config.element("map_viewport")
+    assert viewport.item_height is None
+    assert viewport.item_count is None
+
+
 def test_element_require_known_returns_self_when_known():
     config = load_ui_layout(UI_LAYOUT_TEST)
     button = config.element("end_turn_button")

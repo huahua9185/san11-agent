@@ -29,6 +29,14 @@ class UIElement:
     tile_height: int | None
     unknown: bool
     note: str = ""
+    # 弹出菜单类元素专用（比如 city_top_menu/city_submenu，见 menu_execution.py）：
+    # x/y 在这类元素上表示"菜单第0项相对锚点的偏移"，不是绝对客户区坐标；
+    # item_height 是相邻项之间的纵向像素间距；item_count 是这一级菜单的项数，
+    # 用于点击前的下标越界检查。普通元素（比如 map_viewport）不需要这两个字段，
+    # 留 None。跟 width/height 分开是因为语义完全不同（那是矩形尺寸，这是列表
+    # 间距），复用同名字段会让代码读起来以为地图视口也有"菜单项"概念。
+    item_height: int | None = None
+    item_count: int | None = None
 
     def require_known(self) -> "UIElement":
         """在坐标换算代码里，任何要真正使用的元素坐标必须先过这一关，理由跟
@@ -74,6 +82,8 @@ def _load_element(name: str, raw: dict[str, Any]) -> UIElement:
         tile_height=raw.get("tile_height"),
         unknown=unknown,
         note=raw.get("note", ""),
+        item_height=raw.get("item_height"),
+        item_count=raw.get("item_count"),
     )
 
 

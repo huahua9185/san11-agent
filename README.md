@@ -148,6 +148,19 @@
   网格形状、滚动输入方式、SendInput 是否被游戏感知等），全部详见
   docs/execution_research.md
 
+**2026-08-19 扩展**：新增 `san11agent/menu_execution.py` 的
+`ActionMenuExecutor`，把 M4 `enumerate_legal_actions()` 产出的 `Action`
+对象转换成"双击城池弹出指令菜单 -> 点顶层菜单项 -> 点二级子菜单项"这段
+键鼠序列（`CitySelector` 只做到"点城池确认选中"，这是往下的延伸）。菜单
+结构（哪个动作对应哪个菜单/第几项）取自 `docs/offset_research.md` 8.1节
+实机截图确认过的真实菜单顺序，但屏幕像素坐标（`ui_layout` 新增的
+`city_top_menu`/`city_submenu`）仍然全部 `unknown: true`，且这条链路
+**没有任何已知内存字段能验证是否真的生效**（`GlobalState.phase` 仍
+unknown），所以没有轮询、没有重试，只有"发送输入+记日志"。设施类型选择
+（图标网格）、外交/计略目标选择、"決定"确认按钮，这三类更深的交互本次
+明确没有实现，见 docs/execution_research.md 第6节。测试：
+`tests/test_menu_execution.py`（14项，离线）。
+
 **没有做**（有意，等真实游戏能跑、锚点问题解决后再推进）：跟真实游戏的
 实际联调（发一次真实点击、看游戏是否响应）、LegalActions/Execute 更高层的
 动作接口、LLM 接入、战斗。
@@ -206,6 +219,7 @@ san11agent/
   execution_state.py         M3：CameraState/SelectionState 解析（复用 perception.read_struct_fields）
   map_projection.py          M3：地图格子坐标 -> 客户区坐标换算（project_tile_to_client）
   execution.py               M3：CitySelector 执行链路——滚动进视野→点击→轮询确认→失败归位重来
+  menu_execution.py          M3/M4扩展(2026-08-19)：ActionMenuExecutor——把Action点成城池指令菜单里的具体一项，无法自我验证，见docs/execution_research.md第6节
   domestic_rules.py          M4：加载/校验 rules/*.json 内政动作规则表（RuleValue/ActionRuleSpec/DomesticRulesConfig）
   legal_actions.py           M4：内政阶段 Action 类型体系（8种 ActionKind）+ enumerate_legal_actions()——只依赖 VisibleGameState
   intent.py                  M5：高层战略意图类型体系（DomesticFocus/CityDirective/StrategicIntent）
@@ -231,6 +245,7 @@ tests/
   test_map_projection.py        地图坐标换算单元测试
   test_execution_state.py       CameraState/SelectionState 解析单元测试
   test_execution.py             M3 核心：CitySelector 全链路测试（成功/滚动/超时重试/归位/配置缺失报错）
+  test_menu_execution.py        M3/M4扩展：ActionMenuExecutor 测试——菜单路径解析、点击坐标计算、未实现步骤报错
   test_domestic_rules.py        M4：规则表加载器单元测试（生产文件 + 测试 fixture + 格式错误）
   test_legal_actions.py         M4 核心：44个测试——架构守卫（只依赖 VisibleGameState）、约束枚举、资源阈值拦截、可观测性
   test_strategy_memo.py         M5：战略备忘录读写单元测试（格式往返/原子写/备份/长度拒绝/校验和损坏检测/恢复）
@@ -255,7 +270,7 @@ tests/
 
 **M2**（详见 docs/visibility_research.md）：探明城池/视野内部队/已发现在野武将这三类可见性状态，在现有内存资料里完全没有找到对应字段。真实进程场景下调用 `UnresolvedVisibilitySource` 的对应方法会显式抛出 `VisibilityUnknownError`。另外，M1 里 `city.faction_id` 本身也是 unknown，导致过滤器目前无法在真实进程数据上正确判断"这座城是不是我的"——会保守地把所有城池当非己方处理（只给摘要，不泄漏，但也不好用），这两个缺口解决前，M2 过滤器在真实对局里还用不起来，但离线测试证明了过滤逻辑本身是对的。
 
-**M3**（详见 docs/execution_research.md）：`camera`（摄像机偏移/缩放）、`selection`（当前选中城池）两组新增内存字段完全未定位；`ui_layout/pk_1.1_cn.json` 里的界面坐标（`map_viewport`）完全没有真实测量数据。这两类缺口解决前，`CitySelector` 在真实进程场景下会在坐标换算那一步显式报错，不会用编出来的坐标点击。另外，这次新写的地图坐标换算公式、地图滚动的输入方式（假设方向键）、SendInput 是否被游戏感知，都是**未经真实游戏验证的设计假设**，不是已确认的事实——详见 docs/execution_research.md 第3节和第5节"需要你确认的问题"。
+**M3**（详见 docs/execution_research.md）：`camera`（摄像机偏移/缩放）、`selection`（当前选中城池）两组新增内存字段完全未定位；`ui_layout/pk_1.1_cn.json` 里的界面坐标（`map_viewport`、以及2026-08-19新增的 `city_top_menu`/`city_submenu`）完全没有真实测量数据。这几类缺口解决前，`CitySelector`/`ActionMenuExecutor` 在真实进程场景下会在坐标换算那一步显式报错，不会用编出来的坐标点击。另外，这次新写的地图坐标换算公式、地图滚动的输入方式（假设方向键）、SendInput 是否被游戏感知、双击靠连续两次点击模拟，都是**未经真实游戏验证的设计假设**，不是已确认的事实——详见 docs/execution_research.md 第3节、第5节"需要你确认的问题"和第6节。`ActionMenuExecutor` 还有一个比 `CitySelector` 更根本的限制：完全没有内存字段能验证菜单是否真的打开/项是否真的点中（`GlobalState.phase` 仍 unknown），所以没有轮询也没有重试；设施类型选择（图标网格）/外交计略目标选择/"決定"确认按钮这三类更深交互明确没有实现。
 
 **M4**（详见 docs/legal_actions_research.md）：`rules/domestic_actions_pk_1.1_cn.json` 里全部资源消耗数值（体力/金/粮阈值）都是 unknown——这些不是内存偏移问题，是游戏规则数值本身没有实机验证途径，unknown 时 LegalActions 不会拦截，只会记录进 `Action.unverified_constraints`（这个"不拦截"的默认行为本身是需要你确认的取舍，见报告第2节）。另外，"武将是否在这座城"（`location == city.index`）、"治安/巡查是否应合并"、"五种设施类型是否完整准确"等多条设计假设**未经真实游戏验证**，详见 docs/legal_actions_research.md 第4节"需要你确认的设计取舍"。武将适性/特技完全没有对应数据模型字段，本次没有实现相关约束（不是漏做，是数据模型目前不支持）。
 

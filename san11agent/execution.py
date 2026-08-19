@@ -26,6 +26,7 @@ MapProjectionError（滚动超时导致），才会触发归位重试；UILayout
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from .action_log import ActionLog
@@ -56,6 +57,88 @@ class ExecutionConfig:
     max_scroll_nudges: int = 20
     scroll_poll_timeout: float = 1.0
     scroll_poll_interval: float = 0.05
+
+
+def reveal_tile(
+    target_tile: TileCoord,
+    camera: CameraState,
+    viewport: UIElement,
+    *,
+    read_camera: "Callable[[], CameraState]",
+    input_backend: InputBackend,
+    clock: Clock,
+    action_log: ActionLog,
+    config: ExecutionConfig,
+) -> ScreenPoint:
+    """如果目标格子已经在视野内直接返回坐标；否则滚动地图直到进入视野，
+    或者滚动次数用尽后放弃（转成 MapProjectionError，交给上层归位重试）。
+
+    从 CitySelector 里抽出来的独立函数——2026-08-19 新增的 menu_execution.py
+    （打开城池指令菜单）需要同一段"把目标格子滚进视野"的逻辑，双击城池之前
+    同样要先保证目标格子可见，跟 select_city() 点击城池之前的需求完全一样，
+    没有理由各自维护一份。`read_camera` 用回调而不是直接传 reader/offsets/
+    game_data_base，是因为调用方（CitySelector._attempt / menu_execution 里
+    对应的方法）已经各自算好了 game_data_base，这里只需要"再读一次最新的
+    camera"这个动作本身，不需要知道怎么算地址。
+    """
+    point = project_tile_to_client(target_tile, camera, viewport)
+    if point is not None:
+        return point
+
+    for nudge in range(1, config.max_scroll_nudges + 1):
+        direction = _pick_scroll_direction(target_tile, camera)
+        input_backend.key_press(_SCROLL_KEYS[direction])
+
+        previous_camera = camera
+
+        def _camera_changed() -> bool:
+            return read_camera() != previous_camera
+
+        try:
+            poll_until(
+                _camera_changed,
+                timeout=config.scroll_poll_timeout,
+                interval=config.scroll_poll_interval,
+                clock=clock,
+                description=f"等待地图滚动响应 (第{nudge}次)",
+            )
+        except PollTimeoutError as exc:
+            action_log.record(
+                intent="scroll_map",
+                params={"direction": direction, "nudge": nudge},
+                result="timeout",
+                detail=str(exc),
+            )
+            raise MapProjectionError(f"滚动地图第 {nudge} 次后摄像机没有变化: {exc}") from exc
+
+        camera = read_camera()
+        action_log.record(
+            intent="scroll_map",
+            params={"direction": direction, "nudge": nudge},
+            result="success",
+            state_before={"offset_x": previous_camera.offset_x, "offset_y": previous_camera.offset_y},
+            state_after={"offset_x": camera.offset_x, "offset_y": camera.offset_y},
+        )
+        point = project_tile_to_client(target_tile, camera, viewport)
+        if point is not None:
+            return point
+
+    raise MapProjectionError(
+        f"滚动地图 {config.max_scroll_nudges} 次后目标格子 {target_tile} 仍不在视野内"
+    )
+
+
+def _pick_scroll_direction(target_tile: TileCoord, camera: CameraState) -> str:
+    """选一个滚动方向靠近目标格子。project_tile_to_client() 已经在走到这里
+    之前校验过 camera 字段不是 None，这里不用再判断。
+    """
+    if target_tile.x < camera.offset_x:
+        return "left"
+    if target_tile.x > camera.offset_x:
+        return "right"
+    if target_tile.y < camera.offset_y:
+        return "up"
+    return "down"
 
 
 class CitySelector:
@@ -189,72 +272,17 @@ class CitySelector:
     ) -> ScreenPoint:
         """如果目标格子已经在视野内直接返回坐标；否则滚动地图直到进入视野，
         或者滚动次数用尽后放弃（转成 MapProjectionError，交给上层归位重试）。
+
+        实际逻辑在模块级函数 reveal_tile() 里——2026-08-19 抽出来给
+        menu_execution.py 复用，见该函数的说明。
         """
-        point = project_tile_to_client(target_tile, camera, viewport)
-        if point is not None:
-            return point
-
-        for nudge in range(1, self._config.max_scroll_nudges + 1):
-            direction = self._pick_scroll_direction(target_tile, camera)
-            self._nudge_map(direction)
-
-            previous_camera = camera
-
-            def _camera_changed() -> bool:
-                return self._read_camera(game_data_base) != previous_camera
-
-            try:
-                poll_until(
-                    _camera_changed,
-                    timeout=self._config.scroll_poll_timeout,
-                    interval=self._config.scroll_poll_interval,
-                    clock=self._clock,
-                    description=f"等待地图滚动响应 (第{nudge}次)",
-                )
-            except PollTimeoutError as exc:
-                self._log.record(
-                    intent="scroll_map",
-                    params={"direction": direction, "nudge": nudge},
-                    result="timeout",
-                    detail=str(exc),
-                )
-                raise MapProjectionError(f"滚动地图第 {nudge} 次后摄像机没有变化: {exc}") from exc
-
-            camera = self._read_camera(game_data_base)
-            self._log.record(
-                intent="scroll_map",
-                params={"direction": direction, "nudge": nudge},
-                result="success",
-                state_before={"offset_x": previous_camera.offset_x, "offset_y": previous_camera.offset_y},
-                state_after={"offset_x": camera.offset_x, "offset_y": camera.offset_y},
-            )
-            point = project_tile_to_client(target_tile, camera, viewport)
-            if point is not None:
-                return point
-
-        raise MapProjectionError(
-            f"滚动地图 {self._config.max_scroll_nudges} 次后目标格子 {target_tile} 仍不在视野内"
+        return reveal_tile(
+            target_tile,
+            camera,
+            viewport,
+            read_camera=lambda: self._read_camera(game_data_base),
+            input_backend=self._input,
+            clock=self._clock,
+            action_log=self._log,
+            config=self._config,
         )
-
-    def _pick_scroll_direction(self, target_tile: TileCoord, camera: CameraState) -> str:
-        """选一个滚动方向靠近目标格子。project_tile_to_client() 已经在走到这里
-        之前校验过 camera 字段不是 None，这里不用再判断。
-        """
-        if target_tile.x < camera.offset_x:
-            return "left"
-        if target_tile.x > camera.offset_x:
-            return "right"
-        if target_tile.y < camera.offset_y:
-            return "up"
-        return "down"
-
-    def _nudge_map(self, direction: str) -> None:
-        """滚动地图的具体输入方式：按一次方向键。
-
-        这是一个未经验证的假设——三国志11实际的地图滚动方式也可能是鼠标
-        边缘滚动/拖拽/小地图点击，不是方向键。已在 docs/execution_research.md
-        和提交报告里列为需要你在游戏可运行后确认的设计取舍。选方向键是因为
-        它是几种可能方式里最不容易误触发游戏内其它功能（比如拖拽误选中部队）
-        的一种，作为脚手架阶段的默认假设。
-        """
-        self._input.key_press(_SCROLL_KEYS[direction])

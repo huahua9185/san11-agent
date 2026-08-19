@@ -129,3 +129,57 @@ M3 执行链路（"读城池坐标 -> 滚动地图 -> 点击 -> 轮询确认选�
 4. 归位例程目前只能"发 Esc"，无法校验是否真的回到了已知界面——这个限制
    会一直存在，直到 `GlobalState.phase` 字段被定位（M1 遗留缺口，见
    docs/offset_research.md 第5节第5条）。是否需要提高这个缺口的优先级？
+
+## 6. M3/M4 Execute 扩展：菜单执行（2026-08-19，`san11agent/menu_execution.py`）
+
+新增 `ActionMenuExecutor`，把 M4 `enumerate_legal_actions()` 产出的
+`Action` 对象转换成"双击城池弹出指令菜单 -> 点顶层菜单项 -> 点二级子菜单
+项"这段键鼠序列，是 `CitySelector`（只做到"点城池确认选中"）往下的延伸。
+
+**跟 M1~M4 的关系**：菜单结构（哪个 `ActionKind` 对应哪个顶层菜单/第几项
+子菜单）直接取自 `docs/offset_research.md` 第8.1节——那是实机截图确认过
+的真实菜单顺序，不是这次编的；`DiplomacyAction`/`StratagemAction` 的子
+类型下标则动态从 `rules/domestic_actions_pk_1.1_cn.json` 里 `sub_types`
+字典的插入顺序算出，不额外维护一份可能和 rules 文件走岔的下标表。
+
+**复用 `CitySelector` 的滚动逻辑**：把"把目标格子滚进视野"这段代码从
+`CitySelector._reveal()` 抽成模块级函数 `execution.reveal_tile()`，两个
+类共用，没有重复维护同一段地图滚动逻辑（这是这次唯一动到 `execution.py`
+既有代码的地方，`tests/test_execution.py` 全部7项测试重构后原样通过，
+确认行为没变）。
+
+**这条链路完全无法自我验证——不是简化，是当前已知信息量的极限**：跟
+`CitySelector` 能靠 `selection.selected_city_index` 轮询确认点击生效不同，
+"当前哪个菜单打开着"/"哪一项被选中"没有任何已知内存字段能读到（根源是
+`GlobalState.phase` 仍然 unknown，M1 老缺口）。所以 `ActionMenuExecutor`
+里没有轮询、没有超时、也没有重试——每一步都只是"发送输入 + 记日志"。
+
+**新增的界面坐标缺口**：`ui_layout/pk_1.1_cn.json` 新增 `city_top_menu`/
+`city_submenu` 两个元素，跟 `map_viewport` 一样全部 `unknown: true`；
+`UIElement` 新增 `item_height`/`item_count` 两个字段专供菜单类元素使用
+（普通元素留 `None`），坐标未知时 `require_known()` 直接抛 `UILayoutError`，
+不会点到编出来的位置。
+
+**这次明确没有实现的部分**（不是遗漏，是这次的范围边界，见模块文档）：
+
+1. `BuildFacilityAction` 选具体设施类型——「開發」界面是19个设施图标的
+   网格（见第8.3节的「設施數」「空地」等截图描述），不是垂直列表。
+2. `DiplomacyAction`/`StratagemAction` 选具体目标势力/城池——点完子类型
+   后大概率还有一层选目标的界面，完全没有资料参考。
+3. 多个指令流程末尾的"決定"确认按钮——这次对话记录里的出征操作就卡在
+   了这一步附近。
+
+对以上三类，`execute_action()` 会在完成能做的两级菜单点击后，明确抛出
+`FurtherStepsNotImplementedError`，不会假装动作已经完整执行。
+
+**新增的、未经验证的设计假设**：双击的实现是连续调用两次
+`InputBackend.click()`（`InputBackend` 没有专门的 `double_click()` 原语），
+真实系统双击判定的时间间隔没有建模——跟已有的"方向键滚动地图""zoom_level
+线性缩放"等假设是同一性质，见第3节。
+
+**测试**：`tests/test_menu_execution.py`（14项）离线覆盖 `resolve_menu_path()`
+对6种 `ActionKind` 的下标计算（含 diplomacy/stratagem 按 rules 顺序动态
+解析、未知子类型报错）、`open_city_menu()` 的归位/滚动/双击序列、
+`execute_action()` 的点击坐标计算（验证 anchor + 偏移 + index*item_height
+的算法）、终止型动作正常返回 vs 需要更深步骤的动作抛
+`FurtherStepsNotImplementedError`、ui_layout 元素未知/下标越界的报错行为。
