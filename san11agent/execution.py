@@ -32,7 +32,7 @@ from dataclasses import dataclass
 from .action_log import ActionLog
 from .clock import Clock
 from .execution_state import CameraState, SelectionState, parse_camera_state, parse_selection_state
-from .input_backend import VK_DOWN, VK_ESCAPE, VK_LEFT, VK_RIGHT, VK_UP, InputBackend
+from .input_backend import VK_ESCAPE, InputBackend
 from .map_projection import MapProjectionError, ScreenPoint, TileCoord, project_tile_to_client
 from .memory import MemoryReader
 from .offsets import OffsetsConfig
@@ -41,7 +41,9 @@ from .polling import PollTimeoutError, poll_until
 from .ui_layout import UIElement, UILayoutConfig
 from .window import GameWindow
 
-_SCROLL_KEYS = {"left": VK_LEFT, "up": VK_UP, "right": VK_RIGHT, "down": VK_DOWN}
+# 平移地图的边缘停靠点跟视口边界的留白（像素），避免鼠标坐标正好落在视口
+# 矩形边界上下界处的浮点/取整边缘情况。
+_EDGE_MARGIN = 2
 
 
 class ExecutionFailedError(Exception):
@@ -66,12 +68,13 @@ def reveal_tile(
     *,
     read_camera: "Callable[[], CameraState]",
     input_backend: InputBackend,
+    window: GameWindow,
     clock: Clock,
     action_log: ActionLog,
     config: ExecutionConfig,
 ) -> ScreenPoint:
-    """如果目标格子已经在视野内直接返回坐标；否则滚动地图直到进入视野，
-    或者滚动次数用尽后放弃（转成 MapProjectionError，交给上层归位重试）。
+    """如果目标格子已经在视野内直接返回坐标；否则平移地图直到进入视野，
+    或者尝试次数用尽后放弃（转成 MapProjectionError，交给上层归位重试）。
 
     从 CitySelector 里抽出来的独立函数——2026-08-19 新增的 menu_execution.py
     （打开城池指令菜单）需要同一段"把目标格子滚进视野"的逻辑，双击城池之前
@@ -80,6 +83,17 @@ def reveal_tile(
     game_data_base，是因为调用方（CitySelector._attempt / menu_execution 里
     对应的方法）已经各自算好了 game_data_base，这里只需要"再读一次最新的
     camera"这个动作本身，不需要知道怎么算地址。
+
+    平移方式：2026-08-19 实机确认（用户直接回答）——左右方向键在这个游戏里
+    是**旋转相机视角**，不是平移地图；真正平移地图靠的是把鼠标移到屏幕边缘、
+    游戏自动向那个方向滚动。这次改动之前的实现按方向键去平移是一个已确认
+    的错误，不是"未经验证的假设"那种程度——之前代码如果真跑在 `--live` 下，
+    点击流程会先把相机转乱而不是把目标格子挪进视野。现在改成移动鼠标到
+    `viewport` 矩形对应方向的边缘（`_edge_point_for_direction()`），不点击，
+    只是悬停，然后跟之前一样轮询摄像机是否变化。真实的边缘滚动是"鼠标停在
+    那里的整段时间持续滚动"，不是像按键那样离散的一次性事件，所以这里的
+    "一次 nudge"实际上是"移过去、等一段轮询间隔、看摄像机动没动"，不需要
+    重复移动同一个点。
     """
     point = project_tile_to_client(target_tile, camera, viewport)
     if point is not None:
@@ -87,7 +101,9 @@ def reveal_tile(
 
     for nudge in range(1, config.max_scroll_nudges + 1):
         direction = _pick_scroll_direction(target_tile, camera)
-        input_backend.key_press(_SCROLL_KEYS[direction])
+        edge_point = _edge_point_for_direction(direction, viewport)
+        screen_x, screen_y = window.client_to_screen(edge_point.x, edge_point.y)
+        input_backend.move_mouse(screen_x, screen_y)
 
         previous_camera = camera
 
@@ -100,21 +116,21 @@ def reveal_tile(
                 timeout=config.scroll_poll_timeout,
                 interval=config.scroll_poll_interval,
                 clock=clock,
-                description=f"等待地图滚动响应 (第{nudge}次)",
+                description=f"等待地图平移响应 (第{nudge}次)",
             )
         except PollTimeoutError as exc:
             action_log.record(
-                intent="scroll_map",
-                params={"direction": direction, "nudge": nudge},
+                intent="pan_map",
+                params={"direction": direction, "nudge": nudge, "edge_screen": (screen_x, screen_y)},
                 result="timeout",
                 detail=str(exc),
             )
-            raise MapProjectionError(f"滚动地图第 {nudge} 次后摄像机没有变化: {exc}") from exc
+            raise MapProjectionError(f"平移地图第 {nudge} 次后摄像机没有变化: {exc}") from exc
 
         camera = read_camera()
         action_log.record(
-            intent="scroll_map",
-            params={"direction": direction, "nudge": nudge},
+            intent="pan_map",
+            params={"direction": direction, "nudge": nudge, "edge_screen": (screen_x, screen_y)},
             result="success",
             state_before={"offset_x": previous_camera.offset_x, "offset_y": previous_camera.offset_y},
             state_after={"offset_x": camera.offset_x, "offset_y": camera.offset_y},
@@ -124,12 +140,12 @@ def reveal_tile(
             return point
 
     raise MapProjectionError(
-        f"滚动地图 {config.max_scroll_nudges} 次后目标格子 {target_tile} 仍不在视野内"
+        f"平移地图 {config.max_scroll_nudges} 次后目标格子 {target_tile} 仍不在视野内"
     )
 
 
 def _pick_scroll_direction(target_tile: TileCoord, camera: CameraState) -> str:
-    """选一个滚动方向靠近目标格子。project_tile_to_client() 已经在走到这里
+    """选一个平移方向靠近目标格子。project_tile_to_client() 已经在走到这里
     之前校验过 camera 字段不是 None，这里不用再判断。
     """
     if target_tile.x < camera.offset_x:
@@ -139,6 +155,25 @@ def _pick_scroll_direction(target_tile: TileCoord, camera: CameraState) -> str:
     if target_tile.y < camera.offset_y:
         return "up"
     return "down"
+
+
+def _edge_point_for_direction(direction: str, viewport: UIElement) -> ScreenPoint:
+    """viewport 矩形靠近某个方向边缘、贴着但不越界的一个客户区坐标点，鼠标
+    停在这个位置触发游戏自动向该方向平移地图。viewport 在调用前已经过
+    `require_known()` 校验（`project_tile_to_client()` 内部已经做过），
+    这里不重复校验。
+    """
+    mid_x = viewport.x + viewport.width // 2
+    mid_y = viewport.y + viewport.height // 2
+    if direction == "left":
+        return ScreenPoint(viewport.x + _EDGE_MARGIN, mid_y)
+    if direction == "right":
+        return ScreenPoint(viewport.x + viewport.width - 1 - _EDGE_MARGIN, mid_y)
+    if direction == "up":
+        return ScreenPoint(mid_x, viewport.y + _EDGE_MARGIN)
+    if direction == "down":
+        return ScreenPoint(mid_x, viewport.y + viewport.height - 1 - _EDGE_MARGIN)
+    raise ValueError(f"未知的平移方向 {direction!r}")
 
 
 class CitySelector:
@@ -282,6 +317,7 @@ class CitySelector:
             viewport,
             read_camera=lambda: self._read_camera(game_data_base),
             input_backend=self._input,
+            window=self._window,
             clock=self._clock,
             action_log=self._log,
             config=self._config,

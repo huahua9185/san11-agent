@@ -248,6 +248,7 @@ class ActionMenuExecutor:
             viewport,
             read_camera=_read_camera,
             input_backend=self._input,
+            window=self._window,
             clock=self._clock,
             action_log=self._log,
             config=self._config,

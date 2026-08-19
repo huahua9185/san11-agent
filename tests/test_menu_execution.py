@@ -164,24 +164,24 @@ def test_open_city_menu_homes_reveals_and_double_clicks(offsets, ui_layout):
     assert point.y == 50 + 5 * 20
 
 
-def test_open_city_menu_scrolls_map_when_target_outside_viewport(offsets, ui_layout):
-    from san11agent.input_backend import VK_RIGHT
-
+def test_open_city_menu_pans_map_when_target_outside_viewport(offsets, ui_layout):
+    # viewport: x=100,y=50,width=400,height=300 → 右边缘悬停点 = (497, 200)
+    RIGHT_EDGE = (497, 200)
     reader = _build_reader(offset_x=0)
 
-    def on_key_press(vk):
-        if vk == VK_RIGHT:
+    def on_move_mouse(x, y):
+        if (x, y) == RIGHT_EDGE:
             reader.write_i32(CAMERA_OFFSET_X_ADDR, 15)
 
-    input_backend = FakeInputBackend(on_key_press=on_key_press)
+    input_backend = FakeInputBackend(on_move_mouse=on_move_mouse)
     action_log = ActionLog(FakeClock())
     executor = _make_executor(reader, offsets, ui_layout, input_backend, action_log)
 
     executor.open_city_menu(CITY_INDEX, TileCoord(30, 5))
 
-    scroll_entries = [e for e in action_log.entries if e.intent == "scroll_map"]
-    assert len(scroll_entries) == 1
-    assert scroll_entries[0].result == "success"
+    pan_entries = [e for e in action_log.entries if e.intent == "pan_map"]
+    assert len(pan_entries) == 1
+    assert pan_entries[0].result == "success"
 
 
 def test_open_city_menu_raises_uilayout_error_when_viewport_unknown(offsets, ui_layout):

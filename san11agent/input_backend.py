@@ -78,13 +78,16 @@ class FakeInputBackend(InputBackend):
     等待或猜测时序。
     """
 
-    def __init__(self, *, on_click=None, on_key_press=None):
+    def __init__(self, *, on_click=None, on_key_press=None, on_move_mouse=None):
         self.calls: list[RecordedCall] = []
         self._on_click = on_click
         self._on_key_press = on_key_press
+        self._on_move_mouse = on_move_mouse
 
     def move_mouse(self, x: int, y: int) -> None:
         self.calls.append(RecordedCall("move_mouse", (x, y)))
+        if self._on_move_mouse:
+            self._on_move_mouse(x, y)
 
     def mouse_down(self, button: str = "left") -> None:
         self.calls.append(RecordedCall("mouse_down", (button,)))

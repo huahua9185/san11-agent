@@ -18,7 +18,7 @@ import pytest
 from san11agent.action_log import ActionLog
 from san11agent.clock import FakeClock
 from san11agent.execution import CitySelector, ExecutionConfig, ExecutionFailedError
-from san11agent.input_backend import VK_ESCAPE, VK_RIGHT, FakeInputBackend
+from san11agent.input_backend import VK_ESCAPE, FakeInputBackend
 from san11agent.map_projection import MapProjectionError, TileCoord
 from san11agent.memory import MutableMemoryReader
 from san11agent.offsets import load_offsets
@@ -98,17 +98,19 @@ def test_select_city_succeeds_when_target_already_in_view(offsets, ui_layout):
     assert success_entry.state_diff == {"selected_city_index": (-1, CITY_INDEX)}
 
 
-def test_select_city_scrolls_map_when_target_outside_viewport(offsets, ui_layout):
+def test_select_city_pans_map_when_target_outside_viewport(offsets, ui_layout):
+    # viewport: x=100,y=50,width=400,height=300 → 右边缘悬停点 = (100+400-1-2, 50+150) = (497, 200)
+    RIGHT_EDGE = (497, 200)
     reader = _build_reader(offset_x=0)  # 目标格子 (30,5) 一开始在视野外
 
-    def on_key_press(vk):
-        if vk == VK_RIGHT:
-            reader.write_i32(CAMERA_OFFSET_X_ADDR, 15)  # 模拟地图向右滚动
+    def on_move_mouse(x, y):
+        if (x, y) == RIGHT_EDGE:
+            reader.write_i32(CAMERA_OFFSET_X_ADDR, 15)  # 模拟鼠标停在右边缘触发地图向右平移
 
     def on_click(x, y, button):
         reader.write_i32(SELECTION_ADDR, CITY_INDEX)
 
-    input_backend = FakeInputBackend(on_click=on_click, on_key_press=on_key_press)
+    input_backend = FakeInputBackend(on_click=on_click, on_move_mouse=on_move_mouse)
     clock = FakeClock()
     action_log = ActionLog(clock)
     selector = CitySelector(
@@ -119,10 +121,11 @@ def test_select_city_scrolls_map_when_target_outside_viewport(offsets, ui_layout
 
     selector.select_city(CITY_INDEX, TileCoord(30, 5))
 
-    scroll_entries = [e for e in action_log.entries if e.intent == "scroll_map"]
-    assert len(scroll_entries) == 1
-    assert scroll_entries[0].result == "success"
-    assert scroll_entries[0].params["direction"] == "right"
+    pan_entries = [e for e in action_log.entries if e.intent == "pan_map"]
+    assert len(pan_entries) == 1
+    assert pan_entries[0].result == "success"
+    assert pan_entries[0].params["direction"] == "right"
+    assert pan_entries[0].params["edge_screen"] == RIGHT_EDGE
 
     click_entries = [e for e in action_log.entries if e.intent == "select_city.click"]
     assert click_entries[-1].result == "success"
@@ -234,8 +237,8 @@ def test_select_city_raises_uilayout_error_immediately_without_retry_when_viewpo
     assert not any(e.intent == "select_city.attempt_failed" for e in action_log.entries)
 
 
-def test_select_city_gives_up_scrolling_when_camera_never_changes(offsets, ui_layout):
-    reader = _build_reader()  # on_key_press 什么都不做，摄像机永远不变
+def test_select_city_gives_up_panning_when_camera_never_changes(offsets, ui_layout):
+    reader = _build_reader()  # on_move_mouse 什么都不做，摄像机永远不变
 
     input_backend = FakeInputBackend()
     clock = FakeClock()
@@ -249,5 +252,5 @@ def test_select_city_gives_up_scrolling_when_camera_never_changes(offsets, ui_la
     with pytest.raises(ExecutionFailedError):
         selector.select_city(CITY_INDEX, TileCoord(30, 5))  # 一开始就在视野外
 
-    scroll_timeouts = [e for e in action_log.entries if e.intent == "scroll_map" and e.result == "timeout"]
-    assert len(scroll_timeouts) > 0
+    pan_timeouts = [e for e in action_log.entries if e.intent == "pan_map" and e.result == "timeout"]
+    assert len(pan_timeouts) > 0
