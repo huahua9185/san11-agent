@@ -35,6 +35,7 @@
 - `of_troop()`：**未验证**。Troop 结构体里根本没有 force_id 字段，只能绕两跳
   （commander_general_id -> General.force_id -> Force.faction_id）。这条路本身
   没有在实机上核对过，而且指挥官阵亡/换将等情况下是否仍然成立也不清楚。
+  下次上机验证待办见 docs/verification_checklist.md 第 4.4 项。
 
 解析不出来时一律返回 `None`，绝不猜测。调用方拿 `None` 和 `player_faction_id`
 比较必然为假，也就是自动 fail-closed（宁可把己方误判成非己方而少给信息，也不

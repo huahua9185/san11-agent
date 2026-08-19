@@ -13,7 +13,7 @@
 
 ## 总览
 
-- **共 44 项待验证/待确认事项**，分 8 个阶段，大致对应你坐下来那一次的真实操作顺序。
+- **共 45 项待验证/待确认事项**，分 8 个阶段，大致对应你坐下来那一次的真实操作顺序。
 - **关键路径（P0，卡住一切真实内存相关工作）**：阶段 3 的 `GAME_DATA_BASE` 锚点定位方法（1.1 节）。在这一项解决之前，阶段 4、5 完全无法进行——`ProcessMemoryReader` 真实进程模式下代码会显式拒绝解析并报错退出（`san11agent/perception.py` `resolve_anchor()`），这是刻意设计，不是 bug。
 - **不依赖锚点、可以随时先做的两块**：阶段 7（内政规则数值，纯靠观察游戏内 UI 数字变化）、阶段 8 里的一部分设计假设（比如设施类型是否齐全、地图网格形状、地图滚动方式——这些靠"看游戏""玩一玩"就能确认，不需要读内存）。如果锚点问题一时半会解决不了，可以先做这两块，不会浪费这次上机时间。
 - 优先级标注：**P0** = 卡住某个里程碑继续推进；**P1** = 该里程碑能用但会有明显缺陷/安全退化；**P2** = 锦上添花，缺了不影响里程碑基本可用性。
@@ -99,6 +99,12 @@
   - `general.location` 的编码规则（是否真的是">87 表示在部队中，减87=部队ID"）
 - **填到哪里**：核对通过的字段，把 `confidence` 从 `medium`/`low` 提升到 `high`；核对不上的，改成 `unknown: true` 并写清楚原因。全部核对完、4.1 校验通过后，可以把 `meta.verified` 改成 `true`。
 - **2026-08-18 结果**：用户发来两张城池详情截图（南皮/濮陽），逐字段核对 `city.gold`/`city.food`/`city.troops`/`city.security`/`city.governor_general_id`（经姓氏交叉核对），**五个字段十项数值全部精确吻合**，均已提升到 `confidence: high`。同时验证了 `current_xun` 换算日期公式（30旬+184-1-1=184-11-1）与截图日期一致。截图里的"耐久"/"現役"两个字段扫描后确认不在 City 记录范围内（可能需要走设施子结构）。详见 `docs/offset_research.md` 第7.8节。**后续追加**：用户又发来武将花名册+部队信息截图，补上了 `general.base_stats` 字节顺序（9位精确匹配，confidence提升为high）、`general.location` 编码规则（见8.1/8.2）、`general.identity`（新发现2=太守/3=一般）、`troop.display_stats` 语义（等于指挥官的display_stats_normal）的核对，见第7.9节。仍未测的：`general.display_stats_wound`（受伤状态，无样本）、`faction.*` 全部字段；`general.faction_id`/`troop.faction_id` 核对后发现语义存疑（见7.9节"新发现的异常"），confidence 反而从 high 下调为 medium。`meta.verified` 仍为 `false`（这些遗留项 + camera/selection/phase/city.faction_id等未知字段仍未解决）。
+
+### 4.4 `FactionResolver.of_troop()` 链路的实机验证 [P1][依赖: 3.1, 4.2] ⬜ 未开始
+- **验证什么**：`san11agent/faction_resolve.py` 的 `of_troop()` 解析部队所属势力的路径——`Troop.commander_general_id -> General[commander].force_id -> Force[force_id].faction_id`——在真实部队记录上是否真的成立。这条路径本身没有直接字段支持（`Troop` 结构体没有 `force_id`，只能绕经主将），是目前 Force→Faction 整条链路里**唯一没有实机样本**的一环；`of_city()`（12座城池）和 `of_general()`（9位武将）都已验证过，只有这条没有。
+- **为什么需要**：`boundary.py` 的 `_filter_troop()` 已经在用这条链路判断"这支部队是不是我自己的"（2026-08-18 接入，见 `docs/offset_research.md` 第8.4节）。链路本身没错时行为是对的（fail-closed 兜底也已经过测试锁定），但如果这条路径在某些真实情况下不成立——比如指挥官阵亡/换将后 `commander_general_id` 指向一个已经不在该军团的武将、或者部队与主将短暂不同步的中间状态——`_filter_troop()` 会把玩家自己的部队错误地判成非己方（fail-closed 会让它被藏起来，不算泄漏，但会让 M2 在真实对局里低估己方可见的部队数），或者反过来把非己方部队误判成己方（这是需要严格排除的方向）。目前完全没有真实数据能确认哪种情况会不会发生。
+- **建议怎么做**：挑 2~3 支你自己的、以及 2~3 支敌方的活跃部队（`troop.commander_general_id` 非 -1、`troop_count` 明显 >0 的记录），手动核对：① 该部队的 `commander_general_id` 对应的武将，② 该武将的 `force_id`，③ 该军团的 `faction_id`，④ 这个解析结果是否等于该部队在游戏界面（花名册"軍團"列/部队信息面板）里实际显示的归属。如果能找到一支**指挥官刚刚阵亡或被替换**的部队更好，可以顺带确认换将瞬间这条链路是否还成立（这是最容易出问题的边界情况）。
+- **填到哪里**：核对通过，把 `san11agent/faction_resolve.py` 模块文档和 `of_troop()` 方法文档字符串里的"⚠ 未经实机验证"改成"已验证"，并在 `docs/offset_research.md` 新增一节记录样本数据；`docs/visibility_research.md` 第3.1节末尾那句"仍需注意"也要同步去掉限定语。如果核对不上，需要回来重新设计 `_filter_troop()` 的归属判断（比如改成不信任 `of_troop()`、部队一律退化成只按视野判断可见性，不再享受"己方部队始终可见"这条规则）。
 
 ---
 
