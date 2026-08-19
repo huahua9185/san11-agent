@@ -241,7 +241,7 @@
           "unknown": false,
           "confidence": "high",
           "source": "地址资料.txt + Func-情报03",
-          "note": "2026-08-18 实机验证确认编码规则：抽样9位驻守在城池里的武将，location 精确等于所在城池的 index（比如張燕 location=3，城池[3]正是南皮，张燕确实是南皮太守）；另抽样1位正带兵在外的武将（裴元紹），location=93，93-87=6，其部队记录确实在 troop[6]——'>87 表示在部队中，减87=部队ID，≤87 时等于 city.index'这条注释里原本存疑的编码规则现已被两种情况各自的真实样本证实，confidence 维持 high 但去掉'未完全核实'的表述"
+          "note": "2026-08-18 实机验证确认编码规则：抽样9位驻守在城池里的武将，location 精确等于所在城池的 index（比如張燕 location=3，城池[3]正是南皮，张燕确实是南皮太守）；另抽样1位正带兵在外的武将（裴元紹），location=93，93-87=6，其部队记录确实在 troop[6]——'>87 表示在部队中，减87=部队ID，≤87 时等于 city.index'这条注释里原本存疑的编码规则现已被两种情况各自的真实样本证实，confidence 维持 high 但去掉'未完全核实'的表述。2026-08-19 边界条件修正（见 docs/offset_research.md 7.17节）：劉表出征后所带 troop[0]（index=0）的主将劉表和副将蒯良，location 都读到恰好 87（不是 88），87-87=0 正好等于 troop index 0——说明正确边界是 '>=87 表示在部队中'，不是 '>87'，此前只有 troop index=6 的样本从未测过 index=0 这个边界"
         },
         "identity": {
           "offset": "0xA0",
@@ -655,8 +655,9 @@
           "size": 4,
           "type": "i32",
           "unknown": false,
-          "confidence": "medium",
-          "source": "地址资料.txt"
+          "confidence": "high",
+          "source": "地址资料.txt",
+          "note": "2026-08-19 troop[0]（劉表隊，本回合刚完成出征动作）实测值为1，与'该部队本回合已行动'的预期相符，confidence 从 medium 提升为 high，见 docs/offset_research.md 7.17节"
         },
         "faction_id": {
           "offset": "0x44",
@@ -684,7 +685,7 @@
           "unknown": false,
           "confidence": "high",
           "source": "地址资料.txt + 函数[部队攻击].txt",
-          "note": "2026-08-18 troop[6]（裴元紹隊，截图显示装备'弩'和'走船'两种兵装图标，戰法為'火矢'）实测值为3，暂无法独立确认3对应哪个具体兵种，只记录观测值"
+          "note": "2026-08-18 troop[6]（裴元紹隊，截图显示装备'弩'和'走船'两种兵装图标，戰法為'火矢'）实测值为3，暂无法独立确认3对应哪个具体兵种，只记录观测值。2026-08-19 新样本：troop[0]（劉表隊，截图显示兵科「戰兵」）实测值为2，确认 2=戰兵，见 docs/offset_research.md 7.17节"
         },
         "display_stats": {
           "offset": "0xC4",

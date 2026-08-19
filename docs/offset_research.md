@@ -743,6 +743,86 @@ PID 6796 不是同一个运行实例（比如中途游戏被重启过、状态�
 `pytest`：本次未改动任何代码逻辑，只追加了这一节文档记录和一次性核对
 脚本产出；跑了一遍确认现有 286 项测试仍全部通过，不是新增测试。
 
+### 7.17 2026-08-19 用户手动完成出征，`of_troop()` 链路首次拿到真实活跃部队样本——验证通过
+
+用户在 7.16 节记录的矛盾之后自己接手操作（本会话全程没有再碰游戏），
+成功完成了出征，发来两张截图：地图上出现了「劉表」部队图标（士兵2000），
+以及点开部队面板显示的详情——「劉表隊」主将劉表、副将蒯良、資金1000、
+兵糧4000、士兵2000、氣力74/100、兵科戰兵。本节记录随后**纯只读**核对
+（`ProcessMemoryReader`，PID 6796，与派兵前读到的 PID 相同，未发送任何
+键鼠输入）的结果。
+
+**找到了这支部队，是 `troop[0]`**（此前两轮找到的100条"占位记录"全部在
+1000~1099，这是第一次在 0~999 区间发现真正激活的记录）。逐字段和截图
+比对：
+
+| 字段 | 内存读数 | 截图 | 结果 |
+|---|---|---|---|
+| `commander_general_id` | 636 | 劉表 | 一致（636 是劉表本人 index） |
+| `vice_general_1_id` | 54 | 蒯良 | 一致 |
+| `troop_count` | 2000 | 士兵2000 | 一致 |
+| `morale` | 74 | 氣力74/100 | 一致 |
+| `gold` | 1000 | 資金1000 | 一致 |
+| `food` | 4000 | 兵糧4000 | 一致 |
+| `current_unit_type` | 2 | 兵科「戰兵」 | 新增映射：2=戰兵（此前 troop[6] 裴元紹隊读到的是3，兵科未知，两次合在一起说明这个字段确实随部队实际兵科变化，不是常量） |
+| `has_acted` | 1 | （截图未直接显示，但该部队本回合已完成出征动作） | 与"已行动"字段语义相符，confidence 从 medium 提升为 high |
+
+**城池资源变化和新部队携带量精确对上**：襄陽(29) `troops` 6000→4000
+（少了2000）、`gold` 2200→1200（少了1000）、`food` 20000→16000（少了
+4000）——三项差值分别精确等于新部队的 `troop_count`/`gold`/`food`，证明
+"出征"确实是把资源从城池转移到部队，不是无中生有或读到不相关数据。
+
+**`FactionResolver.of_troop()` 链路验证通过（验证清单4.4项完成）**：
+
+```
+troop[0].commander_general_id = 636 (劉表)
+  -> General[636].force_id = 6
+  -> Force[6] = Force(index=6, faction_id=6, force_number=1, commander_general_id=636)
+  -> Force[6].faction_id = 6
+FactionResolver.of_troop(troop[0]) = 6
+```
+
+与 `of_general(劉表)` 独立算出的结果（同样是 6）完全一致，这是符合预期
+的自洽性检查——部队指挥官和部队本身理应属于同一势力。`FactionResolver`
+的 `of_troop()`/`of_general()`/`of_city()` 三条路径现在全部有真实样本
+支持，`san11agent/faction_resolve.py` 模块文档和 `of_troop()` 方法文档
+里的"⚠ 未经实机验证"已改为"已验证"，见第8.5节。
+
+**副产品发现①：`general.location` 编码规则的边界条件被修正——是 `>=87`，不是 `>87`**
+
+7.9节的规则只有一个样本（裴元紹，troop index=6，location=93=87+6），
+从未测过 troop index=0 这个边界。这次劉表和蒯良都在 `troop[0]` 里，
+两人的 `location` 都读到 **87**（不是 88 或其它），87-87=0，正好等于
+`troop[0]` 的 index。说明正确规则是 `location - 87 = troop_index`，
+对 `troop_index=0` 而言 `location` 恰好等于 87 本身——此前"`>87` 表示在
+部队中"的表述在边界处不准确，已改为"`>=87`"，见第8.5节代码/数据改动。
+
+**副产品发现②：`general.faction_id` 不随武将进出部队而更新，进一步坐实 7.9/7.10 节的判断**
+
+这是一次比 7.9 节更干净的对照实验——同一位武将（劉表）在**出征前后**
+被读了两次：出征前（7.16节）`location=29`（襄陽）、`faction_id=29`；
+出征后（本节）`location=87`（部队中）、`faction_id` 仍然是 **29，没有
+变成 87 或其它值**。7.9节的原始发现（`faction_id` 在"驻守"状态下恰好
+等于 `location`，在"带兵在外"状态下不等于）当时是用两个不同的武将
+（張燕 vs 裴元紹）做的横向对比，这次是同一个武将出征前后的纵向对比，
+更直接地证明了 `faction_id` 这个字段**不会跟着武将当前位置/状态同步
+更新**——它更像是某种"最后一次驻守/绑定"的城池记录，一旦武将被派去
+带兵就不再更新，而不是实时反映当前状态。`troop[0].faction_id` 本身
+仍然读到 `-1`（和 7.9 节 troop[6] 的情况一样），进一步坐实了
+"`general.faction_id`/`troop.faction_id` 都不能直接当势力ID用"这个
+已有结论，没有新的矛盾，只是又多了一组独立样本。
+
+**已做的改动**：`offsets/pk_1.1_cn.json` 的 `general.location` note
+更新边界条件说明；`troop.current_unit_type` note 追加 `2=戰兵` 映射；
+`troop.has_acted` confidence 从 medium 提升为 high；`san11agent/
+faction_resolve.py` 模块文档和 `of_troop()` docstring 从"未经实机验证"
+改为"已验证"，并记录了本节的样本数据。`docs/verification_checklist.md`
+4.4 项标记完成。`docs/visibility_research.md` 第3.1节末尾"仍需注意
+of_troop() 未验证"那句限定语已去掉。详见第8.5节。
+
+`pytest`：跑了一遍确认现有 286 项测试仍全部通过（本次只改了字符串
+docstring/note，没有改动任何代码逻辑或测试断言的行为，不需要新增测试）。
+
 ## 8. 游戏内实际术语对照（繁体中文 Steam 版）
 
 > 本文档和验证清单前面几节写的"内政"/"战略"是沿用项目规格文档的简体中文
@@ -940,7 +1020,7 @@ None）。也就是说这个比较在真实内存下**几乎永远为假**——
 |---|---|
 | `of_city()` | ✅ 已验证（12 座城池，全部给出符合剧本的历史归属） |
 | `of_general()` | ✅ 已验证（9 位武将，含韓忠 force_id=6 与花名册"2張角"吻合） |
-| `of_troop()` | ⚠ **未验证**——Troop 没有 force_id，只能经主将绕两跳，这条路没在实机上核对过 |
+| `of_troop()` | ✅ **已验证**（2026-08-19，见第7.17节，troop[0]「劉表隊」，主将/副将/城池资源变化多项交叉核对一致） |
 
 解析不出来一律返回 `None`，与 `player_faction_id` 比较必然为假，**自动
 fail-closed**（宁可自己人也看不全，也不把敌方误判成己方而泄漏信息）。
@@ -955,4 +1035,24 @@ fail-closed**（宁可自己人也看不全，也不把敌方误判成己方而�
 形态的测试（武将 `faction_id` 装城池 index、城池 `faction_id` 为 None、部队
 `faction_id` 为 -1），并**实际验证过：把代码退回旧逻辑，这组测试会挂 3 个**。
 另有一个测试锁住"军团表缺失时必须 fail-closed 而不是 fail-open"。
+
+### 8.5 2026-08-19 `of_troop()` 实机验证通过后的数据/文档改动汇总
+
+第7.17节记录了 `of_troop()` 首次拿到真实活跃部队样本并验证通过的完整
+过程，这里汇总当时同步做的改动（全部是数据/文档，没有改动任何代码逻辑）：
+
+- `offsets/pk_1.1_cn.json` → `structs.general.fields.location.note`：
+  边界条件从"`>87` 表示在部队中"改为"`>=87`"，并记录劉表/蒯良两人在
+  `troop[0]`（index=0）时 `location` 恰好读到 87 这个新样本（此前唯一的
+  样本 troop index=6 对应 location=93，从未测过 index=0 这个边界）。
+- `offsets/pk_1.1_cn.json` → `structs.troop.fields.current_unit_type.note`：
+  追加 `2=戰兵` 这组新确认的映射（此前 troop[6] 读到3，兵种未知）。
+- `offsets/pk_1.1_cn.json` → `structs.troop.fields.has_acted`：
+  `confidence` 从 `medium` 提升为 `high`（troop[0] 读到1，与"该部队本回合
+  已完成出征动作"的预期相符）。
+- `san11agent/faction_resolve.py`：模块文档和 `of_troop()` 方法文档字符串
+  里的"⚠ 未经实机验证"改为"已验证"，补充第7.17节的样本数据引用。
+- `docs/verification_checklist.md` 4.4 项标记为已完成。
+- `docs/visibility_research.md` 第3.1节末尾"仍需注意 `of_troop()` 未验证"
+  的限定语已删除。
 

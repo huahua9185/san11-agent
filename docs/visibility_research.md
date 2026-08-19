@@ -120,9 +120,9 @@ M2 没有尝试拿这个未验证的字段去派生 `player_faction_id`，而是
 解析失败返回 `None`，自动 fail-closed。详见
 `docs/offset_research.md` 第 8.4 节。
 
-⚠ 仍需注意：三条解析路径里 `of_troop()`（部队）**尚未实机验证**——Troop
-结构体没有 force_id，只能经主将绕两跳，这条路是目前这一层最弱的一环。
-下次上机验证待办见 `docs/verification_checklist.md` 第 4.4 项。
+**2026-08-19 追加：`of_troop()` 已完成实机验证**（用真实出征的劉表隊
+`troop[0]` 核对，见 `docs/offset_research.md` 第7.17节）。三条解析路径
+（`of_city()`/`of_general()`/`of_troop()`）现在全部有真实样本支持。
 
 ## 4. 战斗随机数种子 / 命中判定预演
 

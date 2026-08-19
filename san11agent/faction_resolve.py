@@ -32,10 +32,16 @@
   下邳→孫堅）。
 - `of_general()`：**已验证**。9 位武将交叉核对，其中韓忠 force_id=6 解析出的
   势力与游戏内花名册"軍團"列显示的"2張角"吻合。
-- `of_troop()`：**未验证**。Troop 结构体里根本没有 force_id 字段，只能绕两跳
-  （commander_general_id -> General.force_id -> Force.faction_id）。这条路本身
-  没有在实机上核对过，而且指挥官阵亡/换将等情况下是否仍然成立也不清楚。
-  下次上机验证待办见 docs/verification_checklist.md 第 4.4 项。
+- `of_troop()`：**已验证**（2026-08-19）。Troop 结构体里根本没有 force_id 字段，
+  只能绕两跳（commander_general_id -> General.force_id -> Force.faction_id）。
+  用真实出征的 troop[0]（劉表隊，主将劉表/副将蒯良）核对：
+  `commander_general_id=636 -> General[636].force_id=6 -> Force[6].faction_id=6`，
+  与独立算出的 `of_general(劉表)==6` 完全一致；同时 `troop_count`/`gold`/
+  `food`/`morale`/`current_unit_type` 等字段与游戏内部队面板截图逐项精确
+  相等，襄陽城池的资源减少量也精确等于新部队携带量，排除了巧合命中的可能。
+  详见 docs/offset_research.md 第7.17节。**指挥官阵亡/换将等情况下是否仍然
+  成立仍未测试**（这次样本是指挥官健在的正常出征状态），如果以后遇到这类
+  情况，值得补一次验证。
 
 解析不出来时一律返回 `None`，绝不猜测。调用方拿 `None` 和 `player_faction_id`
 比较必然为假，也就是自动 fail-closed（宁可把己方误判成非己方而少给信息，也不
@@ -115,7 +121,8 @@ class FactionResolver:
         return self.faction_of_force(general.force_id)
 
     def of_troop(self, troop: Troop) -> int | None:
-        """部队所属势力。**⚠ 未经实机验证**，见模块文档。
+        """部队所属势力。**已验证**（2026-08-19，troop[0]「劉表隊」，见模块文档
+        和 docs/offset_research.md 第7.17节）。
 
         Troop 结构体没有 force_id，只能绕两跳：先用主将 id 找到武将，再走武将的
         force_id。主将 id 非法/查不到时返回 None（fail-closed）。
