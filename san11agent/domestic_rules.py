@@ -61,6 +61,10 @@ class ActionRuleSpec:
     min_general_stamina: RuleValue
     gold_cost: RuleValue
     food_cost: RuleValue
+    # 2026-08-19 新增：城池级"行動力"资源池的消耗，见 rules/schema.json 里
+    # 这个字段的说明——是真正的门槛资源，min_general_stamina 反而大概率
+    # 不是（官方手册对这些内政指令完全没有提到"体力"这个概念）。
+    action_points_cost: RuleValue = _UNKNOWN_RULE_VALUE
     sub_types: dict[str, SubTypeSpec] = field(default_factory=dict)
     note: str = ""
 
@@ -133,6 +137,7 @@ def _load_action_rule(kind: str, raw: dict[str, Any]) -> ActionRuleSpec:
         min_general_stamina=_load_rule_value(raw.get("min_general_stamina")),
         gold_cost=_load_rule_value(raw.get("gold_cost")),
         food_cost=_load_rule_value(raw.get("food_cost")),
+        action_points_cost=_load_rule_value(raw.get("action_points_cost")),
         sub_types=_load_sub_types(raw),
         note=raw.get("note", ""),
     )

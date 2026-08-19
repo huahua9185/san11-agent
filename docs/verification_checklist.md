@@ -210,24 +210,26 @@
 
 > 这一整块**不需要读内存**，纯靠"发起一个内政指令前后，界面上金/粮/体力数字的变化"来确认，所以如果阶段3的锚点问题一时解决不了，可以先做这部分，不浪费上机时间。`rules/domestic_actions_pk_1.1_cn.json` 里 8 种动作、每种 3 项资源（体力/金/粮），全部标 `unknown: true`——不是内存偏移问题，是规则数值本身没有实机验证途径。这里的 `unknown` 语义和 `offsets.py` 不同：`legal_actions.py` 不会因为规则未知就拒绝枚举动作，只会在对应 `Action.unverified_constraints` 里标记"这条约束没被真正检查过"（`rules/domestic_actions_pk_1.1_cn.json` → `meta.description` 有说明）。
 
-### 7.1~7.8 八种内政动作的体力/金/粮消耗阈值 [P1][依赖: 无]
+### 7.1~7.8 八种内政动作的体力/金/粮消耗阈值 [P1][依赖: 无] ✅ 2026-08-19 用官方手册+实机核对基本完成
 
 | # | 动作 (`ActionKind`) | 需要确认 | 填到哪个 JSON 路径 |
 |---|---|---|---|
-| 7.1 | `build_facility` 设施建设 | 体力/金/粮消耗（五种设施——农田/市场/兵营/马厩/弩楼——是否各自不同，还是统一价格） | `actions.build_facility.{min_general_stamina,gold_cost,food_cost}.value` |
-| 7.2 | `recruit_troops` 征兵 | 体力/金/粮消耗（发起指令本身的门槛，不是"按人数计费"的具体费率） | `actions.recruit_troops.*` |
-| 7.3 | `train_troops` 训练 | 体力/金/粮消耗 | `actions.train_troops.*` |
-| 7.4 | `security_patrol` 治安/巡查 | ~~体力/金/粮消耗~~ ✅ 已完成2026-08-19 | `actions.security_patrol.*` |
-| 7.5 | `levy_gold` 征收（金） | 发起门槛（是否要求最低城池余额）、体力/粮消耗 | `actions.levy_gold.*` |
-| 7.6 | `levy_food` 征收（粮） | 同上 | `actions.levy_food.*` |
-| 7.7 | `diplomacy` 外交 | 体力/金/粮消耗，五种子类型（同盟/停战/婚姻/贸易/恫吓）是否各自费用不同 | `actions.diplomacy.*` |
-| 7.8 | `stratagem` 计略 | 体力/金/粮消耗，五种子类型（离间/煽动/流言/破坏/劫略）是否各自费用不同 | `actions.stratagem.*` |
+| 7.1 | `build_facility` 设施建设 | ~~体力/金/粮消耗~~ ✅ 已完成2026-08-19（行動力=20，各设施 gold_cost 此前已实机确认） | `actions.build_facility.{min_general_stamina,gold_cost,food_cost}.value` |
+| 7.2 | `recruit_troops` 征兵 | ~~体力/金/粮消耗~~ ✅ 已完成2026-08-19（gold=300/行動力=20/food=0，另发现需要「兵營」设施前置条件） | `actions.recruit_troops.*` |
+| 7.3 | `train_troops` 训练 | ~~体力/金/粮消耗~~ ✅ 已完成2026-08-19（gold=0/行動力=20/food=0） | `actions.train_troops.*` |
+| 7.4 | `security_patrol` 治安/巡查 | ~~体力/金/粮消耗~~ ✅ 已完成2026-08-19（实机+手册双重验证） | `actions.security_patrol.*` |
+| 7.5 | `levy_gold` 征收（金） | 已删除——2026-08-18 确认游戏里根本不存在此指令 | 不适用 |
+| 7.6 | `levy_food` 征收（粮） | 同上，已删除 | 不适用 |
+| 7.7 | `diplomacy` 外交 | ~~体力/金/粮消耗~~ ✅ 已完成2026-08-19（行動力=30，7个子类型中4个有固定/门槛资金，3个是可变出价） | `actions.diplomacy.*` |
+| 7.8 | `stratagem` 计略 | ~~体力/金/粮消耗~~ ✅ 已完成2026-08-19（gold=200/行動力=30，3个子类型一致） | `actions.stratagem.*` |
 
 - **为什么需要**：这些数值目前全部 unknown，`unverified_constraints` 会一直挂在每个枚举出的 Action 上，下游（未来的 LLM prompt/Execute）拿到的每条动作都带着"资源消耗未经验证"的标记，没法做真正的资源可行性判断。
-- **建议怎么做**：对每种动作，找一位符合条件的己方武将，记录发起指令前的体力/该城金/粮，执行后再记录一次，差值就是消耗。子类型不同的（`build_facility`/`diplomacy`/`stratagem`）建议每种子类型都单独测一次。这部分工作量较大（最多 8×3=24 个具体数值，加上子类型细分更多），建议按优先级分批做，不必一次做完；`unverified_constraints` 机制保证了"没测的部分"不会被误当作"已确认无消耗"。
-- **2026-08-19 7.4 `security_patrol` 结果**：在襄陽（劉琦/蒯越/蔡和三人）、江夏（黃祖/蘇飛/王威三人）各独立执行一次「巡察」，前后核对：**武将体力消耗0**（两次共6位武将，执行前后 stamina 均为100，完全不变——巡察不消耗个人体力，这是意外发现，见下条）、**资金消耗固定100**（襄陽1200→1100、江夏1600→1500，两城一致）、**兵糧消耗0**。已写入 `rules/domestic_actions_pk_1.1_cn.json` 并锁定测试（`tests/test_domestic_rules.py`）。
-  - **意外发现①：真正的门槛资源是"行動力"，不是武将体力**。游戏内确认对话框显示"行動力 20/54"（襄陽）/"行動力 20/34"（江夏），是一个随城池不同而不同的资源池，本项目完全没有建模。扫描过 `City[29]`/`City[27]` 结构体全部字节找值为54/34的字段，两次都是0个候选——不在已知 `City` struct 里，大概率跟 `city.faction_id`/`map_x`/`map_y` 一样需要间接指针访问，本次没有进一步定位。这意味着 `domestic_rules.py`/`legal_actions.py` 里"用 `general.stamina` 做门槛"这个设计前提，对 `security_patrol`（可能也包括其它都市指令）来说可能整体不成立，需要专门评估。
-  - **意外发现②：部分都市指令可能有"需要先建成设施"的前置条件**。观察到襄陽「設施數 0/18」（还没建过任何设施）时，都市菜单里「徵兵」「吸收合併」「生產兵裝」「研究技巧」四项显示为灰色不可用（只有「開發」「巡察」「商人」可点）。`rules/domestic_actions_pk_1.1_cn.json`/`legal_actions.py` 目前都没有为这类前置条件建模，具体是哪个设施解锁哪个指令仍未确认，需要以后找一座已建设施的城池对照验证。
+- **2026-08-19 结果——从"逐条实机测"变成"官方手册一次性给出"**：验证 `security_patrol` 时，在游戏安装目录发现一份 **`San11WPK.pdf`（74MB 官方《遊戲說明書》）**，用 `pdftotext` 提取文字层后找到一份结构化的"指令一覽"章节，逐条给出每种据点指令的资金/行動力消耗——这是官方权威数据源，一次性给出了原计划要挨个动作实机测的大部分数值，比"发起指令、读内存前后差值"的方法快得多。详见 `docs/legal_actions_research.md` 第7节完整记录。核心结论：
+  - **真正的门槛资源是"行動力"，不是武将体力**——手册全篇没有一条指令提到"体力"，一致是"行動力"（城池级资源池，每回合恢复，随城池发展程度不同上限，襄陽/江夏当时分别是54/34）。`security_patrol` 的实机核对（襄陽/江夏各3位武将，执行前后 stamina 全部不变）与手册结论完全吻合，双重印证。`rules` 文件已把全部6种动作的 `min_general_stamina` 改为 `0`（已知），新增 `action_points_cost` 字段承载真正门槛。
+  - **`city.action_points`（行動力）字段本身仍未在内存里定位到**——扫描过 `City[29]`/`City[27]` 结构体全部字节找当前显示值，均为0个候选，见 `docs/offset_research.md` 7.4节，`offsets/pk_1.1_cn.json` 已加占位字段（unknown）。这意味着 `enumerate_legal_actions()` 目前还只能在规则表层面记录"这个动作要花多少行動力"，做不到"这座城行動力不够就不产出这个 Action"这一步真正的约束检查。
+  - **`recruit_troops`（徵兵）需要「兵營」设施，`train_troops`（訓練）跟「軍事府」的关系有矛盾**（手册说"减半"，实机观察是"完全不可用"，如实记录未强行调和）——这类"需要先建成设施"的前置条件，`City` struct 目前没有解析设施清单，完全没有建模，见 `docs/legal_actions_research.md` 7.2节。
+  - **顺带纠正**：`break_alliance` 正确字形是「摒棄」，不是 2026-08-18 存疑的「破棄」。
+  - **数据来源性质**：手册数值的 `confidence` 定为 `high`（官方一手资料），但 `meta.verified` 没有整体改 `true`——手册本身可能有版本/本地化误差，不完全等同"逐条实机验证过"，见 `docs/legal_actions_research.md` 7.4节。
 
 ---
 

@@ -84,25 +84,56 @@ def test_pk_rules_file_loads():
 
 
 def test_pk_rules_costs_are_honestly_unknown():
-    """核心断言：还没有实机验证途径的资源消耗数值必须标 unknown，不能猜测填值。
+    """核心断言：还没有可靠依据的资源消耗数值必须标 unknown，不能猜测填值。
 
-    security_patrol 例外——2026-08-19 用户在两座城池（襄陽/江夏）各用一组
-    不同武将独立执行「巡察」，前后核对 stamina/资金/兵糧，三项数值均已实机
-    验证（见 rules 文件里该动作的 note），不再是"没有验证途径"，所以从这条
-    "必须 unknown"的断言里排除；换成单独一条断言锁住这三个具体数值，防止
-    以后被误改回猜测值或被静默改动。
+    2026-08-19 之前这条断言要求全部8种动作的三项资源都 unknown。当天有
+    两类事件改变了这个状态：① security_patrol 实机执行两次独立核对
+    （stamina/资金/兵糧）；② 在游戏安装目录找到官方内建手册（San11WPK.pdf，
+    用 pdftotext 提取文字层），里面的'指令一覽'章节给出了每种内政指令精确
+    的资金/行動力（不是体力）消耗——这是官方权威数据源，不是猜测，跟本
+    项目'没依据就标 unknown'的原则不冲突。
+
+    min_general_stamina 现在全部指令都标 0/已知——不是巧合，是手册对这些
+    内政指令统一没有提到'体力'这个概念，真正的门槛资源是'行動力'
+    （action_points_cost，另有断言锁定）。food_cost 同理，手册没有为任何
+    一种内政指令列出兵糧消耗项，全部标 0/已知。
+
+    gold_cost 只在数值单一确定时才标已知；'因设施/研究而异'
+    （build_facility/研究技巧顶层）、'多的話成功率上昇'这类可变出价
+    （diplomacy 顶层及部分子类型）保持 unknown，不编一个具体数字。
     """
     rules = load_domestic_rules(PK_RULES)
-    for kind in _ALL_KINDS - {"security_patrol"}:
-        rule = rules.action(kind)
-        assert rule.min_general_stamina.is_known is False, kind
-        assert rule.gold_cost.is_known is False, kind
-        assert rule.food_cost.is_known is False, kind
 
-    patrol = rules.action("security_patrol")
-    assert (patrol.min_general_stamina.value, patrol.min_general_stamina.is_known) == (0, True)
-    assert (patrol.gold_cost.value, patrol.gold_cost.is_known) == (100, True)
-    assert (patrol.food_cost.value, patrol.food_cost.is_known) == (0, True)
+    for kind in _ALL_KINDS:
+        rule = rules.action(kind)
+        assert (rule.min_general_stamina.value, rule.min_general_stamina.is_known) == (0, True), kind
+        assert (rule.food_cost.value, rule.food_cost.is_known) == (0, True), kind
+
+    expected_action_points = {
+        "build_facility": 20,
+        "recruit_troops": 20,
+        "train_troops": 20,
+        "security_patrol": 20,
+        "diplomacy": 30,
+        "stratagem": 30,
+    }
+    for kind, expected in expected_action_points.items():
+        rule = rules.action(kind)
+        assert (rule.action_points_cost.value, rule.action_points_cost.is_known) == (expected, True), kind
+
+    expected_gold = {
+        "recruit_troops": 300,
+        "train_troops": 0,
+        "security_patrol": 100,
+        "stratagem": 200,
+    }
+    for kind, expected in expected_gold.items():
+        rule = rules.action(kind)
+        assert (rule.gold_cost.value, rule.gold_cost.is_known) == (expected, True), kind
+
+    # build_facility/diplomacy 顶层的 gold_cost 因子类型/出价而异，故意保持 unknown。
+    assert rules.action("build_facility").gold_cost.is_known is False
+    assert rules.action("diplomacy").gold_cost.is_known is False
 
 
 def test_pk_rules_build_facility_types_match_ingame_menu():
@@ -149,13 +180,36 @@ def test_pk_rules_facility_gold_costs_are_known_per_subtype():
     assert {st.gold_cost.value for st in sub_types.values()} == {50, 200, 300, 400}
 
 
-def test_sub_type_gold_cost_defaults_to_unknown_when_absent():
-    """外交/计略的子类型目前没有造价数据，必须安静地默认 unknown，
-    而不是报错或被当成 0。"""
+def test_sub_type_gold_cost_known_or_unknown_matches_manual():
+    """2026-08-19 之前外交/计略全部子类型都是 unknown（安静默认，不报错、
+    不当成0）。找到官方手册后，数值固定的子类型已经标为已知；'多的話成功
+    率上昇'这类可变出价的子类型（不是固定数值）保持 unknown，不编一个数字。
+    """
     rules = load_domestic_rules(PK_RULES)
+
+    known = {
+        ("diplomacy", "goodwill"): 1000,
+        ("diplomacy", "alliance"): 1000,
+        ("diplomacy", "break_alliance"): 0,
+        ("diplomacy", "demand_surrender"): 0,
+        ("stratagem", "two_tigers"): 200,
+        ("stratagem", "drive_tiger_devour_wolf"): 200,
+        ("stratagem", "spread_rumor"): 200,
+    }
+    still_unknown = {
+        ("diplomacy", "ceasefire"),
+        ("diplomacy", "exchange_prisoners"),
+        ("diplomacy", "request_reinforcements"),
+    }
+
     for kind in ("diplomacy", "stratagem"):
         for st in rules.action(kind).sub_types.values():
-            assert st.gold_cost.is_known is False, f"{kind}.{st.id}"
+            key = (kind, st.id)
+            if key in known:
+                assert (st.gold_cost.value, st.gold_cost.is_known) == (known[key], True), key
+            else:
+                assert key in still_unknown, f"未分类的子类型: {key}"
+                assert st.gold_cost.is_known is False, key
 
 
 # ---------------------------------------------------------------------------
