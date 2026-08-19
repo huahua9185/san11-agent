@@ -249,6 +249,81 @@ def cmd_mem_diff(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_full_mem_dump(args: argparse.Namespace) -> int:
+    """辅助工具三（写端）：枚举目标进程的私有已提交内存区域并全部抓取，写成
+    gzip+pickle 的全内存快照，供 full-mem-diff 对比。用于定位 mem-dump/mem-diff
+    在 GAME_DATA_BASE 附近找不到的字段（比如 global.phase），见 mem_scan.py
+    模块文档。只支持 --process（真实进程），全内存扫描离线 dump 没有意义。
+    """
+    from .mem_scan import (
+        DEFAULT_MAX_REGION_SIZE,
+        capture_full_snapshot,
+        enumerate_regions,
+        save_full_snapshot,
+        should_scan_region,
+    )
+    from .memory import ProcessMemoryReader
+
+    if not args.process:
+        print("[错误] full-mem-dump 只支持 --process（真实进程）", file=sys.stderr)
+        return 1
+    if sys.platform != "win32":
+        print("[错误] full-mem-dump 只支持 Windows", file=sys.stderr)
+        return 1
+
+    max_region_size = int(args.max_region_size, 16) if args.max_region_size else DEFAULT_MAX_REGION_SIZE
+    reader = ProcessMemoryReader.attach_by_name(args.process)
+    try:
+        print("[提示] 正在枚举内存区域……", file=sys.stderr)
+        all_regions = enumerate_regions(reader)
+        regions = [
+            r for r in all_regions
+            if should_scan_region(r, only_private=not args.include_image, max_region_size=max_region_size)
+        ]
+        total_bytes = sum(r.region_size for r in regions)
+        print(
+            f"[提示] 枚举到 {len(all_regions)} 个区域，其中 {len(regions)} 个符合扫描条件，"
+            f"共 {total_bytes / 1024 / 1024:.1f} MB，开始抓取……",
+            file=sys.stderr,
+        )
+        region_bytes = capture_full_snapshot(reader, regions)
+        save_full_snapshot(args.out, reader.module_base, region_bytes, label=args.label)
+    finally:
+        reader.close()
+
+    print(f"已写出全内存快照: {args.out}（{len(region_bytes)} 个区域）")
+    return 0
+
+
+def cmd_full_mem_diff(args: argparse.Namespace) -> int:
+    """辅助工具三（diff 端）：对比两份 full-mem-dump 快照。"""
+    from .mem_scan import diff_full_snapshots, format_full_diff_report, load_full_snapshot
+
+    old = load_full_snapshot(args.old)
+    new = load_full_snapshot(args.new)
+    report = diff_full_snapshots(old["regions"], new["regions"])
+    print(f"== {args.old} -> {args.new} ==")
+    print(format_full_diff_report(report, min_bytes=args.min_bytes, limit=args.limit))
+    return 0
+
+
+def cmd_full_mem_toggle(args: argparse.Namespace) -> int:
+    """辅助工具三（toggle 端）：对比"操作前/操作中/操作后"三份 full-mem-dump
+    快照，只挑"操作前后相同、操作中不同"的字节——比 full-mem-diff 更能排除
+    跟本次操作无关的背景噪音（帧计数器等持续变化、不会变回原值的字段），
+    见 mem_scan.py find_toggled_spans() 文档。
+    """
+    from .mem_scan import find_toggled_spans, format_toggled_spans, load_full_snapshot
+
+    before = load_full_snapshot(args.before)
+    during = load_full_snapshot(args.during)
+    after = load_full_snapshot(args.after)
+    spans = find_toggled_spans(before["regions"], during["regions"], after["regions"])
+    print(f"== {args.before} -> {args.during} -> {args.after} ==")
+    print(format_toggled_spans(spans, min_bytes=args.min_bytes, limit=args.limit))
+    return 0
+
+
 def cmd_probe_anchor(args: argparse.Namespace) -> int:
     """辅助工具二：批量验证 GAME_DATA_BASE 候选地址，复用 perception.py 的启动常量校验。"""
     from .anchor_probe import format_report, load_candidates_file, probe_candidates
@@ -380,6 +455,44 @@ def build_parser() -> argparse.ArgumentParser:
         "--base", help="一个十六进制基址（比如已知的 GAME_DATA_BASE），报告里额外用相对偏移显示每个地址"
     )
     mem_diff.set_defaults(func=cmd_mem_diff)
+
+    full_mem_dump = sub.add_parser(
+        "full-mem-dump",
+        help="辅助工具三（写端）：枚举+抓取目标进程全部私有已提交内存区域，供 full-mem-diff 定位 GAME_DATA_BASE 附近找不到的字段",
+    )
+    full_mem_dump.add_argument("--process", required=True, help="游戏进程名，例如 San11WPK.exe")
+    full_mem_dump.add_argument("--out", required=True, help="输出的全内存快照文件路径（gzip+pickle 格式）")
+    full_mem_dump.add_argument("--label", help="给这份快照起个名字，方便后续 diff 报告里辨认")
+    full_mem_dump.add_argument(
+        "--include-image", action="store_true",
+        help="连 MEM_IMAGE（exe/dll 镜像，比如 GAME_DATA_BASE 所在的那块）也扫进来，默认只扫 MEM_PRIVATE（堆/栈），量级小很多",
+    )
+    full_mem_dump.add_argument(
+        "--max-region-size", help="单个区域超过这个大小（十六进制）就跳过，默认 0x4000000（64MB）"
+    )
+    full_mem_dump.set_defaults(func=cmd_full_mem_dump)
+
+    full_mem_diff = sub.add_parser(
+        "full-mem-diff", help="辅助工具三（diff 端）：对比两份 full-mem-dump 快照，定位哪些地址发生了变化"
+    )
+    full_mem_diff.add_argument("old", help="较早抓的全内存快照文件路径")
+    full_mem_diff.add_argument("new", help="较晚抓的全内存快照文件路径")
+    full_mem_diff.add_argument(
+        "--min-bytes", type=int, default=1, help="只显示变化字节数 >= 这个值的区间（默认1）"
+    )
+    full_mem_diff.add_argument("--limit", type=int, help="最多显示多少条变化区间（默认不限制）")
+    full_mem_diff.set_defaults(func=cmd_full_mem_diff)
+
+    full_mem_toggle = sub.add_parser(
+        "full-mem-toggle",
+        help="辅助工具三（toggle端）：对比操作前/操作中/操作后三份 full-mem-dump 快照，只挑'前后相同、中间不同'的字节，排除背景噪音",
+    )
+    full_mem_toggle.add_argument("before", help="操作前抓的全内存快照")
+    full_mem_toggle.add_argument("during", help="操作中/操作后立刻抓的全内存快照")
+    full_mem_toggle.add_argument("after", help="撤销操作、回到和 before 相同状态后抓的全内存快照")
+    full_mem_toggle.add_argument("--min-bytes", type=int, default=1, help="只显示变化字节数 >= 这个值的区间（默认1）")
+    full_mem_toggle.add_argument("--limit", type=int, help="最多显示多少条区间（默认不限制）")
+    full_mem_toggle.set_defaults(func=cmd_full_mem_toggle)
 
     probe_anchor = sub.add_parser(
         "probe-anchor", help="辅助工具二：批量验证 GAME_DATA_BASE 候选地址，复用启动常量校验逻辑"

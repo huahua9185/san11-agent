@@ -286,6 +286,15 @@ if sys.platform == "win32":
             return self._pid
 
         @property
+        def raw_handle(self) -> int:
+            """底层 Win32 进程句柄。供 mem_scan.py 直接调用 VirtualQueryEx 枚举
+            内存区域用——ReadProcessMemory 之外，全内存扫描还需要能查询区域的
+            提交状态/保护属性/类型，这个信息不属于 MemoryReader 抽象接口（那个
+            接口只管"读字节"），单独暴露句柄本身给需要更底层访问的调用方。
+            """
+            return self._handle
+
+        @property
         def module_base(self) -> int:
             return self._module_base
 
