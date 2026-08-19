@@ -51,6 +51,7 @@
 - **为什么需要**：`offsets/pk_1.1_cn.json` 的 `validation.scenario_id_range` / `start_year_range` 校验依赖能读到真实 `scenario_id`/`start_year` 后和已知剧本信息比对；如果不记录用的是哪个剧本，读出来的数字对不对无从判断。
 - **建议怎么做**：选一个你记得清楚开局年份/君主/势力数的剧本（比如"黄巾之乱"），进正式对局（不要在剧本选择界面，那样 `GAME_DATA_BASE` 后面的数组可能还没初始化）。
 - **填到哪里**：无需填文件，口头/聊天里告诉我即可，供后续核对用。
+- **2026-08-19 记录**：本次验证用的是剧本3（194年6月 群雄割据），玩家单人担当刘表（1/8势力），游戏等级初级、战死标准，其余规则见对话记录。`snapshot` 读到 `scenario_id=2`（0-based，对应剧本3）、`start_year/month/day=194-6-1`、`current_xun=0`（刚开局），与用户截图确认的真值完全吻合，见阶段4.4后新增记录和阶段5.3的追加结果。
 
 ---
 
@@ -100,11 +101,12 @@
 - **填到哪里**：核对通过的字段，把 `confidence` 从 `medium`/`low` 提升到 `high`；核对不上的，改成 `unknown: true` 并写清楚原因。全部核对完、4.1 校验通过后，可以把 `meta.verified` 改成 `true`。
 - **2026-08-18 结果**：用户发来两张城池详情截图（南皮/濮陽），逐字段核对 `city.gold`/`city.food`/`city.troops`/`city.security`/`city.governor_general_id`（经姓氏交叉核对），**五个字段十项数值全部精确吻合**，均已提升到 `confidence: high`。同时验证了 `current_xun` 换算日期公式（30旬+184-1-1=184-11-1）与截图日期一致。截图里的"耐久"/"現役"两个字段扫描后确认不在 City 记录范围内（可能需要走设施子结构）。详见 `docs/offset_research.md` 第7.8节。**后续追加**：用户又发来武将花名册+部队信息截图，补上了 `general.base_stats` 字节顺序（9位精确匹配，confidence提升为high）、`general.location` 编码规则（见8.1/8.2）、`general.identity`（新发现2=太守/3=一般）、`troop.display_stats` 语义（等于指挥官的display_stats_normal）的核对，见第7.9节。仍未测的：`general.display_stats_wound`（受伤状态，无样本）、`faction.*` 全部字段；`general.faction_id`/`troop.faction_id` 核对后发现语义存疑（见7.9节"新发现的异常"），confidence 反而从 high 下调为 medium。`meta.verified` 仍为 `false`（这些遗留项 + camera/selection/phase/city.faction_id等未知字段仍未解决）。
 
-### 4.4 `FactionResolver.of_troop()` 链路的实机验证 [P1][依赖: 3.1, 4.2] ⬜ 未开始
+### 4.4 `FactionResolver.of_troop()` 链路的实机验证 [P1][依赖: 3.1, 4.2] 🟡 尝试但被存档状态卡住 2026-08-19
 - **验证什么**：`san11agent/faction_resolve.py` 的 `of_troop()` 解析部队所属势力的路径——`Troop.commander_general_id -> General[commander].force_id -> Force[force_id].faction_id`——在真实部队记录上是否真的成立。这条路径本身没有直接字段支持（`Troop` 结构体没有 `force_id`，只能绕经主将），是目前 Force→Faction 整条链路里**唯一没有实机样本**的一环；`of_city()`（12座城池）和 `of_general()`（9位武将）都已验证过，只有这条没有。
 - **为什么需要**：`boundary.py` 的 `_filter_troop()` 已经在用这条链路判断"这支部队是不是我自己的"（2026-08-18 接入，见 `docs/offset_research.md` 第8.4节）。链路本身没错时行为是对的（fail-closed 兜底也已经过测试锁定），但如果这条路径在某些真实情况下不成立——比如指挥官阵亡/换将后 `commander_general_id` 指向一个已经不在该军团的武将、或者部队与主将短暂不同步的中间状态——`_filter_troop()` 会把玩家自己的部队错误地判成非己方（fail-closed 会让它被藏起来，不算泄漏，但会让 M2 在真实对局里低估己方可见的部队数），或者反过来把非己方部队误判成己方（这是需要严格排除的方向）。目前完全没有真实数据能确认哪种情况会不会发生。
 - **建议怎么做**：挑 2~3 支你自己的、以及 2~3 支敌方的活跃部队（`troop.commander_general_id` 非 -1、`troop_count` 明显 >0 的记录），手动核对：① 该部队的 `commander_general_id` 对应的武将，② 该武将的 `force_id`，③ 该军团的 `faction_id`，④ 这个解析结果是否等于该部队在游戏界面（花名册"軍團"列/部队信息面板）里实际显示的归属。如果能找到一支**指挥官刚刚阵亡或被替换**的部队更好，可以顺带确认换将瞬间这条链路是否还成立（这是最容易出问题的边界情况）。
 - **填到哪里**：核对通过，把 `san11agent/faction_resolve.py` 模块文档和 `of_troop()` 方法文档字符串里的"⚠ 未经实机验证"改成"已验证"，并在 `docs/offset_research.md` 新增一节记录样本数据；`docs/visibility_research.md` 第3.1节末尾那句"仍需注意"也要同步去掉限定语。如果核对不上，需要回来重新设计 `_filter_troop()` 的归属判断（比如改成不信任 `of_troop()`、部队一律退化成只按视野判断可见性，不再享受"己方部队始终可见"这条规则）。
+- **2026-08-19 结果**：本次对局是剧本3（194年6月群雄割据）刚开局的存档，`current_xun=0`。扫描全部 1100 条 `Troop` 记录：1000 条 `commander_general_id=-1`（未使用槽位），另外 100 条 `commander_general_id=0` 但 `troop_count=0`、`x=0`/`y=0`（明显是未激活的占位记录，不是真实部队）——**全库零支 `troop_count>0` 的活跃部队**。交叉检查 1100 位武将的 `location` 字段，也是**零位**处于 `>87`（在部队中）状态。这不是代码或锚点问题，是纯粹的存档状态问题：游戏刚开局，任何势力（包括 AI）都还没有出征过。这项验证在**这份存档**上做不了，需要等到局内出现真实出征部队（比如玩家自己出征，或者游戏推进几个回合后 AI 出征）才能拿到样本。是否要为此专门推进回合/出征，不在"最小必要操作"范围内（会不可逆地改变对局状态、消耗资源），留给你决定——见本次报告"需要你拍板"部分。
 
 ---
 
@@ -113,6 +115,8 @@
 > 这一阶段的字段全部是 `unknown: true`，`perception.py`/`execution_state.py` 解析时会安静跳过（返回 `None`），不会报错也不会编数据——除非你显式定位到偏移。**这九项按"能否在同一次操作里顺便一起测"分成四组**，减少反复重启/反复操作的次数。
 
 ### 组 A：切换游戏阶段界面（内政/战略/战斗）时对比快照——可一次定位 1 项
+
+> **2026-08-19 状态**：本次上机尝试用 computer-use 工具驱动游戏做界面切换/地图操作，但当次会话里 computer-use 被另一个 Claude 会话占用（"Another Claude session is currently using the computer"），未能执行任何键鼠操作，5.1/5.4/5.5/5.6 四项均未推进。锚点/存档一致性、city.faction_id、of_troop() 三项不需要操作游戏的工作已在本次完成，见阶段4.4、5.3 的更新记录。
 
 #### 5.1 `global.phase`（游戏阶段标志位）[P0][依赖: 阶段4]
 - **验证什么**：能标识"当前处于内政阶段/战略阶段/战斗阶段/单挑阶段"等的标志位偏移。
@@ -136,6 +140,7 @@
 - **建议怎么做**：对比你自己的城池和一座已知势力的城池的完整内存区域快照，或者更直接——观察一座城池被攻占、易主前后的内存快照差异（如果本次对局能等到这种事件）；也可以尝试沿着资料提到的"设施(Facility)指针"（函数 `0047c4c0`）方向反汇编确认。
 - **填到哪里**：`offsets/pk_1.1_cn.json` → `structs.city.fields.faction_id`。
 - **2026-08-18 结果**：直接字段偏移仍未找到，虚表调用方向没有深挖（需要反汇编，超出本次能力范围）。但找到了不需要这个直接字段的替代路径：`city.force_id`（已知）→ 新解出的 `Force[force_id].faction_id` → `Faction[faction_id]`，12座城池交叉验证全部给出历史上合理的势力归属。已实现为代码（`GameState.forces`，`san11agent/faction_resolve.py`），**且同日已接入 `boundary.py`**：`_filter_general`/`_filter_city`/`_filter_troop` 三个过滤函数改用 `FactionResolver` 解析归属，不再直接比较原始 `faction_id` 字段；`legal_actions.py` 只消费 M2 过滤后的 `VisibleGameState`，因此自动继承正确判断，无需单独改动。解析不出来时统一返回 `None`，fail-closed，有专门测试覆盖（`tests/test_faction_resolve.py`、`tests/test_boundary.py`）。仍有弱项：`of_troop()`（部队走主将绕两跳的那条路径）未经实机验证。详见 `docs/offset_research.md` 第7.11/8.4节、`docs/visibility_research.md` 第1.1/3.1节。
+- **2026-08-19 追加结果（新剧本、独立数据点）**：这次对局换成了剧本3（194年6月群雄割据），用户担当刘表。直接用 `FactionResolver.of_city()` 反查刘表控制的城池：找到武将"劉表"(index=636)，其 `force_id=6`，`Force[6].faction_id=6`（即 `ruler_general_id=636` 的 `Faction[6]`，ruler name 核对确实是"劉表"）；再筛出 `of_city()==6` 的城池，得到**恰好3座**——江夏(27)、襄陽(29)、江陵(30)，与三国志11剧本3"群雄割据"里刘表开局仅据荆州北部这三城（尚未取得长沙/武陵/桂阳/零陵/新野/上庸，这些城池此时 `force_id=-1` 无归属）的常见设定完全吻合——这是继黄巾之乱剧本12座城池之后，`of_city()` 在**第二个独立剧本**上的交叉验证，进一步巩固可信度。**同时做了一次穷举式原始字段扫描**：对 City struct 全部 0x248 字节、u8/i8/u16/i16/u32/i32 六种宽度逐偏移扫描，寻找"哪个偏移的原始值和 `of_city()` 给出的真实势力ID完美一一对应"——结果**只找到 `city.force_id`（已知的 0x38 偏移）本身**满足条件，没有找到独立的 `faction_id` 字段。需要如实说明这次扫描的局限：本剧本第0旬时每个 Force 恰好对应唯一一个 Faction（没有出现像黄巾之乱剧本里张角麾下两支军团共享一个势力那种"多军团对一势力"的情况），所以这次扫描**无法真正排除"存在一个和 force_id 数值不同、但同样编码势力归属的独立字段"**——如果这样的字段存在，必须在一个有多军团合并的存档里才能把它从 force_id 里分离出来看到。综合两次验证：**直接字段依然没有定位到**（大概率确实需要反汇编虚表函数 `0047c4c0`），但间接路径 `force_id → Force.faction_id → Faction` 现在有两个独立剧本的证据支持，`boundary.py`/M2 在真实对局里可用这一结论的可信度进一步提升。
 
 #### 5.4 `city.map_x` / `city.map_y`（城池地图坐标）[P0][依赖: 阶段4]
 - **验证什么**：城池本体在战略地图上的格子坐标（不是 `domestic_land_x/y`，那是内政建设用地坐标，已知）。
