@@ -45,18 +45,27 @@
   带 `reason` 字段（可观测性要求）
 - [x] **主循环**（`san11agent/strategy_loop.py`）：串起"读状态 ->
   (每N回合)调LLM更新备忘录/意图 -> 战术层出动作 -> 执行 -> 推进回合"，
-  `GameStateSource`/`ActionExecutor` 两处抽象都只有假实现（复用 M3
+  `GameStateSource`/`ActionExecutor` 两处抽象最初都只有假实现（复用 M3
   `FakeInputBackend` 的思路，只记录/只推进计数器，不做真实操作）；LLM
   返回非法内容/连续失败/备忘录超长/备忘录损坏，四类失败各有独立的处理
   策略，见 docs/strategy_research.md 第6节
+- [x] **2026-08-19 追加**：`GameStateSource.read()` 已接上真实实现
+  （`RealGameStateSource`，复用 M1 `parse_game_state()` + M2
+  `filter_game_state()`，跟 `cli.py` `visible-state` 命令同一条生产路径），
+  已用真实进程验证过（读到3座己方城池/685位可见武将/1支可见部队）。
+  `advance_turn()` 仍然没有真实实现——调用会显式抛 `NotImplementedError`，
+  不假装推进成功（原因见下）
 - [x] 单元测试：`tests/test_strategy_memo.py` + `tests/test_situation_summary.py`
   + `tests/test_strategy_llm.py` + `tests/test_domestic_tactics.py` +
-  `tests/test_strategy_loop.py`（M5 新增共 67 个测试），全部离线，不真的
-  等待、不调用任何真实 API、不依赖真实游戏进程
+  `tests/test_strategy_loop.py`（M5 新增共 70 个测试，含 `RealGameStateSource`
+  的3个新测试），全部离线，不真的等待、不调用任何真实 API、不依赖真实
+  游戏进程（`RealGameStateSource` 的测试用 `DumpMemoryReader` 离线合成数据）
 - [ ] **真实 LLM 接入**——本次完全没有涉及，`StrategyLLM` 只有假实现
-- [ ] **真实游戏场景下的实际验证**——主循环里的两处抽象
-  （`GameStateSource`/`ActionExecutor`）都还没有真实实现，依赖 M1~M4 现有
-  的全部缺口（锚点/坐标/规则数值）先解决
+- [ ] **`GameStateSource.advance_turn()` 和 `ActionExecutor` 的真实实现**——
+  前者需要"结束内政"按钮的界面坐标 + 一个能确认回合真的推进了的内存信号
+  （`GlobalState.phase` 仍 unknown）；后者虽然 `menu_execution.py` 已经能
+  点开菜单、点到二级菜单项，但差城池地图坐标（`city.map_x`/`map_y` 仍
+  unknown）才能算出点哪里，依赖 M1 现有的坐标缺口先解决
 - [ ] 多条设计取舍需要你确认（备忘录超长时拒绝写入 vs 自动截断/自动摘要、
   连续 LLM 失败后整个循环停止 vs 继续用旧意图跑、`target_faction_index`
   等字段目前只记录不消费是否可接受等），全部列在 docs/strategy_research.md
@@ -242,7 +251,7 @@ san11agent/
   situation_summary.py       M5：VisibleGameState -> 给 LLM 看的局势摘要（summarize_situation/render_situation_text）——只依赖 VisibleGameState
   strategy_llm.py            M5：StrategyLLM 抽象 + FakeStrategyLLM + 提示词组织（build_strategy_prompt）+ 输出解析（parse_llm_response）
   domestic_tactics.py        M5：内政战术执行层——select_domestic_actions() 把 StrategicIntent 翻译成 M4 合法动作，只能挑选不能编造
-  strategy_loop.py           M5：主循环 StrategyLoop——串起状态源/LLM/战术层/执行后端，GameStateSource/ActionExecutor 均为假实现
+  strategy_loop.py           M5：主循环 StrategyLoop——串起状态源/LLM/战术层/执行后端；GameStateSource.read()已有真实实现(RealGameStateSource,2026-08-19)，advance_turn()和ActionExecutor仍为假实现
 tests/
   test_offsets.py            offsets 文件加载与校验的单元测试
   test_perception.py          GameState 解析的单元测试（合成 fixture）
@@ -289,7 +298,7 @@ tests/
 
 **M4**（详见 docs/legal_actions_research.md）：`rules/domestic_actions_pk_1.1_cn.json` 里全部资源消耗数值（体力/金/粮阈值）都是 unknown——这些不是内存偏移问题，是游戏规则数值本身没有实机验证途径，unknown 时 LegalActions 不会拦截，只会记录进 `Action.unverified_constraints`（这个"不拦截"的默认行为本身是需要你确认的取舍，见报告第2节）。另外，"武将是否在这座城"（`location == city.index`）、"治安/巡查是否应合并"、"五种设施类型是否完整准确"等多条设计假设**未经真实游戏验证**，详见 docs/legal_actions_research.md 第4节"需要你确认的设计取舍"。武将适性/特技完全没有对应数据模型字段，本次没有实现相关约束（不是漏做，是数据模型目前不支持）。
 
-**M5**（详见 docs/strategy_research.md）：本次完全不接真实 LLM API、不接真实游戏，`StrategyLLM`/`GameStateSource`/`ActionExecutor` 三处抽象接口都只有假实现——真实 LLM 接入、真实 Execute（把内政 Action 变成键鼠输入）都留给后续里程碑，且后者依赖 M1~M4 现有的全部内存/坐标/规则数值缺口先解决。另外，`llm_call_interval`（每N回合调用一次）的默认值、备忘录超长时"拒绝写入"而非"自动截断/自动摘要"、连续 LLM 失败后"整个循环停止"而非"继续用旧意图跑"，都是**没有依据支撑的占位取舍**，需要你确认，详见 docs/strategy_research.md 第7节。
+**M5**（详见 docs/strategy_research.md）：不接真实 LLM API，`StrategyLLM` 仍只有假实现。`GameStateSource`/`ActionExecutor` 两处抽象最初都只有假实现，**2026-08-19 `GameStateSource.read()` 已接上真实实现**（`RealGameStateSource`，见上方 M5 状态列表），但 `advance_turn()` 和 `ActionExecutor` 仍然没有——前者缺"结束内政"按钮坐标和能确认回合已推进的内存信号（`GlobalState.phase` 仍 unknown），后者虽然 `menu_execution.py` 已经能点开菜单，但缺城池地图坐标（`city.map_x`/`map_y` 仍 unknown）算不出点哪里。另外，`llm_call_interval`（每N回合调用一次）的默认值、备忘录超长时"拒绝写入"而非"自动截断/自动摘要"、连续 LLM 失败后"整个循环停止"而非"继续用旧意图跑"，都是**没有依据支撑的占位取舍**，需要你确认，详见 docs/strategy_research.md 第7节。
 
 ## 运行
 

@@ -18,11 +18,15 @@ from san11agent.strategy_llm import FakeStrategyLLM, format_strategy_response
 from san11agent.strategy_loop import (
     FakeActionExecutor,
     FakeGameStateSource,
+    RealGameStateSource,
     StrategyLoop,
     StrategyLoopConfig,
     StrategyLoopError,
 )
 from san11agent import strategy_memo
+from san11agent.memory import DumpMemoryReader
+from san11agent.offsets import load_offsets
+from san11agent.visibility import StaticVisibilitySource
 from san11agent.visible_state import (
     VisibleCityDetail,
     VisibleCitySummary,
@@ -272,3 +276,56 @@ def test_corrupted_memo_without_backup_raises(tmp_path):
 
     with pytest.raises(StrategyLoopError):
         loop.run_one_turn()
+
+
+# ---------------------------------------------------------------------------
+# RealGameStateSource（2026-08-19 新增）：离线用 DumpMemoryReader 验证
+# read() 真的走 M1 parse_game_state() + M2 filter_game_state() 这条生产路径，
+# 跟 tests/test_cli.py 的 visible-state 测试共用同一份合成 dump fixture。
+# advance_turn() 没有真实实现，只验证它诚实地抛错，不是静默假装成功。
+# ---------------------------------------------------------------------------
+
+FIXTURES = REPO_ROOT / "tests" / "fixtures"
+OFFSETS_TEST = FIXTURES / "offsets_test.json"
+DUMP_TEST = FIXTURES / "synthetic_dump.json"
+
+
+def test_real_game_state_source_read_matches_cli_pipeline():
+    offsets = load_offsets(OFFSETS_TEST)
+    reader = DumpMemoryReader.from_json_file(DUMP_TEST)
+    visibility = StaticVisibilitySource(0)
+    source = RealGameStateSource(reader=reader, offsets=offsets, visibility=visibility)
+
+    visible = source.read()
+
+    assert visible.global_state.scenario_id == 3
+    assert visible.generals[0].name == "曹操"
+    # 走了 M2 过滤：VisibleGeneralFull 才有 force_id 属性，Public 没有——
+    # 用它确认这不是把 GameState 原样传出来。
+    own_general = next(g for g in visible.generals if g.faction_id == 0)
+    assert hasattr(own_general, "force_id")
+
+
+def test_real_game_state_source_read_is_not_cached():
+    """每次 read() 都应该重新读内存，不是返回同一个缓存对象——虽然
+    DumpMemoryReader 背后的字节不会变，但两次调用至少不应该是同一个
+    Python 对象引用（避免调用方误以为修改一次就能影响下一次读取）。
+    """
+    offsets = load_offsets(OFFSETS_TEST)
+    reader = DumpMemoryReader.from_json_file(DUMP_TEST)
+    source = RealGameStateSource(reader=reader, offsets=offsets, visibility=StaticVisibilitySource(0))
+
+    first = source.read()
+    second = source.read()
+
+    assert first is not second
+    assert first.global_state.current_xun == second.global_state.current_xun
+
+
+def test_real_game_state_source_advance_turn_raises_not_implemented():
+    offsets = load_offsets(OFFSETS_TEST)
+    reader = DumpMemoryReader.from_json_file(DUMP_TEST)
+    source = RealGameStateSource(reader=reader, offsets=offsets, visibility=StaticVisibilitySource(0))
+
+    with pytest.raises(NotImplementedError, match="推进回合"):
+        source.advance_turn()

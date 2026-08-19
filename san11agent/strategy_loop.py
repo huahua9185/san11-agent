@@ -3,17 +3,24 @@
 
     跑通"AI 决策 -> 执行 -> 推进回合"的完整循环，能连续自动推进若干回合。
 
-**本次不接真实游戏、不接真实 LLM**（用户明确要求）。两处都是可替换的抽象：
+**本次不接真实 LLM**（用户明确要求）。`GameStateSource`/`ActionExecutor`
+两处抽象里，`GameStateSource` 已经在 2026-08-19 接上了一半真实实现：
 
-- `GameStateSource`：读状态 + 推进回合。真实实现需要 M1 的内存读取 + M2 的
-  `filter_game_state()` + 一个真正"点结束内政"之类的 Execute 动作（目前完全
-  没有实现，M3 的 Execute 只做到了"点选城池"这一条最小链路），这次只提供
-  `FakeGameStateSource`，包一份可变的 VisibleGameState，`advance_turn()`
-  只是把 `current_xun` 加一，模拟"回合真的推进了"，不代表真的操作了游戏。
-- `ActionExecutor`：把 `Action` 变成真实键鼠输入。这一环完全没有真实实现
-  （跟 M3 `select_city` 之外的一切内政动作 Execute 一样，属于"等真实游戏
-  能跑再做"的范围），这次复用 M3 `FakeInputBackend` 的思路，提供
-  `FakeActionExecutor`——只记录调用，不做任何真实操作。
+- `GameStateSource`：读状态 + 推进回合。**`read()` 2026-08-19 已有真实实现**
+  （`RealGameStateSource`，复用 M1 `parse_game_state()` + M2
+  `filter_game_state()`，跟 `cli.py` `visible-state` 命令同一条生产路径，
+  已用真实进程验证过）。**`advance_turn()` 仍然没有真实实现**——需要一个
+  真正"点结束内政"的 Execute 动作，而且没有任何内存字段能确认回合是否
+  真的推进了（`GlobalState.phase` 仍是 unknown），调用会显式抛
+  `NotImplementedError`，不假装成功。测试/空跑仍然用 `FakeGameStateSource`
+  （包一份可变的 VisibleGameState，`advance_turn()` 只是把 `current_xun`
+  加一，不代表真的操作了游戏）。
+- `ActionExecutor`：把 `Action` 变成真实键鼠输入。这一环仍然完全没有真实
+  实现——`menu_execution.py` 的 `ActionMenuExecutor` 已经能点开菜单、点到
+  二级菜单项，但差一步"算出城池的地图格子坐标才能知道点哪里"（`city.map_x`/
+  `map_y` 仍是 unknown），所以这次没有把它接进 `StrategyLoop` 能直接调用
+  的 `ActionExecutor` 里，继续用 `FakeActionExecutor`（复用 M3
+  `FakeInputBackend` 的思路，只记录调用，不做任何真实操作）。
 
 **LLM 调用节奏**：`StrategyLoopConfig.llm_call_interval` 控制"每 N 回合调用
 一次"，用 `state.global_state.current_xun % N == 0` 判断，外加"从来没有成功
@@ -45,12 +52,17 @@ from pathlib import Path
 
 from . import strategy_memo
 from .action_log import ActionLog
+from .boundary import filter_game_state
 from .domestic_rules import DomesticRulesConfig
 from .domestic_tactics import TacticalDecision, select_domestic_actions
 from .intent import DEFAULT_INTENT, StrategicIntent
 from .legal_actions import Action, enumerate_legal_actions
+from .memory import MemoryReader
+from .offsets import OffsetsConfig
+from .perception import parse_game_state
 from .situation_summary import render_situation_text, summarize_situation
 from .strategy_llm import StrategyLLM, StrategyParseError, build_strategy_prompt, parse_llm_response
+from .visibility import VisibilitySource
 from .visible_state import VisibleGameState
 
 
@@ -90,6 +102,44 @@ class FakeGameStateSource(GameStateSource):
 
     def advance_turn(self) -> None:
         self._state.global_state.current_xun += 1
+
+
+class RealGameStateSource(GameStateSource):
+    """真实游戏进程的 `GameStateSource` 实现——2026-08-19 新增。
+
+    `read()`：读内存 -> M1 `parse_game_state()` -> M2 `filter_game_state()`。
+    这不是重新拼一条独立的路径，是 `cli.py` `visible-state` 命令背后那条
+    生产代码路径原样复用——已经用离线合成 dump 和真实进程双重验证过（见
+    `tests/test_cli.py` 和 2026-08-19 的对话记录：真实存档下能正确读出
+    3座己方城池）。每次 `read()` 都重新读一遍内存，不缓存——`VisibleGameState`
+    应该反映调用那一刻的真实状态。
+
+    `advance_turn()`：**没有真实实现，调用会显式抛 `NotImplementedError`**。
+    "点结束内政、推进到下一回合"这个 Execute 动作这次完全没有做——不仅
+    没有定位到那个按钮的界面坐标，更麻烦的是没有任何已知内存字段能确认
+    "回合是否真的推进了"（`GlobalState.phase` 仍然 unknown，见
+    docs/offset_research.md）。刻意不用"点一下、然后读 `current_xun` 有没有
+    变"这种看起来能凑合的实现——如果点击没生效，静默返回会让上层
+    `StrategyLoop` 以为已经进入下一回合，产生比"直接报错"更难排查的连锁
+    错误，这不符合本项目"没有依据就不要假装成功"的一贯原则。
+    """
+
+    def __init__(self, *, reader: MemoryReader, offsets: OffsetsConfig, visibility: VisibilitySource):
+        self._reader = reader
+        self._offsets = offsets
+        self._visibility = visibility
+
+    def read(self) -> VisibleGameState:
+        state = parse_game_state(self._reader, self._offsets, validate=True)
+        return filter_game_state(state, self._visibility)
+
+    def advance_turn(self) -> None:
+        raise NotImplementedError(
+            "真实进程场景下'推进回合'（结束内政）这个 Execute 动作还没有实现："
+            "既没有定位到对应按钮的界面坐标，也没有内存字段能确认回合是否真的"
+            "推进了（GlobalState.phase 仍是 unknown，见 docs/offset_research.md）。"
+            "在这两者之一解决之前，RealGameStateSource 拒绝假装推进成功。"
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
