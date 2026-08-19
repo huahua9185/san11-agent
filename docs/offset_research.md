@@ -593,6 +593,50 @@ Claude session is currently using the computer"——当时有另一个 Claude
 `note` 追加说明和 `docs/*.md` 文档更新，没有改动任何代码逻辑或测试
 fixture；跑了一遍确认现有 286 项测试仍全部通过，不是本次新增测试。
 
+### 7.14 2026-08-19 第三次尝试：computer-use 被"scheduled run"环境限制拒绝，同样零操作
+
+用户本次明确授权出征部队 + 操作游戏做界面切换，本次会话在开始任何键鼠操作
+前先调用 `request_access` 申请控制游戏窗口（应用名"三國志11 with 威力加強版"），
+两次尝试均收到明确错误：
+
+> Computer-use access to "三國志11 with 威力加強版" can't be approved during
+> a scheduled run. To grant it, send a message in this conversation (the
+> approval card will appear), or add the app to the scheduled task's
+> settings. (Retrying returns this same result.)
+
+这次的拒绝原因和 7.13 节记录的那次（"Another Claude session is currently
+using the computer"）不同：不是被另一个会话占用，而是**这次会话本身运行在
+"scheduled run"（计划/后台任务）上下文里**——用户明确说了"本人不在电脑前"，
+而 computer-use 的屏幕控制授权需要一个人当场点击批准卡片，或者提前把这个
+应用加进计划任务的设置里；两者本次都不满足，工具本身直接拒绝、不给绕过
+空间，重试没有意义（错误信息里也明确写了"重试会得到相同结果"），所以本次
+没有反复重试，只确认了一次就转为纯只读工作。
+
+**能确认的部分（不需要 computer-use，走 `ProcessMemoryReader` 直接读内存，
+和屏幕控制授权无关）**：`snapshot --summary` 与 `FactionResolver` 重新核对
+了一遍当前存档状态，结果与 7.13 节记录的完全一致，没有任何变化（印证了
+"本次会话确实没有对游戏做过任何操作，包括最基础的窗口聚焦/点击都没有发生"）：
+
+- `scenario_id=2`（剧本3）、`start=194-6-1`、`current_xun=0`，与上次相同；
+- 全库 1100 条 `Troop` 记录扫描结果不变：0 支 `troop_count>0` 的活跃部队；
+- 劉表（index=636）`force_id=6` → `Force[6].faction_id=6`，`of_city()`
+  筛出的势力6城池仍是**恰好3座**：江夏(27)、襄陽(29)、江陵(30)。
+
+**本次会话对游戏做过的操作：零**。没有发送任何键鼠输入，没有点击、没有
+切换窗口焦点，只做了只读内存读取（`snapshot`/一次性 Python 脚本调用
+`ProcessMemoryReader`），存档未被以任何方式修改。
+
+**因此本次未能推进的事项**（全部需要 computer-use 屏幕控制权限）：
+派出部队（任务1）、`of_troop()` 主将链路验证（任务2，前提是先有活跃部队，
+而活跃部队需要出征操作才能产生）、`global.phase`/`camera.*`/`selection.*`
+的界面切换对比定位（任务3的组A/D）。这不是判断力问题、不是任务范围问题，
+是这次会话的运行环境（scheduled run）本身不具备获取屏幕控制权限的条件，
+需要用户在一次有人在场、能点击批准卡片的交互式会话里重新发起这次操作，
+或者由用户自己把游戏应用加进这个计划任务的白名单设置里。
+
+**`pytest`**：本次没有改动任何代码逻辑，只追加了这一节文档记录；确认
+286 项测试仍全部通过。
+
 ## 8. 游戏内实际术语对照（繁体中文 Steam 版）
 
 > 本文档和验证清单前面几节写的"内政"/"战略"是沿用项目规格文档的简体中文
