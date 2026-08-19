@@ -72,11 +72,13 @@ def ui_layout():
 
 def test_select_city_succeeds_when_target_already_in_view(offsets, ui_layout):
     reader = _build_reader()
+    TARGET_POINT = (100 + 5 * 20, 50 + 5 * 20)  # viewport原点 + (5,5)*tile(20,20)
 
-    def on_click(x, y, button):
-        reader.write_i32(SELECTION_ADDR, CITY_INDEX)
+    def on_move_mouse(x, y):
+        if (x, y) == TARGET_POINT:
+            reader.write_i32(SELECTION_ADDR, CITY_INDEX)
 
-    input_backend = FakeInputBackend(on_click=on_click)
+    input_backend = FakeInputBackend(on_move_mouse=on_move_mouse)
     clock = FakeClock()
     action_log = ActionLog(clock)
     selector = CitySelector(
@@ -87,13 +89,13 @@ def test_select_city_succeeds_when_target_already_in_view(offsets, ui_layout):
 
     selector.select_city(CITY_INDEX, TileCoord(5, 5))
 
-    click_calls = [c for c in input_backend.calls if c.method == "click"]
-    assert len(click_calls) == 1
+    move_calls = [c for c in input_backend.calls if c.method == "move_mouse"]
+    assert TARGET_POINT in [c.args for c in move_calls]
     assert _esc_press_count(input_backend) == FAST_CONFIG.home_esc_presses  # 只归位了一次
 
     results = [e.result for e in action_log.entries]
     assert "success" in results
-    success_entry = next(e for e in action_log.entries if e.intent == "select_city.click")
+    success_entry = next(e for e in action_log.entries if e.intent == "select_city.hover")
     assert success_entry.result == "success"
     assert success_entry.state_diff == {"selected_city_index": (-1, CITY_INDEX)}
 
@@ -106,11 +108,10 @@ def test_select_city_pans_map_when_target_outside_viewport(offsets, ui_layout):
     def on_move_mouse(x, y):
         if (x, y) == RIGHT_EDGE:
             reader.write_i32(CAMERA_OFFSET_X_ADDR, 15)  # 模拟鼠标停在右边缘触发地图向右平移
+        else:
+            reader.write_i32(SELECTION_ADDR, CITY_INDEX)  # 悬停到目标格子上触发选中
 
-    def on_click(x, y, button):
-        reader.write_i32(SELECTION_ADDR, CITY_INDEX)
-
-    input_backend = FakeInputBackend(on_click=on_click, on_move_mouse=on_move_mouse)
+    input_backend = FakeInputBackend(on_move_mouse=on_move_mouse)
     clock = FakeClock()
     action_log = ActionLog(clock)
     selector = CitySelector(
@@ -127,20 +128,23 @@ def test_select_city_pans_map_when_target_outside_viewport(offsets, ui_layout):
     assert pan_entries[0].params["direction"] == "right"
     assert pan_entries[0].params["edge_screen"] == RIGHT_EDGE
 
-    click_entries = [e for e in action_log.entries if e.intent == "select_city.click"]
-    assert click_entries[-1].result == "success"
+    hover_entries = [e for e in action_log.entries if e.intent == "select_city.hover"]
+    assert hover_entries[-1].result == "success"
 
 
-def test_select_city_retries_after_homing_when_click_does_not_register(offsets, ui_layout):
+def test_select_city_retries_after_homing_when_hover_does_not_register(offsets, ui_layout):
     reader = _build_reader()
+    TARGET_POINT = (100 + 5 * 20, 50 + 5 * 20)
     counter = {"n": 0}
 
-    def on_click(x, y, button):
+    def on_move_mouse(x, y):
+        if (x, y) != TARGET_POINT:
+            return
         counter["n"] += 1
-        if counter["n"] >= 2:  # 第一次点击"没生效"，第二次（归位重试后）才生效
+        if counter["n"] >= 2:  # 第一次悬停"没生效"，第二次（归位重试后）才生效
             reader.write_i32(SELECTION_ADDR, CITY_INDEX)
 
-    input_backend = FakeInputBackend(on_click=on_click)
+    input_backend = FakeInputBackend(on_move_mouse=on_move_mouse)
     clock = FakeClock()
     action_log = ActionLog(clock)
     selector = CitySelector(

@@ -7,7 +7,7 @@ menu_execution.py 复用了 execution.py 的 reveal_tile()。
 断言重点不是"轮询确认生效"（没有这回事），而是：
 - resolve_menu_path() 算出的 (top_index, sub_index) 是否正确；
 - 点击坐标是否按 anchor + element.(x,y) + index*item_height 正确计算；
-- 点击序列的先后顺序（归位 -> 滚动进视野 -> 双击 -> 点顶层项 -> 点二级项）；
+- 点击序列的先后顺序（归位 -> 平移进视野 -> 单击弹出菜单 -> 点顶层项 -> 点二级项）；
 - 未知 ui_layout 元素 / 下标越界 / 未实现的更深步骤，分别抛出预期的错误。
 """
 from __future__ import annotations
@@ -143,7 +143,7 @@ def test_resolve_menu_path_raises_for_unknown_sub_type(rules):
 # -- ActionMenuExecutor.open_city_menu() -----------------------------------
 
 
-def test_open_city_menu_homes_reveals_and_double_clicks(offsets, ui_layout):
+def test_open_city_menu_homes_reveals_and_clicks_once(offsets, ui_layout):
     reader = _build_reader()
     input_backend = FakeInputBackend()
     action_log = ActionLog(FakeClock())
@@ -155,8 +155,7 @@ def test_open_city_menu_homes_reveals_and_double_clicks(offsets, ui_layout):
     assert len(esc_calls) == FAST_CONFIG.home_esc_presses
 
     click_calls = [c for c in input_backend.calls if c.method == "click"]
-    assert len(click_calls) == 2  # 双击 = 两次独立点击
-    assert click_calls[0].args == click_calls[1].args  # 同一个坐标点两次
+    assert len(click_calls) == 1  # 单击弹出菜单，不是双击
 
     assert [e.intent for e in action_log.entries] == ["menu.home", "menu.open_city"]
     # viewport x=100,y=50,tile=20x20；地图坐标(5,5)已经在视野内，不需要滚动
@@ -213,16 +212,16 @@ def test_execute_action_clicks_top_and_submenu_at_expected_coordinates(offsets, 
     executor.execute_action(action, TileCoord(5, 5), rules)
 
     click_calls = [c for c in input_backend.calls if c.method == "click"]
-    # 2次双击 + 1次顶层菜单项 + 1次二级菜单项 = 4次
-    assert len(click_calls) == 4
+    # 1次单击弹出菜单 + 1次顶层菜单项 + 1次二级菜单项 = 3次
+    assert len(click_calls) == 3
 
     anchor_x, anchor_y = 100 + 5 * 20, 50 + 5 * 20
     # city_top_menu: x=10,y=-30,item_height=20；train_troops 是 (top=1, sub=0)
     top_x, top_y = anchor_x + 10, anchor_y - 30 + 1 * 20
-    assert click_calls[2].args == (top_x, top_y, "left")
+    assert click_calls[1].args == (top_x, top_y, "left")
     # city_submenu: x=80,y=0,item_height=20，相对刚点的顶层项，sub_index=0
     sub_x, sub_y = top_x + 80, top_y + 0
-    assert click_calls[3].args == (sub_x, sub_y, "left")
+    assert click_calls[2].args == (sub_x, sub_y, "left")
 
     intents = [e.intent for e in action_log.entries]
     assert intents == ["menu.home", "menu.open_city", "menu.click_item", "menu.click_item", "menu.execute_action"]
@@ -257,7 +256,7 @@ def test_execute_action_raises_further_steps_not_implemented_for_diplomacy(offse
 
     # 两级菜单点击应该已经真实发生过，只是没能力继续往下走。
     click_calls = [c for c in input_backend.calls if c.method == "click"]
-    assert len(click_calls) == 4
+    assert len(click_calls) == 3
     assert any(e.intent == "menu.execute_action" for e in action_log.entries)
 
 

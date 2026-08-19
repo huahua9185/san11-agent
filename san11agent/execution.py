@@ -1,8 +1,11 @@
-"""M3 执行层最小链路：给定目标城池的地图格子坐标，把它点出来，并轮询内存
-确认选中状态已经变化。对应项目规格里的验收标准：
+"""M3 执行层最小链路：给定目标城池的地图格子坐标，把鼠标悬停上去，并轮询
+内存确认选中状态已经变化。对应项目规格里的验收标准：
 
-    从内存读某城池格子坐标 -> 滚动地图使其进入视野 -> 点击 -> 轮询确认内存中
+    从内存读某城池格子坐标 -> 平移地图使其进入视野 -> 悬停 -> 轮询确认内存中
     "当前选中城池"已变更。
+
+（"悬停"不是"点击"——2026-08-19 用户直接确认选中城池只需要鼠标悬停在上面，
+点击会弹出该城池的一级指令菜单，见 CitySelector 类文档和 menu_execution.py。）
 
 设计原则（详见 docs/execution_research.md 和提交报告"设计取舍"一节）：
 - 禁止固定 sleep：所有等待都走 polling.poll_until()，可注入 Clock。
@@ -19,9 +22,9 @@ UIElement.require_known() 处显式抛出清楚的错误，不会用编出来的
 
 一个重要区分：坐标/配置缺失（MapProjectionError 由"camera 字段 unknown"触发、
 或 UILayoutError）不属于"重试也许能修好"的偶发失败——重试并不能凭空生成一个
-没有的偏移值，所以只有"camera 已知但这次点击没在轮询超时内生效"这类
-PollTimeoutError，以及"camera 已知但滚动多次仍找不到目标格子"这类
-MapProjectionError（滚动超时导致），才会触发归位重试；UILayoutError 会直接
+没有的偏移值，所以只有"camera 已知但这次悬停没在轮询超时内生效"这类
+PollTimeoutError，以及"camera 已知但平移多次仍找不到目标格子"这类
+MapProjectionError（平移超时导致），才会触发归位重试；UILayoutError 会直接
 从 select_city() 抛出，不会被吞掉进重试循环。
 """
 from __future__ import annotations
@@ -177,7 +180,16 @@ def _edge_point_for_direction(direction: str, viewport: UIElement) -> ScreenPoin
 
 
 class CitySelector:
-    """执行"点某座城池并确认选中状态已变更"这一条最小链路。"""
+    """执行"把鼠标悬停到某座城池上并确认选中状态已变更"这一条最小链路。
+
+    2026-08-19 用户直接确认：选中城池只需要鼠标悬停在上面，不需要点击——
+    点击（左键按下+抬起）在这个游戏里会弹出该城池的一级指令菜单（见
+    `menu_execution.py`），如果这里还发送真正的点击，会把"只是选中/高亮"
+    和"打开菜单"这两个不同的意图混在一起，弹出一个调用方没有要求的菜单。
+    这之前是一个已确认的代码错误（不是"未经验证的假设"）：`_attempt()`
+    原来调用 `input_backend.click()`，已改成 `move_mouse()`（只移动鼠标，
+    不按下/抬起按键）。
+    """
 
     def __init__(
         self,
@@ -201,7 +213,7 @@ class CitySelector:
         self._config = config
 
     def select_city(self, city_index: int, target_tile: TileCoord) -> None:
-        """把 (city_index, target_tile) 对应的城池点出来。
+        """把鼠标悬停到 (city_index, target_tile) 对应的城池上，选中它。
 
         target_tile 由调用方从 GameState.City.map_x/map_y 读取提供——那是 M1
         的职责（见 game_state.City），M3 不重复解析 GameState，只负责"给定
@@ -264,7 +276,7 @@ class CitySelector:
         before = self._read_selection(game_data_base)
         screen_x, screen_y = self._window.client_to_screen(screen_point.x, screen_point.y)
 
-        self._input.click(screen_x, screen_y)
+        self._input.move_mouse(screen_x, screen_y)
 
         def _selected() -> bool:
             return self._read_selection(game_data_base).selected_city_index == city_index
@@ -280,7 +292,7 @@ class CitySelector:
         except PollTimeoutError:
             after = self._read_selection(game_data_base)
             self._log.record(
-                intent="select_city.click",
+                intent="select_city.hover",
                 params={"city_index": city_index, "screen": (screen_x, screen_y), "attempt": attempt},
                 result="timeout",
                 state_before={"selected_city_index": before.selected_city_index},
@@ -290,7 +302,7 @@ class CitySelector:
 
         after = self._read_selection(game_data_base)
         self._log.record(
-            intent="select_city.click",
+            intent="select_city.hover",
             params={
                 "city_index": city_index,
                 "screen": (screen_x, screen_y),

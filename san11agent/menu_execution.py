@@ -1,6 +1,6 @@
 """M3/M4 Execute 扩展：把 M4 `enumerate_legal_actions()` 产出的 `Action`
-对象，转换成"双击城池弹出指令菜单 -> 点顶层菜单项 -> 点二级子菜单项"这一段
-键鼠序列。`execution.py` 的 `CitySelector` 只做到"点击城池、确认被选中"，
+对象，转换成"单击城池弹出指令菜单 -> 点顶层菜单项 -> 点二级子菜单项"这一段
+键鼠序列。`execution.py` 的 `CitySelector` 只做到"悬停城池、确认被选中"，
 本模块接着往下做一步：把 M4 已经枚举出的合法动作真正点出来。
 
 ## 菜单结构是实机确认过的事实，但坐标不是
@@ -212,19 +212,19 @@ class ActionMenuExecutor:
             )
 
     def open_city_menu(self, city_index: int, target_tile: TileCoord) -> ScreenPoint:
-        """归位 -> 把目标城池滚进视野 -> 双击，弹出顶层指令菜单。
+        """归位 -> 把目标城池滚进视野 -> 单击，弹出顶层指令菜单。
 
-        返回双击点的客户区坐标，供后续计算菜单项位置用。跟
-        `CitySelector.select_city()` 的单击选中是两种不同的游戏交互（本次
-        对话里的截图显示双击直接弹出指令菜单），所以不直接复用
-        CitySelector，但复用它"先归位、再把目标格子滚进视野"这两步逻辑
-        （`execution.reveal_tile()`），避免重复维护同一段滚动地图的代码。
+        返回点击点的客户区坐标，供后续计算菜单项位置用。跟
+        `CitySelector.select_city()` 的悬停选中是两种不同的游戏交互，所以
+        不直接复用 CitySelector，但复用它"先归位、再把目标格子滚进视野"
+        这两步逻辑（`execution.reveal_tile()`），避免重复维护同一段平移
+        地图的代码。
 
-        双击的实现是连续调用两次 `InputBackend.click()`——`InputBackend`
-        目前没有专门的 `double_click()` 原语，这是能用现有原语搭出来的最
-        接近的近似，真实双击间隔（系统双击判定时间）没有建模，这是又一条
-        未经真实游戏验证的假设，跟 `execution.py` 已经列出的其它假设同一
-        性质，见 docs/execution_research.md。
+        2026-08-19 用户直接确认：弹出一级指令菜单是**单击**，不是双击——
+        这之前是一个已确认的代码错误（不是"未经验证的假设"）：之前这里
+        连续调用两次 `InputBackend.click()` 模拟双击，如果第一次点击已经
+        弹出菜单，第二次点击可能会落在菜单上、误触发某个菜单项，不只是
+        多余，是有实际风险的。已改成单次 `click()`。
         """
         for _ in range(self._config.home_esc_presses):
             self._input.key_press(VK_ESCAPE)
@@ -256,7 +256,6 @@ class ActionMenuExecutor:
 
         screen_x, screen_y = self._window.client_to_screen(screen_point.x, screen_point.y)
         self._input.click(screen_x, screen_y)
-        self._input.click(screen_x, screen_y)
         self._log.record(
             intent="menu.open_city",
             params={"city_index": city_index, "screen": (screen_x, screen_y)},
@@ -273,9 +272,9 @@ class ActionMenuExecutor:
         *,
         expected_count: int | None = None,
     ) -> ScreenPoint:
-        """点击相对 anchor 偏移的第 index 项。anchor 对顶层菜单是双击点，对
+        """点击相对 anchor 偏移的第 index 项。anchor 对顶层菜单是点击点，对
         二级菜单是"刚点中的那个顶层菜单项"的位置——子菜单纵向对齐在被点开
-        的那一项旁边（见对话记录里的出征菜单截图），不是相对城池双击点。
+        的那一项旁边（见对话记录里的出征菜单截图），不是相对城池点击点。
         """
         element.require_known()
         if element.item_height is None:
