@@ -58,11 +58,23 @@ def test_element_lookup_raises_for_missing_name():
         config.element("does_not_exist")
 
 
-def test_production_ui_layout_loads_and_is_all_unknown():
-    # 生产文件目前应该是"格式搭好了，但内容全部未知"——见提交报告。
+def test_production_ui_layout_loads_with_measured_elements():
+    # 2026-08-19 用 GetCursorPos+ScreenToClient 现场测量完成，三个元素均已知，
+    # 见 ui_layout/pk_1.1_cn.json 各元素 note 和 docs/execution_research.md 7.10节。
     config = load_ui_layout(UI_LAYOUT_PROD)
-    assert config.verified is False
+    assert config.verified is True
+    assert config.assumed_client_resolution == (2560, 1600)
+
     viewport = config.element("map_viewport")
-    assert viewport.unknown is True
-    with pytest.raises(UILayoutError):
-        viewport.require_known()
+    assert viewport.unknown is False
+    assert (viewport.x, viewport.y, viewport.width, viewport.height) == (471, 12, 1772, 1542)
+    assert (viewport.tile_width, viewport.tile_height) == (184, 135)
+    assert viewport.require_known() is viewport
+
+    top_menu = config.element("city_top_menu")
+    assert top_menu.unknown is False
+    assert (top_menu.x, top_menu.y, top_menu.item_height, top_menu.item_count) == (-143, 98, 34, 6)
+
+    submenu = config.element("city_submenu")
+    assert submenu.unknown is False
+    assert (submenu.x, submenu.y, submenu.item_height) == (80, 12, 30)

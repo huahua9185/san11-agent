@@ -1,26 +1,26 @@
 {
   "meta": {
     "label": "pk_1.1_cn",
-    "description": "San11WPK.exe（Steam 繁体中文版，实机确认，见 docs/offset_research.md 第7节；早先误假设为 san11pk.exe）界面固定元素坐标表。M3（执行层脚手架）阶段游戏完全无法运行，没有任何真实截图或测量数据——这个文件目前只是把格式搭好，所有元素留空。2026-08-18 已能实机运行游戏并完成只读内存验证，但本次仍未做界面坐标测量（不在本次任务范围）。2026-08-19 M3/M4 Execute 扩展（san11agent/menu_execution.py）新增 city_top_menu/city_submenu 两个菜单类元素，同样全部 unknown——菜单项数量/顺序已靠截图确认（见 docs/offset_research.md 8.1节），但屏幕像素坐标仍未测量。等下次能测量时，需要现场测量（截图量坐标，或用 Spy++ / AutoIt Window Info 之类工具读控件位置）填入，届时把对应条目的 unknown 改成 false 并补上具体数值，同时把 meta.verified 改成 true。见 docs/execution_research.md。",
-    "assumed_client_resolution": null,
-    "verified": false
+    "description": "San11WPK.exe（Steam 繁体中文版，实机确认，见 docs/offset_research.md 第7节；早先误假设为 san11pk.exe）界面固定元素坐标表。M3（执行层脚手架）阶段游戏完全无法运行时只搭好了格式，所有元素留空。2026-08-19 用新协议现场测量完成三个元素：不用截图量图、也不用 Spy++/AutoIt Window Info，而是让用户把鼠标悬停到目标点报告'现在'，Claude 用 GetCursorPos+ScreenToClient 直接读取那一刻的客户区坐标（`scratchpad/read_cursor.py`，零风险）。`map_viewport`（视口矩形+格子菱形对角线）、`city_top_menu`、`city_submenu` 均已测量并把对应 unknown 改成 false，详见各元素 note 和 docs/execution_research.md 7.10节。样本量普遍偏小（多数字段只测了1次/1个样本），后续如有余力应补充重复测量做交叉校验，尤其是 map_viewport.tile_width/tile_height 和 city_top_menu 的锚点是否对所有城池/格子通用。",
+    "assumed_client_resolution": [2560, 1600],
+    "verified": true
   },
   "elements": {
     "map_viewport": {
-      "x": null, "y": null, "width": null, "height": null,
-      "tile_width": null, "tile_height": null,
-      "unknown": true,
-      "note": "地图显示区域在客户区内的矩形范围，以及每个地图格子在缩放=1时的像素尺寸。map_projection.py 的地图坐标换算依赖这几个值，目前全部未知，见 docs/execution_research.md。"
+      "x": 471, "y": 12, "width": 1772, "height": 1542,
+      "tile_width": 184, "tile_height": 135,
+      "unknown": false,
+      "note": "地图显示区域在客户区内的矩形范围，以及每个地图格子在缩放=1时的像素尺寸。map_projection.py 的地图坐标换算依赖这几个值。2026-08-19 用 GetCursorPos+ScreenToClient 现场测量（用户悬停报告坐标，见 docs/execution_research.md）。矩形范围：左上(471,12)、右下(2243,1554)，算出 width=1772/height=1542。tile_width/tile_height：默认视角格子是菱形（等距投影，见 docs/execution_research.md 3.1节的修正说明），量的是单个格子菱形的水平对角线（左顶点(1241,726)/右顶点(1425,698)→184px）和垂直对角线（上顶点(1334,653)/下顶点(1334,788)→135px）。上下顶点x坐标完全吻合，但左右顶点y坐标有约8px偏差（726 vs 698），大概率是肉眼定位菱形顶点的正常误差，未重复测量取平均。宽高比≈1.36，不是经典等距投影常见的2:1，如实记录未强行凑整。样本量小（仅1个格子、1次测量、缩放级别未知是否为默认1.0），后续 map_projection.py 真正用这两个数做等距换算前，建议换格子/换位置重复测量校验。"
     },
     "city_top_menu": {
-      "x": null, "y": null, "item_height": null, "item_count": 6,
-      "unknown": true,
-      "note": "双击城池后弹出的顶层指令菜单（都市/軍事/人材/外交/計略/君主，6项，顺序已实机确认见 docs/offset_research.md 8.1节），x/y 是第0项(都市)相对城池在客户区的点击坐标的偏移，item_height 是相邻项纵向间距。2026-08-19 新增（M3/M4 Execute 扩展，见 san11agent/menu_execution.py），坐标本身完全未测量，item_count=6 是唯一已确认的部分（菜单项数不会变，跟像素坐标是两回事）。"
+      "x": -143, "y": 98, "item_height": 34, "item_count": 6,
+      "unknown": false,
+      "note": "单击城池后弹出的顶层指令菜单（都市/軍事/人材/外交/計略/君主，6项，顺序已实机确认见 docs/offset_research.md 8.1节），x/y 是第0项(都市)相对城池锚点在客户区的偏移，item_height 是相邻项纵向间距。2026-08-19 用 GetCursorPos+ScreenToClient 现场测量（用户悬停报告坐标，见 docs/execution_research.md）：都市=(1174,858)、軍事=(1176,892)、人材=(1176,927)，item_height 由这三项算出 34~35px 取 34。城池锚点：城池名字是单字左对齐显示在一个文本框内，若直接点字符位置会偏离热区中心，因此改为量文本框四条边（左(1282,760)/右(1352,758)/上(1320,750)/下(1321,769)，框约 70x19px）取中点 (1317,760) 作为锚点，据此得到 x=1174-1317=-143、y=858-760=98（此前误用字符位置(1293,757)得到的 x=-119/y=101 已作废）。样本量小（仅3项菜单、1座城池、1次测量），后续如有余力可换城池/多次重复验证锚点是否对所有城池通用。"
     },
     "city_submenu": {
-      "x": null, "y": null, "item_height": null, "item_count": null,
-      "unknown": true,
-      "note": "点击顶层菜单某一项后展开的二级子菜单（比如「軍事」展开出 訓練/出征/輸送），x/y 是子菜单第0项相对'刚点击的那个顶层菜单项'的偏移（不是相对城池锚点——截图显示子菜单纵向对齐在被点开的那一项旁边，见对话记录里的出征菜单截图）。item_count 因顶层菜单项不同而不同（都市7项/軍事3项/外交7项/計略3项等，见 docs/offset_research.md 8.1节），这里留 null 表示'不做统一校验'，menu_execution.py 按每次调用实际传入的候选数校验。2026-08-19 新增，坐标完全未测量。"
+      "x": 80, "y": 12, "item_height": 30, "item_count": null,
+      "unknown": false,
+      "note": "点击顶层菜单某一项后展开的二级子菜单（比如「軍事」展开出 訓練/出征/輸送），x/y 是子菜单第0项相对'刚点击的那个顶层菜单项'的偏移（不是相对城池锚点）。item_count 因顶层菜单项不同而不同（都市7项/軍事3项/外交7项/計略3项等，见 docs/offset_research.md 8.1节），这里留 null 表示'不做统一校验'，menu_execution.py 按每次调用实际传入的候选数校验。2026-08-19 用 GetCursorPos+ScreenToClient 实测（以「軍事」展开的子菜单为样本，见 docs/execution_research.md）：父项「軍事」=(1176,892)，子菜单第0项「訓練」=(1256,904)→偏移x=80/y=12；第1项「出征」=(1256,934)，两项纵向差30px 得 item_height=30。样本量小（仅1个顶层项、2个子项、1次测量），未验证其他顶层菜单（都市/人材/外交/計略/君主）展开的子菜单是否用同一套偏移，后续如有余力应换其他菜单验证是否通用。"
     }
   }
 }

@@ -129,9 +129,11 @@
   设置 DPI 感知；`Win32GameWindow.client_to_screen()` 做客户区->屏幕坐标
   换算；`FakeGameWindow` 供离线测试
 - [x] 界面固定元素坐标表（`ui_layout/`，格式参考 `offsets/` 的做法）+ 加载器
-  （`san11agent/ui_layout.py`）——生产文件 `ui_layout/pk_1.1_cn.json` 目前
-  只搭好了格式，`map_viewport` 等元素全部 `unknown: true`（游戏无法运行，
-  完全没有测量数据）
+  （`san11agent/ui_layout.py`）——生产文件 `ui_layout/pk_1.1_cn.json` 的
+  `map_viewport`/`city_top_menu`/`city_submenu` 三个元素 2026-08-19 已用
+  "用户悬停鼠标报告位置、Claude 读 GetCursorPos"的协议现场测量完成
+  （`meta.verified` 已改 `true`），样本量偏小，尚未做多样本交叉校验，
+  详见 docs/execution_research.md 第7.10节
 - [x] 地图格子坐标 -> 屏幕坐标换算（`san11agent/map_projection.py`）：从
   内存读摄像机偏移/缩放反算屏幕位置，目标在视野外返回 `None` 交给上层滚动。
   换算公式（正交网格 + 线性缩放假设）**未经真实游戏验证**，见
@@ -163,9 +165,10 @@
 键鼠序列（`CitySelector` 只做到"悬停城池确认选中"，这是往下的延伸；用户
 2026-08-19 直接确认选中靠悬停、弹菜单靠单击，两者都已改成对应的实现，见
 下方"平移/点击机制修正"）。菜单结构（哪个动作对应哪个菜单/第几项）取自
-`docs/offset_research.md` 8.1节实机截图确认过的真实菜单顺序，但屏幕像素
-坐标（`ui_layout` 新增的 `city_top_menu`/`city_submenu`）仍然全部
-`unknown: true`，且这条链路**没有任何已知内存字段能验证是否真的生效**
+`docs/offset_research.md` 8.1节实机截图确认过的真实菜单顺序，屏幕像素
+坐标（`ui_layout` 的 `city_top_menu`/`city_submenu`）2026-08-19 已现场
+测量完成（见下方"界面坐标测量"），但这条链路**仍然没有任何已知内存
+字段能验证是否真的生效**
 （`GlobalState.phase` 仍 unknown，且2026-08-19 用全内存扫描工具尝试定位
 未成功，见 docs/execution_research.md 第7节），所以没有轮询、没有重试，
 只有"发送输入+记日志"。设施类型选择（图标网格）、外交/计略目标选择、
@@ -182,8 +185,24 @@ docs/execution_research.md 第6节。测试：`tests/test_menu_execution.py`
 是单击，不是双击——`ActionMenuExecutor.open_city_menu()` 已改成单次
 `click()`。④ 地图网格数据层面是正交坐标，但默认相机角度渲染成等距
 (isometric) 投影，`map_projection.py` 的换算公式（假设每格独立线性缩放）
-需要重写成等距变换，这次只更新了文档结论，代码尚未改（需要先有
-`map_viewport` 真实像素测量数据）。详见 docs/execution_research.md 第7.6节。
+需要重写成等距变换，这次只更新了文档结论，代码尚未改。详见
+docs/execution_research.md 第7.6节。
+
+**2026-08-19 界面坐标测量**：用一套零风险的新协议（用户把鼠标悬停到
+目标点报告"现在"，Claude 用 `GetCursorPos`+`ScreenToClient` 读取那一刻
+的客户区坐标，`scratchpad/read_cursor.py`）现场测完了 `ui_layout` 剩下
+的三个元素：`city_top_menu`（都市/軍事/人材三项验证出锚点偏移
+`x=-143,y=98`、`item_height=34`；锚点是城池名字文本框的中点，不是
+字符位置——用户当场指出直接点字符会偏离热区中心）、`city_submenu`
+（以「軍事」展开的子菜单为样本，偏移 `x=80,y=12`、`item_height=30`）、
+`map_viewport`（视口矩形 `x=471,y=12,width=1772,height=1542`；格子
+菱形对角线 `tile_width=184,tile_height=135`）。另外用 `GetClientRect`
+读到精确客户区尺寸 `2560×1600` 填入 `meta.assumed_client_resolution`。
+三个元素全部 `unknown: false` 后 `meta.verified` 改成 `true`，
+`tests/test_ui_layout.py` 同步更新断言。**样本量小**（多数字段只测了
+1次/1个样本），`city_submenu` 只验证了「軍事」一个顶层菜单展开的情况，
+`city_top_menu` 锚点是否对全部42座城池通用也未验证，详见
+docs/execution_research.md 第7.10节。
 
 **没有做**（有意，等真实游戏能跑、锚点问题解决后再推进）：跟真实游戏的
 实际联调（发一次真实点击、看游戏是否响应）、LegalActions/Execute 更高层的
@@ -222,7 +241,7 @@ docs/verification_checklist.md  汇总 M1~M4 全部待验证事项，按"启动�
 offsets/schema.json       offsets 文件的格式定义（人类可读的权威文档）
 offsets/pk_1.1_cn.json    候选偏移表（未在真实进程验证过，meta.verified=false；含 M3 新增的 camera/selection struct）
 ui_layout/schema.json     ui_layout 文件的格式定义（客户区固定元素坐标表，跟 offsets 平行但不是内存偏移）
-ui_layout/pk_1.1_cn.json  界面坐标表（M3 阶段游戏无法运行，全部 unknown，只搭好格式）
+ui_layout/pk_1.1_cn.json  界面坐标表（2026-08-19 三个元素现场测量完成，meta.verified=true）
 rules/schema.json         内政动作规则表的格式定义
 rules/domestic_actions_pk_1.1_cn.json  内政动作规则表（M4，资源消耗数值全部诚实标 unknown，见 docs/legal_actions_research.md）
 san11agent/
