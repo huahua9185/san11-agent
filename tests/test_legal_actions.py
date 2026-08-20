@@ -25,6 +25,7 @@ from san11agent.legal_actions import (
     DiplomacyAction,
     ProduceEquipmentAction,
     RecruitTroopsAction,
+    ResearchTechAction,
     SecurityPatrolAction,
     StratagemAction,
     TrainTroopsAction,
@@ -259,6 +260,25 @@ def test_produce_equipment_facility_precondition_is_marked_unverified(actions):
         assert "facility_precondition" in a.unverified_constraints
 
 
+def test_research_tech_actions_enumerated_for_each_tech_type(actions):
+    tech_actions = [a for a in actions if isinstance(a, ResearchTechAction)]
+    assert {a.tech_type for a in tech_actions} == {"spear_training", "elite_cavalry"}
+
+
+def test_research_tech_not_gated_by_facility_slot(actions):
+    tech_actions = [a for a in actions if isinstance(a, ResearchTechAction)]
+    assert {a.city_index for a in tech_actions} == {OWN_CITY_WITH_SLOT, OWN_CITY_FULL}
+
+
+def test_research_tech_prerequisite_and_points_are_marked_unverified(actions):
+    # 研究顺序前置链、势力级"技巧P"资源检查都不存在，固定标记未验证。
+    tech_actions = [a for a in actions if isinstance(a, ResearchTechAction)]
+    assert tech_actions
+    for a in tech_actions:
+        assert "tech_prerequisite_chain" in a.unverified_constraints
+        assert "tech_points_cost" in a.unverified_constraints
+
+
 # ---------------------------------------------------------------------------
 # 外交 / 计略 目标枚举
 # ---------------------------------------------------------------------------
@@ -301,10 +321,11 @@ def test_simple_action_kinds_present_for_eligible_generals(actions):
 def test_total_action_count_matches_expected_combinatorics(actions):
     # 2026-08-18 levy_gold/levy_food 两个 ActionKind 已删除（游戏里没有'征收'指令），
     # 简单动作从 5 项减为 3 项（徵兵/訓練/巡察），总数相应从 22 减为 16。
-    # 2026-08-20 新增 produce_equipment（2种兵装，不受开发位限制，两座己方城池都产出）。
-    # city0（有空闲开发位，2种设施）：2(设施) + 2(兵装) + 3(简单动作) + 4(外交 2子类型x2势力) + 1(计略 1子类型x1合法目标) = 12
-    # city1（开发位已满，0种设施）：0 + 2(兵装) + 3 + 4 + 1 = 10
-    assert len(actions) == 22
+    # 2026-08-20 新增 produce_equipment（2种兵装）和 research_tech（2种技巧），
+    # 两者都不受开发位限制，两座己方城池都产出。
+    # city0（有空闲开发位，2种设施）：2(设施) + 2(兵装) + 2(技巧) + 3(简单动作) + 4(外交 2子类型x2势力) + 1(计略 1子类型x1合法目标) = 14
+    # city1（开发位已满，0种设施）：0 + 2(兵装) + 2(技巧) + 3 + 4 + 1 = 12
+    assert len(actions) == 26
 
 
 def test_unknown_cost_rules_never_block_but_are_recorded(actions):
@@ -433,3 +454,11 @@ def test_describe_action_includes_equipment_display_name(actions, rules):
     assert "生產兵裝" in text
     assert equipment_action.equipment_type in {"spear", "crossbow"}
     assert ("槍" in text) or ("弩" in text)
+
+
+def test_describe_action_includes_tech_display_name(actions, rules):
+    tech_action = next(a for a in actions if isinstance(a, ResearchTechAction))
+    text = describe_action(tech_action, rules)
+    assert "研究技巧" in text
+    assert tech_action.tech_type in {"spear_training", "elite_cavalry"}
+    assert ("鍛鍊槍兵" in text) or ("精銳騎兵" in text)

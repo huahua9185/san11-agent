@@ -92,7 +92,7 @@ class DomesticRulesConfig:
         return kind in self.actions
 
 
-_SUB_TYPE_KEYS = ("facility_types", "equipment_types", "diplomacy_types", "stratagem_types")
+_SUB_TYPE_KEYS = ("facility_types", "equipment_types", "tech_types", "diplomacy_types", "stratagem_types")
 
 
 def _load_rule_value(raw: dict[str, Any] | None) -> RuleValue:

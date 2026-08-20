@@ -53,6 +53,7 @@ from .visible_state import (
 class ActionKind(Enum):
     BUILD_FACILITY = "build_facility"
     PRODUCE_EQUIPMENT = "produce_equipment"
+    RESEARCH_TECH = "research_tech"
     RECRUIT_TROOPS = "recruit_troops"
     TRAIN_TROOPS = "train_troops"
     SECURITY_PATROL = "security_patrol"
@@ -88,6 +89,19 @@ class ProduceEquipmentAction(ActionBase):
 
     kind: ActionKind = field(default=ActionKind.PRODUCE_EQUIPMENT, init=False)
     equipment_type: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResearchTechAction(ActionBase):
+    """研究技巧。共8个分类（槍兵/戟兵/弩兵/騎兵/鍊兵/發明/防衛/火攻）各4级，
+    每级需要先研究完成同分类上一级——这个前置链未建模，也没有实现势力级
+    "技巧P"资源检查（跟資金并列的另一项门槛资源，数据模型目前不存在），
+    固定标记进 unverified_constraints，见 _tech_actions() 和 rules 文件里
+    research_tech 的 note。
+    """
+
+    kind: ActionKind = field(default=ActionKind.RESEARCH_TECH, init=False)
+    tech_type: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -132,6 +146,7 @@ class StratagemAction(ActionBase):
 Action = (
     BuildFacilityAction
     | ProduceEquipmentAction
+    | ResearchTechAction
     | RecruitTroopsAction
     | TrainTroopsAction
     | SecurityPatrolAction
@@ -244,6 +259,29 @@ def _equipment_actions(
     ]
 
 
+def _tech_actions(
+    general: VisibleGeneralFull, city: VisibleCityDetail, rules: DomesticRulesConfig
+) -> list[Action]:
+    if not rules.has_action(ActionKind.RESEARCH_TECH.value):
+        return []
+    rule = rules.action(ActionKind.RESEARCH_TECH.value)
+    ok, unverified = _stamina_and_resource_check(general, city, rule)
+    if not ok:
+        return []
+    # 研究顺序前置链（需先研究完成同分类上一级）和势力级"技巧P"资源都
+    # 无法检查，见 ResearchTechAction 文档字符串。
+    tech_unverified = unverified + ("tech_prerequisite_chain", "tech_points_cost")
+    return [
+        ResearchTechAction(
+            general_index=general.index,
+            city_index=city.index,
+            tech_type=tech_id,
+            unverified_constraints=tech_unverified,
+        )
+        for tech_id in rule.sub_types
+    ]
+
+
 def _diplomacy_actions(
     general: VisibleGeneralFull,
     city: VisibleCityDetail,
@@ -346,6 +384,7 @@ def enumerate_legal_actions(
             actions.extend(_simple_actions(general, city, rules))
             actions.extend(_facility_actions(general, city, rules))
             actions.extend(_equipment_actions(general, city, rules))
+            actions.extend(_tech_actions(general, city, rules))
             actions.extend(_diplomacy_actions(general, city, other_factions, rules))
             actions.extend(_stratagem_actions(general, city, enemy_cities, rules))
     return actions
@@ -363,6 +402,10 @@ def describe_action(action: Action, rules: DomesticRulesConfig) -> str:
     elif isinstance(action, ProduceEquipmentAction):
         sub = rule.sub_types.get(action.equipment_type) if rule else None
         label = sub.display_name_cn if sub else action.equipment_type
+        text += f"（{label}）"
+    elif isinstance(action, ResearchTechAction):
+        sub = rule.sub_types.get(action.tech_type) if rule else None
+        label = sub.display_name_cn if sub else action.tech_type
         text += f"（{label}）"
     elif isinstance(action, DiplomacyAction):
         sub = rule.sub_types.get(action.diplomacy_type) if rule else None

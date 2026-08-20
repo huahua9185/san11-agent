@@ -43,6 +43,7 @@
           "action_points_cost": { "$ref": "#/definitions/rule_value", "description": "2026-08-19 新增：游戏内叫'行動力'的城池级资源池（每回合恢复，随城池而不同，上限255，见官方手册P.11），是都市/軍事/人材/外交/計略指令真正的门槛资源——不是 min_general_stamina。offsets 里对应的 city.action_points 字段本身仍未定位（见 city struct 的 note），这里的数值来自官方手册，是规则本身，跟内存偏移是否找到是两件独立的事。" },
           "facility_types": { "$ref": "#/definitions/sub_type_map" },
           "equipment_types": { "$ref": "#/definitions/sub_type_map", "description": "仅 produce_equipment 用：兵装（装备）种类，见 rules/domestic_actions_pk_1.1_cn.json 的 note" },
+          "tech_types": { "$ref": "#/definitions/sub_type_map", "description": "仅 research_tech 用：8个分类各4级共32个技巧，见 rules/domestic_actions_pk_1.1_cn.json 的 note" },
           "diplomacy_types": { "$ref": "#/definitions/sub_type_map" },
           "stratagem_types": { "$ref": "#/definitions/sub_type_map" },
           "note": { "type": "string" }

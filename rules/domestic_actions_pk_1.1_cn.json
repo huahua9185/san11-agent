@@ -818,6 +818,425 @@
         }
       },
       "note": "2026-08-20 新增（此前项目完全没有这个 ActionKind，只有 build_facility/recruit_troops/train_troops/security_patrol/diplomacy/stratagem 六种）。生產兵裝需要都市已开发「鍛冶廠」「廄舍」「工房」「造船廠」四种设施其中之一——鍛冶廠对应槍/戟/弩，廄舍对应軍馬，工房对应衝車/木獸/井闌/投石，造船廠对应樓船/鬥艦（手册P.16原文）。这个设施前置条件目前**没有实现检查**：VisibleCityDetail 目前只有聚合的「設施數」总数，没有按设施类型区分的清单字段，M1/M2 数据模型都还没有解析出这个信息，legal_actions.py 里对应地固定标记 unverified_constraints = facility_precondition，不拒绝也不假装验证过，跟 build_facility 的 target_tile_precision 是同一种处理方式。手册还提到「鍛冶」「廄舍」的生產物可立即生產，工房/造船廠的生產物要等生產期間结束——这个'即时 vs 延迟完成'的区别也没有建模，Execute 层如果要用这个动作需要额外确认。各兵装的建设费用来自手册「兵裝一覽」原文，木獸/投石/鬥艦是強化版，需要先研究对应技巧才能生產（開發木獸/開發投石），这个技巧前置同样没有建模。"
+    },
+    "research_tech": {
+      "display_name_cn": "研究技巧",
+      "requires_own_city": true,
+      "min_general_stamina": {
+        "value": 0,
+        "unknown": false,
+        "confidence": "high",
+        "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+        "note": "官方手册没有提到武将个人体力门槛，跟其它内政指令一致，真正门槛是行動力。"
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true,
+        "confidence": "none",
+        "source": "",
+        "note": "研究资金因技巧等级而异（①1000/②2000/③5000/④10000，同级4类别通用），顶层没有统一数值，见各 tech_types 条目。"
+      },
+      "food_cost": {
+        "value": 0,
+        "unknown": false,
+        "confidence": "high",
+        "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+        "note": "官方手册「指令一覽」没有列出研究技巧的兵糧消耗项。"
+      },
+      "action_points_cost": {
+        "value": 50,
+        "unknown": false,
+        "confidence": "high",
+        "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+        "note": "手册原文「研究技巧 期間 有 所需資金 因研究而異 行動力 50 執行武將 最多3人」。"
+      },
+      "tech_types": {
+        "spear_training": {
+          "display_name_cn": "鍛鍊槍兵",
+          "gold_cost": {
+            "value": 1000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第1级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:槍兵（第1级）。所需技巧P:1000。效果:槍兵戰法的威力增加。",
+          "note": ""
+        },
+        "food_raid": {
+          "display_name_cn": "襲擊兵糧",
+          "gold_cost": {
+            "value": 2000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第2级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:槍兵（第2级）。所需技巧P:2000。效果:每當槍兵攻擊，敵人的兵糧就會減少。（需先研究完成同分类第1级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "ambush": {
+          "display_name_cn": "奇襲",
+          "gold_cost": {
+            "value": 5000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第3级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:槍兵（第3级）。所需技巧P:3000。效果:槍兵於森林中的話，進行攻擊也不會遭到反擊。（需先研究完成同分类第2级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "elite_spear": {
+          "display_name_cn": "精銳槍兵",
+          "gold_cost": {
+            "value": 10000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第4级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:槍兵（第4级）。所需技巧P:5000。效果:槍兵的攻擊力、防禦力、移動力會上昇。（需先研究完成同分类第3级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "halberd_training": {
+          "display_name_cn": "鍛鍊戟兵",
+          "gold_cost": {
+            "value": 1000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第1级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:戟兵（第1级）。所需技巧P:1000。效果:戟兵戰法的威力增加。",
+          "note": ""
+        },
+        "arrow_shield": {
+          "display_name_cn": "箭盾",
+          "gold_cost": {
+            "value": 2000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第2级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:戟兵（第2级）。所需技巧P:2000。效果:戟兵於遭受弓箭攻擊時，會有30%的機率防止受到傷害。（需先研究完成同分类第1级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "large_shield": {
+          "display_name_cn": "大盾",
+          "gold_cost": {
+            "value": 5000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第3级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:戟兵（第3级）。所需技巧P:3000。效果:戟兵於遭受一般攻擊時，會有30%的機率防止受到傷害。（需先研究完成同分类第2级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "elite_halberd": {
+          "display_name_cn": "精銳戟兵",
+          "gold_cost": {
+            "value": 10000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第4级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:戟兵（第4级）。所需技巧P:5000。效果:戟兵的攻擊力、防禦力、移動力會上昇。（需先研究完成同分类第3级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "crossbow_training": {
+          "display_name_cn": "鍛鍊弩兵",
+          "gold_cost": {
+            "value": 1000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第1级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:弩兵（第1级）。所需技巧P:1000。效果:弩兵戰法的威力增加。",
+          "note": ""
+        },
+        "return_fire": {
+          "display_name_cn": "還射",
+          "gold_cost": {
+            "value": 2000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第2级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:弩兵（第2级）。所需技巧P:2000。效果:弩兵於遭受弓箭攻擊時進行反擊。（需先研究完成同分类第1级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "strong_crossbow": {
+          "display_name_cn": "強弩",
+          "gold_cost": {
+            "value": 5000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第3级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:弩兵（第3级）。所需技巧P:3000。效果:弩兵的射程範圍擴大1格。（需先研究完成同分类第2级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "elite_crossbow": {
+          "display_name_cn": "精銳弩兵",
+          "gold_cost": {
+            "value": 10000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第4级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:弩兵（第4级）。所需技巧P:5000。效果:弩兵的攻擊力、防禦力、移動力會上昇。（需先研究完成同分类第3级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "cavalry_training": {
+          "display_name_cn": "鍛鍊騎兵",
+          "gold_cost": {
+            "value": 1000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第1级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:騎兵（第1级）。所需技巧P:1000。效果:騎兵戰法的威力增加。",
+          "note": ""
+        },
+        "fine_horses": {
+          "display_name_cn": "出產良馬",
+          "gold_cost": {
+            "value": 2000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第2级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:騎兵（第2级）。所需技巧P:2000。效果:騎兵的移動力上昇。（需先研究完成同分类第1级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "mounted_archery": {
+          "display_name_cn": "騎射",
+          "gold_cost": {
+            "value": 5000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第3级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:騎兵（第3级）。所需技巧P:3000。效果:騎兵變為可以進行弓箭攻擊。（需先研究完成同分类第2级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "elite_cavalry": {
+          "display_name_cn": "精銳騎兵",
+          "gold_cost": {
+            "value": 10000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第4级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:騎兵（第4级）。所需技巧P:5000。效果:騎兵的攻擊力、防禦力、移動力會上昇。（需先研究完成同分类第3级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "veteran_troops": {
+          "display_name_cn": "熟練兵",
+          "gold_cost": {
+            "value": 1000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第1级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:鍊兵（第1级）。所需技巧P:1000。效果:氣力的上限（P.22）增加。",
+          "note": ""
+        },
+        "difficult_terrain_march": {
+          "display_name_cn": "難所行軍",
+          "gold_cost": {
+            "value": 2000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第2级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:鍊兵（第2级）。所需技巧P:2000。效果:可通過小路或淺灘（P.27）。進軍於棧道時不會受到傷害。（需先研究完成同分类第1级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "military_reform": {
+          "display_name_cn": "改革軍制",
+          "gold_cost": {
+            "value": 5000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第3级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:鍊兵（第3级）。所需技巧P:3000。效果:可指揮的士兵的上限增加。（需先研究完成同分类第2级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "siege_ladder": {
+          "display_name_cn": "雲梯",
+          "gold_cost": {
+            "value": 10000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第4级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:鍊兵（第4级）。所需技巧P:5000。效果:對於據點的攻擊力增加。（需先研究完成同分类第3级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "reinforced_axle": {
+          "display_name_cn": "強化車軸",
+          "gold_cost": {
+            "value": 1000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第1级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:發明（第1级）。所需技巧P:1000。效果:兵器的移動力上昇。",
+          "note": ""
+        },
+        "stone_construction": {
+          "display_name_cn": "石造建築",
+          "gold_cost": {
+            "value": 2000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第2级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:發明（第2级）。所需技巧P:2000。效果:可設置石牆、石兵八陣。（需先研究完成同分类第1级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "catapult_development": {
+          "display_name_cn": "開發投石",
+          "gold_cost": {
+            "value": 5000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第3级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:發明（第3级）。所需技巧P:3000。效果:可生產投石、鬥艦。可設置投石台。（需先研究完成同分类第2级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "thunderclap": {
+          "display_name_cn": "霹靂",
+          "gold_cost": {
+            "value": 10000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第4级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:發明（第4级）。所需技巧P:5000。效果:擴大投石的範圍。（需先研究完成同分类第3级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "engineer_training": {
+          "display_name_cn": "培訓工兵",
+          "gold_cost": {
+            "value": 1000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第1级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:防衛（第1级）。所需技巧P:1000。效果:據點、內政設施的每回合的耐久恢復量增加。",
+          "note": ""
+        },
+        "facility_reinforcement": {
+          "display_name_cn": "強化設施",
+          "gold_cost": {
+            "value": 2000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第2级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:防衛（第2级）。所需技巧P:2000。效果:可設置砦、連弩樓。（需先研究完成同分类第1级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "wall_reinforcement": {
+          "display_name_cn": "強化城牆",
+          "gold_cost": {
+            "value": 5000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第3级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:防衛（第3级）。所需技巧P:3000。效果:可設置城寨。全據點的耐久最大值上昇。（需先研究完成同分类第2级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "defense_reinforcement": {
+          "display_name_cn": "強化防衛",
+          "gold_cost": {
+            "value": 10000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第4级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:防衛（第4级）。所需技巧P:5000。效果:據點的反擊威力上昇。（需先研究完成同分类第3级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "wooden_beast_development": {
+          "display_name_cn": "開發木獸",
+          "gold_cost": {
+            "value": 1000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第1级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:火攻（第1级）。所需技巧P:1000。效果:可以生產木獸。",
+          "note": ""
+        },
+        "divine_fire_plan": {
+          "display_name_cn": "神火計",
+          "gold_cost": {
+            "value": 2000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第2级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:火攻（第2级）。所需技巧P:2000。效果:可實行火計於3格之內。（需先研究完成同分类第1级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "gunpowder_refinement": {
+          "display_name_cn": "鍊成火藥",
+          "gold_cost": {
+            "value": 5000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第3级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:火攻（第3级）。所需技巧P:3000。效果:可設置火焰種、火焰球。（需先研究完成同分类第2级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        },
+        "explosive_refinement": {
+          "display_name_cn": "鍊成炸藥",
+          "gold_cost": {
+            "value": 10000,
+            "unknown": false,
+            "confidence": "high",
+            "source": "游戏安装目录官方手册 San11WPK.pdf《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」（2026-08-20 用 pdftotext -enc UTF-8（不加-layout，避免多栏表格错位）提取核对）",
+            "note": "第4级技巧的资金门槛（同级4个类别通用，见手册「必要技巧P/研究資金」原文的①②③④对应关系）。"
+          },
+          "effect_note": "分类:火攻（第4级）。所需技巧P:5000。效果:可設置業火種、藥火球。火的威力上昇。（需先研究完成同分类第3级技巧才能研究本项，见手册研究步骤说明）",
+          "note": ""
+        }
+      },
+      "note": "2026-08-20 新增（项目里第二次新增 ActionKind，第一次是同一天的 produce_equipment）。技巧树共8个分类（槍兵/戟兵/弩兵/騎兵/鍊兵/發明/防衛/火攻）各4级，共32个技巧，来自手册《遊戲說明書》P.18-19「研究技巧」/「技巧一覽」。**提取方式的教训**：这张表在PDF里是复杂多栏排版，用 `pdftotext -layout` 提取会把不同栏的内容交错，把技巧名和效果说明错误配对——这次改用不加 `-layout` 的提取（纯阅读顺序），拿到了'8个分类名→32个技巧名（按分类分组，每组4个）→32条效果说明（同样顺序）'这样干净的三段式线性序列，才能放心地按顺序一一对应，没有凭空拼接。\n\n**已知的建模缺口**：①每级技巧需要先研究完成同分类上一级才能解锁（手册原文'研究完[鍛練槍兵]的話…將可以於下一個研究選擇[襲擊兵糧]'），这个前置链没有做成真正的门槛检查，enumerate_legal_actions() 目前会把全部32个技巧都枚举出来，不管有没有满足研究顺序，固定标记 unverified_constraints='tech_prerequisite_chain'。②研究所需的\"技巧P\"（跟資金并列的第二种门槛资源）完全没有建模——city/faction 数据模型目前没有解析出\"势力技巧P\"这个字段（游戏内叫'技巧P'，是势力级资源池，不是城池级，来源渠道见手册'技巧P增加/減少'条目），所以这个真正的硬性门槛（比資金更早卡住能不能研究）现在完全没检查，只在 tech_types 各条目的 effect_note 里记录了数值供人工参考。③研究期间会因'執行武將的能力合计值'（統率/武力/政治/智力，因分类而异，见手册'研究能力、培育武將'节旁边表格）和特技'指導'（费用减半）而变化，这条也没有建模。"
     }
   }
 }

@@ -14,6 +14,7 @@ PK_RULES = REPO_ROOT / "rules" / "domestic_actions_pk_1.1_cn.json"
 _ALL_KINDS = {
     "build_facility",
     "produce_equipment",
+    "research_tech",
     "recruit_troops",
     "train_troops",
     "security_patrol",
@@ -188,6 +189,27 @@ def test_pk_rules_facility_durability_and_effect_are_known_per_subtype():
     # 道具解锁设施，耐久档位比其余19种都高
     assert sub_types["bronze_sparrow_tower"].durability.value == 1300
     assert "銅雀" in sub_types["bronze_sparrow_tower"].effect_note
+
+
+def test_pk_rules_research_tech_has_32_techs_with_tiered_gold_cost():
+    """2026-08-20：技巧树8个分类（槍兵/戟兵/弩兵/騎兵/鍊兵/發明/防衛/火攻）
+    各4级共32个技巧，来自官方手册《遊戲說明書》P.18-19。资金门槛按等级分
+    4档（①1000/②2000/③5000/④10000），同一档位在8个分类间通用。
+    """
+    rules = load_domestic_rules(PK_RULES)
+    sub_types = rules.action("research_tech").sub_types
+
+    assert len(sub_types) == 32
+    assert all(st.gold_cost.is_known for st in sub_types.values()), "32个技巧都应有已知资金门槛"
+    assert all(st.effect_note for st in sub_types.values()), "32个技巧都应有效果说明原文"
+    assert {st.gold_cost.value for st in sub_types.values()} == {1000, 2000, 5000, 10000}
+
+    # 每个分类第1级和第4级各抽一个核对
+    assert sub_types["spear_training"].display_name_cn == "鍛鍊槍兵"
+    assert sub_types["spear_training"].gold_cost.value == 1000
+    assert sub_types["elite_cavalry"].display_name_cn == "精銳騎兵"
+    assert sub_types["explosive_refinement"].display_name_cn == "鍊成炸藥"
+    assert sub_types["explosive_refinement"].gold_cost.value == 10000
 
 
 def test_pk_rules_facility_gold_costs_are_known_per_subtype():

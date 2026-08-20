@@ -56,6 +56,30 @@
         }
       }
     },
+    "research_tech": {
+      "display_name_cn": "研究技巧",
+      "requires_own_city": true,
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "tech_types": {
+        "spear_training": {
+          "display_name_cn": "鍛鍊槍兵"
+        },
+        "elite_cavalry": {
+          "display_name_cn": "精銳騎兵"
+        }
+      }
+    },
     "recruit_troops": {
       "display_name_cn": "征兵",
       "requires_own_city": true,
