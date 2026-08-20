@@ -136,8 +136,14 @@
   详见 docs/execution_research.md 第7.10节
 - [x] 地图格子坐标 -> 屏幕坐标换算（`san11agent/map_projection.py`）：从
   内存读摄像机偏移/缩放反算屏幕位置，目标在视野外返回 `None` 交给上层滚动。
-  换算公式（正交网格 + 线性缩放假设）**未经真实游戏验证**，见
-  docs/execution_research.md
+  2026-08-19 用测量到的 `tile_width`/`tile_height`（184x135px 菱形对角线）
+  把公式从"正交网格+线性缩放"重写成**等距菱形变换**（`camera.offset` 对应
+  的格子投影到视口正中心，`client_x/y` 分别对应 `(dx-dy)`/`(dx+dy)`），
+  `execution.py` 的 `_pick_scroll_direction()` 同步改成跟着同一套
+  `(dx-dy, dx+dy)` 关系判断平移方向。**换算公式本身仍未经真实游戏验证**——
+  `camera.offset_x/offset_y/zoom_level` 三个字段还没在内存里定位到，且
+  "camera 偏移对应视口中心而非左上角""哪个符号对应哪个屏幕方向"这两条
+  是这次新引入的假设，无法回放验证，见 docs/execution_research.md
 - [x] 通用轮询/超时/重试机制，可注入时钟（`san11agent/clock.py` +
   `san11agent/polling.py`）：禁止固定 sleep，所有等待走 `poll_until()`，
   测试用 `FakeClock` 完全不真的等待
@@ -184,9 +190,11 @@ docs/execution_research.md 第6节。测试：`tests/test_menu_execution.py`
 `CitySelector` 已改成只 `move_mouse()`，不再 `click()`。③ 弹出一级菜单
 是单击，不是双击——`ActionMenuExecutor.open_city_menu()` 已改成单次
 `click()`。④ 地图网格数据层面是正交坐标，但默认相机角度渲染成等距
-(isometric) 投影，`map_projection.py` 的换算公式（假设每格独立线性缩放）
-需要重写成等距变换，这次只更新了文档结论，代码尚未改。详见
-docs/execution_research.md 第7.6节。
+(isometric) 投影，`map_projection.py` 的换算公式（原假设每格独立线性
+缩放）当时只更新了文档结论、代码没改；等到 `map_viewport` 的真实像素
+测量数据到手后（见下方"界面坐标测量"），已经把公式重写成等距菱形变换，
+`_pick_scroll_direction()` 也同步改了，详见 docs/execution_research.md
+第7.6/7.12节。
 
 **2026-08-19 界面坐标测量**：用一套零风险的新协议（用户把鼠标悬停到
 目标点报告"现在"，Claude 用 `GetCursorPos`+`ScreenToClient` 读取那一刻

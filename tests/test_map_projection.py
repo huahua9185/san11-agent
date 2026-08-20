@@ -19,22 +19,24 @@ UNKNOWN_VIEWPORT = UIElement(
 )
 
 
-def test_project_tile_to_client_origin_maps_to_viewport_corner():
+def test_project_tile_to_client_camera_focus_maps_to_viewport_center():
+    # camera.offset 对应的格子投影到视口正中心（100,50,400,300 -> 中心 300,200）。
     camera = CameraState(offset_x=0, offset_y=0, zoom_level=100)
     point = project_tile_to_client(TileCoord(0, 0), camera, VIEWPORT)
-    assert (point.x, point.y) == (100, 50)
+    assert (point.x, point.y) == (300, 200)
 
 
-def test_project_tile_to_client_applies_camera_offset_and_tile_size():
+def test_project_tile_to_client_applies_isometric_diamond_transform():
+    # 等距菱形变换：+x 往右下（水平半径 half_w=10），+y 往左下（水平方向抵消）。
     camera = CameraState(offset_x=0, offset_y=0, zoom_level=100)
     point = project_tile_to_client(TileCoord(2, 3), camera, VIEWPORT)
-    assert (point.x, point.y) == (100 + 2 * 20, 50 + 3 * 20)
+    assert (point.x, point.y) == (300 + (2 - 3) * 10, 200 + (2 + 3) * 10)
 
 
 def test_project_tile_to_client_applies_zoom_scale():
     camera = CameraState(offset_x=0, offset_y=0, zoom_level=200)  # 2倍缩放
     point = project_tile_to_client(TileCoord(1, 0), camera, VIEWPORT)
-    assert (point.x, point.y) == (100 + 1 * 20 * 2, 50)
+    assert (point.x, point.y) == (300 + 1 * 10 * 2, 200 + 1 * 10 * 2)
 
 
 def test_project_tile_to_client_returns_none_when_outside_viewport():

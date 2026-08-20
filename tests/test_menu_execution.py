@@ -158,25 +158,28 @@ def test_open_city_menu_homes_reveals_and_clicks_once(offsets, ui_layout):
     assert len(click_calls) == 1  # 单击弹出菜单，不是双击
 
     assert [e.intent for e in action_log.entries] == ["menu.home", "menu.open_city"]
-    # viewport x=100,y=50,tile=20x20；地图坐标(5,5)已经在视野内，不需要滚动
-    assert point.x == 100 + 5 * 20
-    assert point.y == 50 + 5 * 20
+    # 等距菱形变换：视口中心(300,200)+(dx-dy,dx+dy)*half_tile(10,10)，
+    # 地图坐标(5,5)、offset(0,0) 时 dx=dy=5 -> (300,300)，已经在视野内不需要滚动。
+    assert point.x == 300
+    assert point.y == 300
 
 
 def test_open_city_menu_pans_map_when_target_outside_viewport(offsets, ui_layout):
     # viewport: x=100,y=50,width=400,height=300 → 右边缘悬停点 = (497, 200)
+    # 等距变换下 target.y==offset_y（dy=0）时屏幕x/y一起随 offset_x 变化，
+    # 见 test_execution.py 里同款场景的注释。
     RIGHT_EDGE = (497, 200)
     reader = _build_reader(offset_x=0)
 
     def on_move_mouse(x, y):
         if (x, y) == RIGHT_EDGE:
-            reader.write_i32(CAMERA_OFFSET_X_ADDR, 15)
+            reader.write_i32(CAMERA_OFFSET_X_ADDR, 25)
 
     input_backend = FakeInputBackend(on_move_mouse=on_move_mouse)
     action_log = ActionLog(FakeClock())
     executor = _make_executor(reader, offsets, ui_layout, input_backend, action_log)
 
-    executor.open_city_menu(CITY_INDEX, TileCoord(30, 5))
+    executor.open_city_menu(CITY_INDEX, TileCoord(30, 0))
 
     pan_entries = [e for e in action_log.entries if e.intent == "pan_map"]
     assert len(pan_entries) == 1
@@ -215,7 +218,9 @@ def test_execute_action_clicks_top_and_submenu_at_expected_coordinates(offsets, 
     # 1次单击弹出菜单 + 1次顶层菜单项 + 1次二级菜单项 = 3次
     assert len(click_calls) == 3
 
-    anchor_x, anchor_y = 100 + 5 * 20, 50 + 5 * 20
+    # 等距菱形变换：TileCoord(5,5)、offset(0,0) -> (300, 300)，见上面
+    # test_open_city_menu_homes_reveals_and_clicks_once 的注释。
+    anchor_x, anchor_y = 300, 300
     # city_top_menu: x=10,y=-30,item_height=20；train_troops 是 (top=1, sub=0)
     top_x, top_y = anchor_x + 10, anchor_y - 30 + 1 * 20
     assert click_calls[1].args == (top_x, top_y, "left")

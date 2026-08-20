@@ -150,12 +150,23 @@ def reveal_tile(
 def _pick_scroll_direction(target_tile: TileCoord, camera: CameraState) -> str:
     """选一个平移方向靠近目标格子。project_tile_to_client() 已经在走到这里
     之前校验过 camera 字段不是 None，这里不用再判断。
+
+    等距菱形变换下屏幕横轴对应 (dx - dy)、屏幕纵轴对应 (dx + dy)（见
+    map_projection.py 模块顶部公式），不能再直接拿 target_tile.x/y 跟
+    camera.offset_x/offset_y 逐轴比较——那是旧的正交网格假设，2026-08-19
+    已确认默认视角是等距投影后改成跟着同一套 (dx-dy, dx+dy) 关系判断屏幕
+    方向。方向约定（哪个符号对应哪个屏幕方向）本身仍是未经验证的假设，
+    见 map_projection.py 模块文档。
     """
-    if target_tile.x < camera.offset_x:
+    dx = target_tile.x - camera.offset_x
+    dy = target_tile.y - camera.offset_y
+    horizontal = dx - dy
+    vertical = dx + dy
+    if horizontal < 0:
         return "left"
-    if target_tile.x > camera.offset_x:
+    if horizontal > 0:
         return "right"
-    if target_tile.y < camera.offset_y:
+    if vertical < 0:
         return "up"
     return "down"
 

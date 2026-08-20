@@ -72,7 +72,9 @@ def ui_layout():
 
 def test_select_city_succeeds_when_target_already_in_view(offsets, ui_layout):
     reader = _build_reader()
-    TARGET_POINT = (100 + 5 * 20, 50 + 5 * 20)  # viewport原点 + (5,5)*tile(20,20)
+    # 等距菱形变换：视口中心(300,200) + (dx-dy, dx+dy)*half_tile(10,10)，
+    # dx=dy=5 时 dx-dy=0、dx+dy=10 -> (300, 300)。
+    TARGET_POINT = (300, 300)
 
     def on_move_mouse(x, y):
         if (x, y) == TARGET_POINT:
@@ -103,11 +105,17 @@ def test_select_city_succeeds_when_target_already_in_view(offsets, ui_layout):
 def test_select_city_pans_map_when_target_outside_viewport(offsets, ui_layout):
     # viewport: x=100,y=50,width=400,height=300 → 右边缘悬停点 = (100+400-1-2, 50+150) = (497, 200)
     RIGHT_EDGE = (497, 200)
-    reader = _build_reader(offset_x=0)  # 目标格子 (30,5) 一开始在视野外
+    # 等距菱形变换下，target.y == offset_y 时 dy=0，dx-dy 和 dx+dy 都等于 dx，
+    # 屏幕x/y会一起随 offset_x 变化——目标格子(30,0)、offset_x=0 时 dx=30，
+    # 换算出的点远在视口外（右下方向）；_pick_scroll_direction 只看 dx-dy>0，
+    # 判定方向为"right"。
+    reader = _build_reader(offset_x=0)  # 目标格子 (30,0) 一开始在视野外
 
     def on_move_mouse(x, y):
         if (x, y) == RIGHT_EDGE:
-            reader.write_i32(CAMERA_OFFSET_X_ADDR, 15)  # 模拟鼠标停在右边缘触发地图向右平移
+            # 模拟鼠标停在右边缘触发地图平移：offset_x 从0变成25，
+            # dx=30-25=5，换算点 (300+5*10, 200+5*10)=(350,250)，落回视口内。
+            reader.write_i32(CAMERA_OFFSET_X_ADDR, 25)
         else:
             reader.write_i32(SELECTION_ADDR, CITY_INDEX)  # 悬停到目标格子上触发选中
 
@@ -120,7 +128,7 @@ def test_select_city_pans_map_when_target_outside_viewport(offsets, ui_layout):
         action_log=action_log, config=FAST_CONFIG,
     )
 
-    selector.select_city(CITY_INDEX, TileCoord(30, 5))
+    selector.select_city(CITY_INDEX, TileCoord(30, 0))
 
     pan_entries = [e for e in action_log.entries if e.intent == "pan_map"]
     assert len(pan_entries) == 1
@@ -134,7 +142,7 @@ def test_select_city_pans_map_when_target_outside_viewport(offsets, ui_layout):
 
 def test_select_city_retries_after_homing_when_hover_does_not_register(offsets, ui_layout):
     reader = _build_reader()
-    TARGET_POINT = (100 + 5 * 20, 50 + 5 * 20)
+    TARGET_POINT = (300, 300)  # 等距变换：TileCoord(5,5) + offset(0,0) -> (300,300)
     counter = {"n": 0}
 
     def on_move_mouse(x, y):
