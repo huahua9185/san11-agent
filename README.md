@@ -80,10 +80,12 @@
 
 > `LegalActions`：枚举当前阶段所有合法动作（关键 —— AI 不需要猜规则，也不会输出非法指令）
 
-- [x] 内政阶段动作类型体系（`san11agent/legal_actions.py`）：8 种
-  `ActionKind`（设施建设/征兵/训练/治安巡查/征收金/征收粮/外交/计略），每种
-  一个结构化 `frozen` dataclass（不是字符串），共享 `general_index`/
-  `city_index`/`unverified_constraints` 基类
+- [x] 内政阶段动作类型体系（`san11agent/legal_actions.py`）：`ActionKind`
+  （设施建设/征兵/训练/治安巡查/外交/计略，最初6种；`levy_gold`/`levy_food`
+  已于2026-08-18确认游戏里不存在此指令而删除；`produce_equipment` 生產兵裝
+  已于2026-08-20新增，见下方"2026-08-20 扩展"），每种一个结构化 `frozen`
+  dataclass（不是字符串），共享 `general_index`/`city_index`/
+  `unverified_constraints` 基类
 - [x] **核心约束**：`enumerate_legal_actions()` 只建立在 M2 的
   `VisibleGameState` 之上，完全不引用 M1 完整 `GameState` 的类型——用
   `isinstance(x, VisibleGeneralFull)`/`isinstance(x, VisibleCityDetail)`
@@ -103,13 +105,25 @@
   `unverified_constraints`，供下游复核——这是一个明确的设计取舍，不是延续
   M1/M2/M3 的默认做法，见 docs/legal_actions_research.md 第2节
 - [x] 单元测试：`tests/test_domestic_rules.py`（规则表加载器）+
-  `tests/test_legal_actions.py`（44个测试，全部用手工构造的
+  `tests/test_legal_actions.py`（31个测试，全部用手工构造的
   `VisibleGameState`/`DomesticRulesConfig`，完全离线，不经过 M1/M2 链路）
 - [ ] **Execute（把 Action 转换成真实键鼠输入）**——有意留到真实游戏能跑时
   再做，这次完全没有涉及
 - [ ] 多条设计取舍需要你确认（"治安"和"巡查"是否应该拆开、`levy_gold`/
   `levy_food` 是否应该合并、五种设施类型是否完整准确、`location==city.index`
   假设是否成立等），全部列在 docs/legal_actions_research.md 第4节
+
+**2026-08-20 扩展**：重新用 `pdftotext -enc UTF-8 -layout`（此前几次都漏了
+`-enc UTF-8`，导致中文被静默丢弃，35页手册实际只读出了乱码）完整提取官方
+手册后，做了两处扩展，详见 docs/legal_actions_research.md 第8节：① 给
+`build_facility.facility_types` 全部20种设施（19种+手册确认此前遗漏的
+「銅雀台」）补上 `durability`/`effect_note`；② 新增
+`ActionKind.PRODUCE_EQUIPMENT`（生產兵裝，项目里第一次新增 ActionKind），
+用手册"兵裝一覽"给10种兵装建了 `equipment_types` 子类型表，`_equipment_actions()`
+镜像 `_facility_actions()` 的写法。已知缺口：生產兵裝需要都市已开发特定
+设施（鍛冶廠/廄舍/工房/造船廠之一），但 `VisibleCityDetail` 没有按类型
+区分的设施清单，这条前置条件无法真正检查，固定标记 `unverified_constraints`。
+新增/更新测试后共338项测试通过。
 
 ## 历史状态：M3 — 执行层最小链路脚手架
 

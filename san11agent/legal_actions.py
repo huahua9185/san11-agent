@@ -52,6 +52,7 @@ from .visible_state import (
 
 class ActionKind(Enum):
     BUILD_FACILITY = "build_facility"
+    PRODUCE_EQUIPMENT = "produce_equipment"
     RECRUIT_TROOPS = "recruit_troops"
     TRAIN_TROOPS = "train_troops"
     SECURITY_PATROL = "security_patrol"
@@ -75,6 +76,18 @@ class BuildFacilityAction(ActionBase):
     kind: ActionKind = field(default=ActionKind.BUILD_FACILITY, init=False)
     facility_type: str
     target_tile: tuple[int, int] | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ProduceEquipmentAction(ActionBase):
+    """生產兵裝。需要都市已开发「鍛冶廠/廄舍/工房/造船廠」其中之一（因兵装
+    种类而定），但 VisibleCityDetail 目前没有按设施类型区分的清单字段，
+    这条前置条件无法真正检查，固定标记进 unverified_constraints，见
+    _equipment_actions() 和 rules 文件里 produce_equipment 的 note。
+    """
+
+    kind: ActionKind = field(default=ActionKind.PRODUCE_EQUIPMENT, init=False)
+    equipment_type: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -118,6 +131,7 @@ class StratagemAction(ActionBase):
 
 Action = (
     BuildFacilityAction
+    | ProduceEquipmentAction
     | RecruitTroopsAction
     | TrainTroopsAction
     | SecurityPatrolAction
@@ -204,6 +218,29 @@ def _facility_actions(
             unverified_constraints=tile_unverified,
         )
         for facility_id in rule.sub_types
+    ]
+
+
+def _equipment_actions(
+    general: VisibleGeneralFull, city: VisibleCityDetail, rules: DomesticRulesConfig
+) -> list[Action]:
+    if not rules.has_action(ActionKind.PRODUCE_EQUIPMENT.value):
+        return []
+    rule = rules.action(ActionKind.PRODUCE_EQUIPMENT.value)
+    ok, unverified = _stamina_and_resource_check(general, city, rule)
+    if not ok:
+        return []
+    # 设施前置条件（鍛冶廠/廄舍/工房/造船廠其中之一）无法检查，见
+    # ProduceEquipmentAction 文档字符串。
+    facility_unverified = unverified + ("facility_precondition",)
+    return [
+        ProduceEquipmentAction(
+            general_index=general.index,
+            city_index=city.index,
+            equipment_type=equipment_id,
+            unverified_constraints=facility_unverified,
+        )
+        for equipment_id in rule.sub_types
     ]
 
 
@@ -308,6 +345,7 @@ def enumerate_legal_actions(
         for general in generals_here:
             actions.extend(_simple_actions(general, city, rules))
             actions.extend(_facility_actions(general, city, rules))
+            actions.extend(_equipment_actions(general, city, rules))
             actions.extend(_diplomacy_actions(general, city, other_factions, rules))
             actions.extend(_stratagem_actions(general, city, enemy_cities, rules))
     return actions
@@ -322,6 +360,10 @@ def describe_action(action: Action, rules: DomesticRulesConfig) -> str:
         sub = rule.sub_types.get(action.facility_type) if rule else None
         label = sub.display_name_cn if sub else action.facility_type
         text += f"（{label}，目标格 {action.target_tile}）"
+    elif isinstance(action, ProduceEquipmentAction):
+        sub = rule.sub_types.get(action.equipment_type) if rule else None
+        label = sub.display_name_cn if sub else action.equipment_type
+        text += f"（{label}）"
     elif isinstance(action, DiplomacyAction):
         sub = rule.sub_types.get(action.diplomacy_type) if rule else None
         label = sub.display_name_cn if sub else action.diplomacy_type

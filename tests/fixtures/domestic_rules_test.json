@@ -32,6 +32,30 @@
         }
       }
     },
+    "produce_equipment": {
+      "display_name_cn": "生產兵裝",
+      "requires_own_city": true,
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "equipment_types": {
+        "spear": {
+          "display_name_cn": "槍"
+        },
+        "crossbow": {
+          "display_name_cn": "弩"
+        }
+      }
+    },
     "recruit_troops": {
       "display_name_cn": "征兵",
       "requires_own_city": true,

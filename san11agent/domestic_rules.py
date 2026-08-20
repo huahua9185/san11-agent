@@ -50,6 +50,13 @@ class SubTypeSpec:
     # 的 ActionRuleSpec.gold_cost 对 build_facility 而言没有统一值，仍是 unknown。
     # 未提供时默认 unknown，语义与其它 RuleValue 一致（不拦截、只标记未验证）。
     gold_cost: RuleValue = _UNKNOWN_RULE_VALUE
+    # 2026-08-20 新增，仅 facility_types 用：设施耐久初始值（官方手册），语义
+    # 同 gold_cost——按子类型区分，未提供时 unknown。
+    durability: RuleValue = _UNKNOWN_RULE_VALUE
+    # 2026-08-20 新增，仅 facility_types 用：设施效果的官方手册原文描述。效果
+    # 种类因设施而异（收入加成/相邻倍率/每回合可执行次数/特殊限制等），没有
+    # 统一成单一数值字段——保留原文比强行结构化更诚实，见 rules/schema.json。
+    effect_note: str = ""
 
 
 @dataclass(frozen=True)
@@ -85,7 +92,7 @@ class DomesticRulesConfig:
         return kind in self.actions
 
 
-_SUB_TYPE_KEYS = ("facility_types", "diplomacy_types", "stratagem_types")
+_SUB_TYPE_KEYS = ("facility_types", "equipment_types", "diplomacy_types", "stratagem_types")
 
 
 def _load_rule_value(raw: dict[str, Any] | None) -> RuleValue:
@@ -122,6 +129,8 @@ def _load_sub_types(raw_action: dict[str, Any]) -> dict[str, SubTypeSpec]:
                 display_name_cn=sub_raw["display_name_cn"],
                 note=sub_raw.get("note", ""),
                 gold_cost=_load_rule_value(sub_raw.get("gold_cost")),
+                durability=_load_rule_value(sub_raw.get("durability")),
+                effect_note=sub_raw.get("effect_note", ""),
             )
     return sub_types
 

@@ -13,6 +13,7 @@ PK_RULES = REPO_ROOT / "rules" / "domestic_actions_pk_1.1_cn.json"
 
 _ALL_KINDS = {
     "build_facility",
+    "produce_equipment",
     "recruit_troops",
     "train_troops",
     "security_patrol",
@@ -141,6 +142,8 @@ def test_pk_rules_build_facility_types_match_ingame_menu():
     （farm/market/barracks/stable/crossbow_tower）。用户点开游戏「都市」→「開發」
     截图后确认实际有19种，且其中 crossbow_tower(弩楼) 根本不是城池开发设施
     （它是部队在战场上造的军事建筑），属于分类错误。现改为断言实机确认的19种。
+    2026-08-20：官方手册确认还有第20种「銅雀台」（需要「銅雀」道具才会出现在
+    開發界面里，之前的截图里没拍到，不是遗漏）。
     """
     rules = load_domestic_rules(PK_RULES)
     sub_types = rules.action("build_facility").sub_types
@@ -153,6 +156,8 @@ def test_pk_rules_build_facility_types_match_ingame_menu():
         "military_office", "personnel_office", "diplomacy_office", "stratagem_office",
         # 军事/生产系
         "barracks", "smithy", "stable", "workshop", "shipyard",
+        # 道具解锁系
+        "bronze_sparrow_tower",
     }
     # 原表5种里真实存在的4种，繁体名称对得上
     assert sub_types["farm"].display_name_cn == "農場"
@@ -163,21 +168,46 @@ def test_pk_rules_build_facility_types_match_ingame_menu():
     assert "crossbow_tower" not in sub_types
 
 
+def test_pk_rules_facility_durability_and_effect_are_known_per_subtype():
+    """2026-08-20：用官方手册《遊戲說明書》P.14-15/《威力加強手冊》P.28-29
+    给全部20种设施补上耐久（durability）和效果说明（effect_note），来源与
+    gold_cost 不同（手册原文，不是实机截图），但同样是权威依据，不是猜测。
+    """
+    rules = load_domestic_rules(PK_RULES)
+    sub_types = rules.action("build_facility").sub_types
+
+    assert all(st.durability.is_known for st in sub_types.values()), "20种设施都应有已知耐久"
+    assert all(st.effect_note for st in sub_types.values()), "20种设施都应有效果说明原文"
+
+    # 相邻加成的两个典型例子：造幣廠/穀倉把相邻市場/農場的效果变成1.5倍
+    assert sub_types["mint"].durability.value == 1000
+    assert "1.5倍" in sub_types["mint"].effect_note
+    assert sub_types["granary"].durability.value == 1000
+    assert "1.5倍" in sub_types["granary"].effect_note
+
+    # 道具解锁设施，耐久档位比其余19种都高
+    assert sub_types["bronze_sparrow_tower"].durability.value == 1300
+    assert "銅雀" in sub_types["bronze_sparrow_tower"].effect_note
+
+
 def test_pk_rules_facility_gold_costs_are_known_per_subtype():
     """2026-08-18：设施造价是本规则表里第一批有实机依据的数值（来自「開發」界面
     截图，50~400 不等）。因为造价按子类型区分、没有统一值，所以动作层级的
-    gold_cost 仍然必须是 unknown——下游要判断钱够不够，得看具体子类型。"""
+    gold_cost 仍然必须是 unknown——下游要判断钱够不够，得看具体子类型。
+    2026-08-20：加入官方手册确认的第20种「銅雀台」，造价1500（道具解锁设施，
+    价格档位比其余19种都高，单独校验）。"""
     rules = load_domestic_rules(PK_RULES)
     rule = rules.action("build_facility")
     assert rule.gold_cost.is_known is False, "动作层级不应该有统一造价"
 
     sub_types = rule.sub_types
-    assert all(st.gold_cost.is_known for st in sub_types.values()), "19种设施都应有已知造价"
+    assert all(st.gold_cost.is_known for st in sub_types.values()), "20种设施都应有已知造价"
     assert sub_types["black_market"].gold_cost.value == 50   # 最便宜
     assert sub_types["market"].gold_cost.value == 200
     assert sub_types["barracks"].gold_cost.value == 300
-    assert sub_types["mint"].gold_cost.value == 400          # 最贵档
-    assert {st.gold_cost.value for st in sub_types.values()} == {50, 200, 300, 400}
+    assert sub_types["mint"].gold_cost.value == 400          # 原19种里最贵档
+    assert sub_types["bronze_sparrow_tower"].gold_cost.value == 1500  # 道具解锁，全场最贵
+    assert {st.gold_cost.value for st in sub_types.values()} == {50, 200, 300, 400, 1500}
 
 
 def test_sub_type_gold_cost_known_or_unknown_matches_manual():
