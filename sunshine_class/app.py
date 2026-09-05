@@ -6,6 +6,7 @@
     python3 app.py --classes 12 --students 600
     python3 app.py --roster students.csv    # 使用真实名单（列：姓名,性别[,分数]）
     python3 app.py --title "XX市第一中学七年级阳光分班" --port 8080
+    python3 app.py --host ::                # 监听所有网卡（IPv6+IPv4 双栈），供远程访问
 
 打开浏览器访问 http://127.0.0.1:8000 ，按空格开始分班，R 重新分班，E 导出名单。
 """
@@ -17,6 +18,8 @@ import csv
 import io
 import json
 import random
+import socket
+import subprocess
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -159,6 +162,52 @@ def payload_to_csv(payload: dict) -> str:
     return out.getvalue()
 
 
+class Server(ThreadingHTTPServer):
+    """支持 IPv6 的 HTTP 服务；监听 :: 时同时接受 IPv4（双栈）。"""
+
+    daemon_threads = True
+    allow_reuse_address = True
+
+    def __init__(self, host: str, port: int, handler):
+        self.address_family = socket.AF_INET6 if ":" in host else socket.AF_INET
+        self.dual_stack = host in ("::", "::0")
+        super().__init__((host, port), handler)
+
+    def server_bind(self):
+        if self.address_family == socket.AF_INET6 and self.dual_stack:
+            try:  # 关掉 V6ONLY，IPv4 客户端也能连
+                self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            except OSError:
+                pass
+        super().server_bind()
+
+
+def global_ipv6_addresses() -> list[str]:
+    """列出本机的公网 IPv6 地址（Linux 用 ip 命令，其他平台走 getaddrinfo）。"""
+    addrs: list[str] = []
+    try:
+        out = subprocess.run(
+            ["ip", "-6", "-o", "addr", "show", "scope", "global"],
+            capture_output=True, text=True, timeout=3,
+        ).stdout
+        for line in out.splitlines():
+            parts = line.split()
+            if "inet6" in parts:
+                addrs.append(parts[parts.index("inet6") + 1].split("/")[0])
+    except (OSError, subprocess.SubprocessError):
+        pass
+    if not addrs:
+        try:
+            for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET6):
+                ip = info[4][0].split("%")[0]
+                if not ip.startswith(("fe80", "::1")):
+                    addrs.append(ip)
+        except OSError:
+            pass
+    seen: set[str] = set()
+    return [a for a in addrs if not (a in seen or seen.add(a))]
+
+
 class Handler(BaseHTTPRequestHandler):
     cfg: argparse.Namespace
     state: dict
@@ -215,7 +264,11 @@ def main() -> None:
     p.add_argument("--school", default="", help="副标题/学校名，可留空")
     p.add_argument("--seed", type=int, help="随机种子（便于复现）")
     p.add_argument("--port", type=int, default=8000)
-    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="监听地址：127.0.0.1 仅本机；:: 监听所有网卡（IPv6 + IPv4 双栈），供远程访问",
+    )
     p.add_argument("--no-browser", action="store_true", help="不自动打开浏览器")
     p.add_argument("--export", metavar="CSV", help="只导出分班结果到 CSV，不启动服务")
     cfg = p.parse_args()
@@ -229,9 +282,24 @@ def main() -> None:
 
     Handler.cfg = cfg
     Handler.state = {"payload": payload}
-    srv = ThreadingHTTPServer((cfg.host, cfg.port), Handler)
-    url = f"http://{cfg.host}:{cfg.port}/"
-    print(f"阳光分班大屏已启动：{url}")
+    try:
+        srv = Server(cfg.host, cfg.port, Handler)
+    except OSError as exc:
+        if ":" in cfg.host:
+            raise SystemExit(
+                f"无法在 {cfg.host}:{cfg.port} 上监听（{exc}）。\n"
+                "  本机可能未启用 IPv6，或端口被占用；可改用 --host 0.0.0.0 走 IPv4。"
+            ) from exc
+        raise SystemExit(f"无法在 {cfg.host}:{cfg.port} 上监听（{exc}）") from exc
+    shown = cfg.host if ":" not in cfg.host else f"[{cfg.host}]"
+    url = f"http://{'127.0.0.1' if cfg.host in ('0.0.0.0', '::') else shown}:{cfg.port}/"
+    print(f"阳光分班大屏已启动，本机访问：{url}")
+    if cfg.host in ("::", "::0"):
+        for ip in global_ipv6_addresses():
+            print(f"  远程 IPv6 访问：http://[{ip}]:{cfg.port}/")
+        print("  （远程访问需放行防火墙对应端口；家宽/云主机还要确认已分配公网 IPv6）")
+    elif cfg.host == "0.0.0.0":  # noqa: S104
+        print("  已监听所有 IPv4 网卡；远程访问需放行防火墙对应端口")
     print("  空格 开始/重放   R 重新随机分班   E 导出名单   F 全屏")
     if not cfg.no_browser:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
