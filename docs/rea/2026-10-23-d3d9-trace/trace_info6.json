@@ -1,0 +1,13 @@
+{
+  "file": "C:/Users/hhhh/Desktop/San11WPK.trace",
+  "frames": 1806,
+  "container_size": 4264158296,
+  "actual_data_size": 1790304017,
+  "api": "DirectX (D3D9)",
+  "probe": "docs/rea/2026-10-23-camera-calibration/probe9.jsonl",
+  "resolution": [
+    3840,
+    2160
+  ],
+  "cleanup": "wrapper removed; game closed via CloseMainWindow"
+}

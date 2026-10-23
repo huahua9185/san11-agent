@@ -201,6 +201,34 @@ world_z = -2.869 * map_x + 15.912 * map_y + 1181.37
 - 但还缺一个真正的第四座**城**做独立验证；
 - 港口/特殊对象需要单独处理，不能混进城市坐标拟合。
 
+## 4K 四城验证（通过）
+
+用户把分辨率切到 4K，找到同时可见的四座**真实城池**，再次静止相机采集：
+
+| 城 | map 坐标 | screen 坐标 |
+|---|---:|---:|
+| 平原 | `(129,54)` | `(3623,179)` |
+| 小沛 | `(136,77)` | `(2825,2110)` |
+| 濮陽 | `(120,71)` | `(1785,563)` |
+| 陳留 | `(108,79)` | `(296,357)` |
+
+使用 4K trace 中唯一的静态 VIEW/PROJECTION，四点拟合得到：
+
+```text
+world_x = 19.8861 * map_x + 0.2369 * map_y + 565.19
+world_z =  0.2722 * map_x + 20.2024 * map_y + 520.42
+```
+
+结果：
+
+- 世界缩放约 **20**，接近均匀缩放；
+- 四点最大世界残差约 **4.7**（不到 1/4 个 tile）；
+- 像素重投影误差最大约 **17px**，其余在 ~5px 以内；
+- 这比之前的三点候选更可信，**四城验证通过**。
+
+注意：4K 下 `ScreenToClient` 返回了 `None`，这次使用 `cursor_screen`；
+如果窗口客户区原点不在 `(0,0)`，只会影响平移项，不影响缩放/交叉项。
+
 ## 下一步
 
 1. 再做一次 **不缩放、不滚动地图** 的悬停，增加第四座**城**验证上面的仿射；
@@ -225,7 +253,10 @@ world_z = -2.869 * map_x + 15.912 * map_y + 1181.37
 - `docs/rea/2026-10-23-d3d9-trace/trace_info4.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary4.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary5.json`
+- `docs/rea/2026-10-23-d3d9-trace/settransform_summary6.json`
 - `docs/rea/2026-10-23-d3d9-trace/camera_solve.json`
+- `docs/rea/2026-10-23-d3d9-trace/camera_solve3.json`
+- `docs/rea/2026-10-23-d3d9-trace/trace_info6.json`
 - `docs/rea/2026-10-23-d3d9-trace/camera_solve2.json`
 - `docs/rea/2026-10-23-d3d9-trace/trace_info5.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_dump.txt`

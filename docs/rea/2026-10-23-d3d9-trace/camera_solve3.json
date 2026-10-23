@@ -1,0 +1,145 @@
+{
+  "probe": "docs/rea/2026-10-23-camera-calibration/probe9.jsonl",
+  "resolution": [
+    3840,
+    2160
+  ],
+  "trace_frames": 1806,
+  "view_matrix": [
+    [
+      0.7071069,
+      -0.4999996,
+      -0.4999999,
+      0
+    ],
+    [
+      0,
+      0.7071068,
+      -0.7071066,
+      0
+    ],
+    [
+      -0.7071064,
+      -0.5,
+      -0.5000003,
+      0
+    ],
+    [
+      -719.1173,
+      2573.048,
+      3195.677,
+      1
+    ]
+  ],
+  "projection_matrix": [
+    [
+      0.0020993,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0.0037321,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0.0010163,
+      0.001
+    ],
+    [
+      0,
+      0,
+      -0.0162602,
+      0
+    ]
+  ],
+  "points": [
+    {
+      "name": "平原",
+      "index": 4,
+      "map": [
+        129,
+        54
+      ],
+      "screen": [
+        3623,
+        179
+      ]
+    },
+    {
+      "name": "小沛",
+      "index": 9,
+      "map": [
+        136,
+        77
+      ],
+      "screen": [
+        2825,
+        2110
+      ]
+    },
+    {
+      "name": "濮陽",
+      "index": 11,
+      "map": [
+        120,
+        71
+      ],
+      "screen": [
+        1785,
+        563
+      ]
+    },
+    {
+      "name": "陳留",
+      "index": 12,
+      "map": [
+        108,
+        79
+      ],
+      "screen": [
+        296,
+        357
+      ]
+    }
+  ],
+  "affine_world_from_map": {
+    "wx": [
+      19.886052141042683,
+      0.2369451393790314,
+      565.1875792680657
+    ],
+    "wz": [
+      0.27223148156167554,
+      20.20238763173404,
+      520.4224581284507
+    ]
+  },
+  "fit": {
+    "max_world_residual": 4.68,
+    "pixel_errors": [
+      [
+        4.75,
+        4.2
+      ],
+      [
+        3.92,
+        7.25
+      ],
+      [
+        -8.37,
+        -17.32
+      ],
+      [
+        0.48,
+        7.66
+      ]
+    ],
+    "note": "Four actual cities, static camera, 4K. Screen coords used because ScreenToClient returned None at 4K."
+  },
+  "conclusion": "Four-city validation passes with ~20 world scale and <5 world-unit residual; pixel error up to ~17px, likely label/tile-center and screen-origin effects."
+}
