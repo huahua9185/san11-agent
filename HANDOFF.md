@@ -113,9 +113,10 @@ LegalActions、摘要和模型输入不得绕过VisibleGameState读取隐藏信�
 读到虚拟化 `1462×914`；加 `ensure_dpi_awareness()` 后客户区为 `2560×1600`，
 `ui_layout` 视口匹配。但四点悬停/点击标定仍无法用二维等距公式拟合
 （仿射最大残差约34px），地图很可能是3D透视/地形视图，camera字段仍未定位。
-详见[camera报告](rea_camera_2026-10-23.md)。已开始D3D静态排查：没有直接
-SetTransform 调用，42处疑似shader常量上传待分类，见
-[D3D报告](rea_d3d_2026-10-23.md)。未修改生产offsets/ui_layout。
+详见[camera报告](rea_camera_2026-10-23.md)。已开始D3D静态排查：修正vtable
+偏移后找到4处SetTransform，全部是WORLD(0x100)，没有VIEW/PROJECTION；
+42处`+0x178`调用的语义仍待确认，见[D3D报告](rea_d3d_2026-10-23.md)。
+未修改生产offsets/ui_layout。
 
 **2026-10-23 selection追加（未写入生产offsets）**：`DAT_096a58f0+0x64`
 指向当前城池对象；`FUN_004919a0` 用

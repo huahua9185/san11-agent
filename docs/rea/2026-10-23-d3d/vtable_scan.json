@@ -7,21 +7,40 @@
   },
   "device_global": "0x6ed6f74",
   "vtable_call_counts": {
+    "0xb0": 4,
+    "0xb4": 0,
+    "0xb8": 0,
     "0xe4": 215,
     "0x10c": 182,
     "0x178": 42,
-    "0x170": 20,
-    "0x15c": 17,
-    "0x104": 13,
-    "0x1ac": 9
+    "0x170": 20
   },
-  "set_transform_0x110_hits": [],
-  "get_transform_0x114_hits": [
-    "0x43d32e"
+  "set_transform_0xb0_hits": [
+    {
+      "address": "0x403912",
+      "state": "0x100",
+      "arg": "matrix from caller"
+    },
+    {
+      "address": "0x40bb57",
+      "state": "0x100",
+      "arg": "FUN_004437d0"
+    },
+    {
+      "address": "0x40bd10",
+      "state": "0x100",
+      "arg": "stack matrix"
+    },
+    {
+      "address": "0x421c84",
+      "state": "0x100",
+      "arg": "FUN_004437d0"
+    }
   ],
   "notes": [
-    "No direct call dword ptr [reg+0x110] SetTransform in .text; the game likely uses shader constant uploads or an engine wrapper.",
-    "0x178 is the most frequent shader-constant-like vtable slot; 42 call sites need matrix-upload classification.",
-    "0x43d32e is inside FUN_0043d270, which sets render states and calls a GetTransform-like slot; not yet proven to be the 3D camera matrix."
+    "Correct IDirect3DDevice9 SetTransform vtable offset is 0xB0 (state/pMatrix), not 0x110.",
+    "All four SetTransform calls pass state 0x100 = D3DTS_WORLD; none pass 2/3 for VIEW/PROJECTION.",
+    "The earlier 0x110 scan found none because 0x110 is a different interface slot.",
+    "0x178 calls are likely shader/effect constant access or a wrapper, not proven uploads; FUN_0044D1F0 delegates to [obj+0x114] and needs identification."
   ]
 }

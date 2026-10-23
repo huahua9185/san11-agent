@@ -29,10 +29,10 @@ vtable 抽样也是 UI/几何方法而非 index getter，不能当裸城池 inde
 读到虚拟化 `1462×914`；加 `ensure_dpi_awareness()` 后客户区为 `2560×1600`，
 `ui_layout` 视口匹配。但四点悬停/点击标定仍无法用二维等距公式拟合
 （仿射最大残差约34px，成对 zoom 不一致），地图很可能是3D透视/地形视图，
-camera字段仍未定位。已开始D3D静态排查：`.text` 无直接 SetTransform 调用，
-42处疑似shader常量上传等待函数级分类。未修改生产 offsets/ui_layout，未发送
-输入。详见[camera报告](rea_camera_2026-10-23.md)和
-[D3D报告](rea_d3d_2026-10-23.md)。
+camera字段仍未定位。已开始D3D静态排查：修正vtable偏移后找到4处
+SetTransform，全部是WORLD(0x100)，没有VIEW/PROJECTION；42处`+0x178`
+调用的语义仍待确认。未修改生产 offsets/ui_layout，未发送输入。详见
+[camera报告](rea_camera_2026-10-23.md)和[D3D报告](rea_d3d_2026-10-23.md)。
 
 **已确认**：便携Ghidra/JDK已可用，游戏已进入可恢复存档并完成一次巡察和一次推进旬；
 早期DirectX启动失败不再是当前阻塞。军团行動力 `Force+0x2C u8` 和表容量47
