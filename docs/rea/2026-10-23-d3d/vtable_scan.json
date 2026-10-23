@@ -1,0 +1,27 @@
+{
+  "target": "san11-loaded-text.pe.bin",
+  "text": {
+    "va": "0x401000",
+    "file_offset": "0x1000",
+    "size": "0x34CEF1"
+  },
+  "device_global": "0x6ed6f74",
+  "vtable_call_counts": {
+    "0xe4": 215,
+    "0x10c": 182,
+    "0x178": 42,
+    "0x170": 20,
+    "0x15c": 17,
+    "0x104": 13,
+    "0x1ac": 9
+  },
+  "set_transform_0x110_hits": [],
+  "get_transform_0x114_hits": [
+    "0x43d32e"
+  ],
+  "notes": [
+    "No direct call dword ptr [reg+0x110] SetTransform in .text; the game likely uses shader constant uploads or an engine wrapper.",
+    "0x178 is the most frequent shader-constant-like vtable slot; 42 call sites need matrix-upload classification.",
+    "0x43d32e is inside FUN_0043d270, which sets render states and calls a GetTransform-like slot; not yet proven to be the 3D camera matrix."
+  ]
+}
