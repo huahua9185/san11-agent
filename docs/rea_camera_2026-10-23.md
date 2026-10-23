@@ -1,70 +1,63 @@
-# REA：camera 标定尝试与分辨率阻塞（2026-10-23）
+# REA：camera 标定与 3D 投影问题（2026-10-23）
 
 ## 结论
 
-**已确认（运行时只读）**：当前游戏客户区是 `1462×1170`，而
-`ui_layout/pk_1.1_cn.json` 是按 `2560×1600` 测量的：
+**已确认**：之前读到的 `1462×914` 客户区不是游戏真实分辨率，而是探针进程
+没有 DPI 感知、在 Windows 175% 缩放下读到的虚拟化坐标。给
+[camera 探针](tools/probe_camera.py) 加上 `ensure_dpi_awareness()` 后：
 
 ```text
-ui_layout.meta.assumed_client_resolution = [2560, 1600]
-ui_layout.map_viewport = (471, 12, 1772, 1542)
-当前客户区 = 1462 × 1170
+client size = 2560 × 1600
+ui_layout.map_viewport = (471, 12, 1772, 1542)   # 现在落在客户区内
 ```
 
-`map_viewport` 的右边界 `471+1772=2243`、下边界 `12+1542=1554` 都超出当前
-客户区，因此在当前窗口尺寸下：
+所以 `ui_layout` 的 2560×1600 基准本身是对的；之前“分辨率不匹配”的结论
+需要修正为 **DPI 感知问题**。
 
-- `project_tile_to_client()` 用的视口/格子尺寸无效；
-- 用 `ui_layout` 推算的屏幕坐标不可用；
-- 之前基于旧视口的 camera 标定也不可信。
-
-这不是四个城市坐标的问题，而是**当前窗口分辨率与测量基准不一致**。
-
-## 相机标定尝试
-
-在用户只悬停、不点击的前提下，记录了四座城的稳定悬停点：
+但 camera 仍然没有解决。DPI 感知后，用户点击濮陽/南皮/小沛/平原，稳定
+采集到：
 
 | 城 | map 坐标候选 | cursor client |
 |---|---:|---:|
-| 濮陽 | `(120,71)` | `(731,553)` |
-| 平原 | `(129,54)` | `(727,601)` |
-| 南皮 | `(138,37)` | `(727,612)` |
-| 小沛 | `(136,77)` | `(730,607)` |
+| 濮陽 | `(120,71)` | `(1217,740)` |
+| 南皮 | `(138,37)` | `(1287,810)` |
+| 小沛 | `(136,77)` | `(1291,850)` |
+| 平原 | `(129,54)` | `(1303,824)` |
 
-用现有等距公式（`viewport 2560×1600`、tile 184×135）拟合：
+用 `map_projection.py` 的二维等距公式拟合：
 
-- 仿射残差最大约 10px；
-- 拟合矩阵不满足 `A[0,0]=-A[0,1]`、`A[1,0]=A[1,1]` 的等距结构；
-- 因此 **不能**从这组数据可靠解出 `camera.offset_x/offset_y/zoom_level`。
+- 两两算出的 `zoom` 符号和量级不一致；
+- 仿射拟合最大残差约 **34px**；
+- 拟合矩阵不满足等距结构的列关系。
 
-推测原因：
+因此，**当前二维等距投影假设无法解释这四个屏幕点**。可能原因：
 
-1. 当前客户区 1462×1170 与旧视口基准不一致（主要原因）；
-2. 悬停点可能落在城池名字/列表项上，而不是地图格子中心；
-3. `+0x1C/+0x20` 是否就是世界地图投影坐标仍未确认。
+1. 游戏地图实际是**3D 透视/地形视图**，不是平面等距网格；
+2. 点击点落在城池名字/菜单锚点，而不是格子中心；
+3. `+0x1C/+0x20` 不是世界地图投影坐标，或语义仍不完整。
+
+仅靠“城市地图坐标 + 鼠标点”反推 camera 这条路，在当前数据下不可靠。
 
 ## 影响
 
-- `selection` 的纯悬停读取不受影响：`manager+0x64` 仍然正确返回濮陽/南皮；
-- 但 `CitySelector` 的地图坐标换算、真实点击和 camera 字段定位都依赖
-  `ui_layout`，当前分辨率下不能继续；
-- 未修改生产 `offsets` 或 `ui_layout`；
-- 未发送任何键鼠输入。
+- `camera.offset_x/offset_y/zoom_level` 仍未定位；
+- `map_projection.py` 的二维等距公式需要重新评估，不能直接用于真实点击；
+- `CitySelector` 的坐标换算、真实键鼠执行仍被 camera/投影阻塞；
+- selection 的纯悬停读取不受影响；
+- 未修改生产 `offsets` 或 `ui_layout`。
 
-## 下一步
+## 下一步建议
 
-必须先二选一：
-
-1. **把游戏窗口恢复为 2560×1600**（与现有 `ui_layout` 一致），然后重跑
-   悬停标定；这是最少改动的路径；
-2. **按当前 1462×1170 重新测量 `map_viewport` 和 tile 尺寸**，更新
-   `ui_layout`，再重跑标定。
-
-在视口和客户区一致之前，不建议继续用坐标去反推 camera，否则会把
-“视口错误”误判成“camera 错误”。
+1. **暂停用城市坐标反推 camera**，避免把 3D 透视误判成二维等距误差；
+2. 转向静态 REA：找 D3D 视图/投影矩阵、地图渲染调用链，或游戏自己的
+   世界坐标到屏幕坐标函数；
+3. 如果短期目标是执行器，可先评估“城池列表/菜单选择”这条不依赖地图
+   坐标的路径；
+4. 任何新的坐标探针必须先调用 `ensure_dpi_awareness()`，否则在缩放环境下
+   坐标会再次出错。
 
 证据：
 
-- `docs/rea/2026-10-23-camera-calibration/layout_mismatch.json`
-- `docs/rea/2026-10-23-camera-calibration/calibration_summary.json`
-- `docs/rea/2026-10-23-camera-calibration/probe3.jsonl`
+- [layout_mismatch.json](docs/rea/2026-10-23-camera-calibration/layout_mismatch.json)
+- [calibration_summary.json](docs/rea/2026-10-23-camera-calibration/calibration_summary.json)
+- [probe4.jsonl](docs/rea/2026-10-23-camera-calibration/probe4.jsonl)

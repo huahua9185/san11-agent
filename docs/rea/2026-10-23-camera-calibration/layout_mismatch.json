@@ -1,7 +1,11 @@
 {
-  "captured_client_size": [
+  "dpi_unaware_client_size": [
     1462,
-    1170
+    914
+  ],
+  "dpi_aware_client_size": [
+    2560,
+    1600
   ],
   "ui_layout_assumed_client_resolution": [
     2560,
@@ -13,10 +17,10 @@
     "width": 1772,
     "height": 1542
   },
-  "viewport_fits_client": false,
-  "source": "PrintWindow/GetClientRect observation; game is behind the DSH window; no input sent",
+  "viewport_fits_dpi_aware_client": true,
+  "root_cause": "The probe process was not DPI-aware under Windows 175% scaling; GetClientRect/GetCursorPos returned virtualized 1462x914 coordinates. Calling ensure_dpi_awareness() before window calls yields 2560x1600.",
   "limitations": [
-    "The game window is currently 1462x1170; the ui_layout file was measured at 2560x1600.",
-    "Camera calibration and map projection using the old viewport are invalid at this client size."
+    "DPI awareness is required for any future cursor/client-coordinate probe.",
+    "The camera projection still does not fit the current 2D isometric formula."
   ]
 }

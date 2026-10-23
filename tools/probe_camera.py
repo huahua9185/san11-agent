@@ -23,7 +23,7 @@ from capture_runtime_code import ProcessMemoryReader, verified_image
 from san11agent.offsets import load_offsets
 from san11agent.perception import resolve_anchor
 from san11agent.selection_reader import read_selected_city
-from san11agent.window import Win32GameWindow
+from san11agent.window import Win32GameWindow, ensure_dpi_awareness
 
 
 def _cursor_client(hwnd: int) -> tuple[tuple[int, int] | None, tuple[int, int] | None]:
@@ -37,6 +37,10 @@ def _cursor_client(hwnd: int) -> tuple[tuple[int, int] | None, tuple[int, int] |
 
 
 def main() -> int:
+    # Must run before any GetClientRect/GetCursorPos call. Without this, a
+    # 2560x1600 game window can appear as 1462x914 under 175% Windows scaling.
+    ensure_dpi_awareness()
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seconds", type=float, default=300.0)
     parser.add_argument("--interval", type=float, default=0.2)

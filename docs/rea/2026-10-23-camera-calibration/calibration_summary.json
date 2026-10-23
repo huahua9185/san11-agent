@@ -1,5 +1,5 @@
 {
-  "method": "Hover four cities; read cursor client and selected city object coordinates.",
+  "method": "DPI-aware probe; user clicked four city tiles; read cursor client and selected city object coordinates.",
   "stable_points": [
     {
       "name": "濮陽",
@@ -8,19 +8,8 @@
         71
       ],
       "cursor_client": [
-        731,
-        553
-      ]
-    },
-    {
-      "name": "平原",
-      "map": [
-        129,
-        54
-      ],
-      "cursor_client": [
-        727,
-        601
+        1217,
+        740
       ]
     },
     {
@@ -30,8 +19,8 @@
         37
       ],
       "cursor_client": [
-        727,
-        612
+        1287,
+        810
       ]
     },
     {
@@ -41,15 +30,38 @@
         77
       ],
       "cursor_client": [
-        730,
-        607
+        1291,
+        850
+      ]
+    },
+    {
+      "name": "平原",
+      "map": [
+        129,
+        54
+      ],
+      "cursor_client": [
+        1303,
+        824
       ]
     }
   ],
-  "fit": "Affine fit residual up to ~10 px; fitted matrix does not match the current isometric formula. Not reliable for camera.",
+  "fit": {
+    "affine_max_residual_px": 34.0,
+    "pairwise_z_estimates": [
+      0.0499,
+      -0.0041,
+      0.0761,
+      0.0688,
+      -0.159,
+      0.0069
+    ],
+    "isometric_structure_holds": false
+  },
   "likely_blockers": [
-    "client resolution 1462x1170 vs ui_layout 2560x1600",
-    "hover points may be city labels rather than tile centers"
+    "The map appears to be a 3D perspective/terrain view, not a flat 2D isometric grid.",
+    "Click points may be city labels/menu anchors rather than tile centers.",
+    "The city object +0x1C/+0x20 coordinate semantics remain unconfirmed."
   ],
   "camera_fields_changed": false
 }
