@@ -116,9 +116,10 @@ LegalActions、摘要和模型输入不得绕过VisibleGameState读取隐藏信�
 详见[camera报告](rea_camera_2026-10-23.md)。已开始D3D静态排查：修正vtable
 偏移后找到4处SetTransform，全部是WORLD(0x100)，没有VIEW/PROJECTION；
 42处`+0x178`调用的语义仍待确认，见[D3D报告](rea_d3d_2026-10-23.md)。
-已用 apitrace 抓取 D3D9 trace，拿到真实 VIEW/PROJECTION 矩阵；下一步对齐
-城市世界坐标，见[D3D抓帧报告](rea_d3d_trace_2026-10-23.md)。未修改生产
-offsets/ui_layout。
+已用 apitrace 抓取 D3D9 trace，拿到真实 VIEW/PROJECTION 矩阵；4K四城验证
+得到 map→world 仿射并固化到 [map_camera.py](san11agent/map_camera.py)
+(6项测试，415 passed)。运行时读取矩阵仍未完成，见
+[D3D抓帧报告](rea_d3d_trace_2026-10-23.md)。未修改生产offsets/ui_layout。
 
 **2026-10-23 selection追加（未写入生产offsets）**：`DAT_096a58f0+0x64`
 指向当前城池对象；`FUN_004919a0` 用
@@ -204,7 +205,7 @@ python -m pytest -q
 git diff --check
 ```
 
-基线测试结果为409项通过。这些是离线测试，不能替代实机验收；后续修改后数量会变化，不应为了维持数字删除/伪造测试。新环境缺pytest时可在项目虚拟环境安装requirements-dev；不需要先启动游戏才能运行测试。
+基线测试结果为415项通过。这些是离线测试，不能替代实机验收；后续修改后数量会变化，不应为了维持数字删除/伪造测试。新环境缺pytest时可在项目虚拟环境安装requirements-dev；不需要先启动游戏才能运行测试。
 
 增加状态字段时至少核对未知值、字节宽度/掩码、版本边界及敌方信息不泄漏；修改执行/循环时增加状态变化、结果不明、失败、共享预算和终止条件的测试。文档-only改动检查链接与差异即可，无需新增镜像实现的测试。
 

@@ -229,16 +229,28 @@ world_z =  0.2722 * map_x + 20.2024 * map_y + 520.42
 注意：4K 下 `ScreenToClient` 返回了 `None`，这次使用 `cursor_screen`；
 如果窗口客户区原点不在 `(0,0)`，只会影响平移项，不影响缩放/交叉项。
 
+## 代码落地
+
+新增 [map_camera.py](san11agent/map_camera.py)：
+
+- `MapCalibration` 固化四城验证得到的 map -> world 仿射；
+- `CameraMatrices` 接收外部传入的 D3D9 view/projection 和屏幕尺寸；
+- `project_world()` / `project_map_point()` 按行向量约定做 world-to-screen；
+- `DEFAULT_MAP_CALIBRATION` 明确标为 4K 四城验证候选，不是生产 offsets。
+
+新增 6 项离线测试（`tests/test_map_camera.py`）：已知 map->world、四城投影
+误差 <20px、自定义 calibration、非法矩阵、退化投影。当前全部 **415 passed**。
+
+仍未完成：运行时读取 VIEW/PROJECTION 矩阵。代码层已经不再依赖
+`camera.offset_x/offset_y/zoom_level` 这组未确认字段。
+
 ## 下一步
 
-1. 再做一次 **不缩放、不滚动地图** 的悬停，增加第四座**城**验证上面的仿射；
-2. 或者实现逐帧同时记录 `SetTransform` 矩阵和 cursor 的日志；
-2. 用本次 trace 里一个稳定的地图 VIEW/PROJECTION 组合，结合已知城市
-   屏幕点做坐标基/缩放拟合；
-2. 如果拟合不唯一，再做一次很短的 trace，同时记录鼠标悬停城市和
-   cursor client，保证矩阵与屏幕点来自同一帧；
-3. 确定 world-to-screen 后，再决定是否还需要
-   `camera.offset_x/offset_y/zoom_level`，或者直接读矩阵。
+1. 解决运行时读取 VIEW/PROJECTION 矩阵（内存定位或 D3D 状态读取）；
+2. 修正 4K 下客户区原点，避免 `cursor_screen` 与 client 混用；
+3. 用另一组城市/缩放做独立回归，确认 `DEFAULT_MAP_CALIBRATION` 是否稳定；
+4. 矩阵读取可用后，把 `map_camera.py` 接入 `CitySelector` 的屏幕坐标
+   计算，不再依赖 `camera.offset_x/offset_y/zoom_level` 这组未确认字段。
 
 证据：
 
