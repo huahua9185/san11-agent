@@ -1,0 +1,49 @@
+{
+  "resolution": [
+    2048,
+    1152
+  ],
+  "city": "小沛",
+  "city_index": 9,
+  "city_label_center_approx": [
+    1055,
+    270
+  ],
+  "city_tile_center_approx": [
+    1015,
+    355
+  ],
+  "top_menu": {
+    "outer_left_top": [
+      980,
+      428
+    ],
+    "first_item_center": [
+      1013,
+      452
+    ],
+    "item_height": 34,
+    "item_count": 6,
+    "relative_to_tile_first_item": [
+      -2,
+      97
+    ],
+    "relative_to_label_first_item": [
+      -42,
+      182
+    ]
+  },
+  "source_screenshot": "second_city_2048.png",
+  "comparison_first_city": {
+    "city": "南皮",
+    "relative_to_tile_first_item": [
+      95,
+      37
+    ],
+    "relative_to_label_first_item": [
+      50,
+      122
+    ]
+  },
+  "conclusion": "Second city gives very different relative offsets; fixed city-anchored layout is not valid. Menu is likely cursor-relative or edge-avoiding."
+}
