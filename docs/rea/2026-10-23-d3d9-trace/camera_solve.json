@@ -1,0 +1,124 @@
+{
+  "probe": "docs/rea/2026-10-23-camera-calibration/probe7.jsonl",
+  "trace_frames": 4405,
+  "view_matrix": [
+    [
+      0.999925,
+      0.0085805,
+      0.0087459,
+      0
+    ],
+    [
+      0,
+      0.7138249,
+      -0.7003241,
+      0
+    ],
+    [
+      0.0122522,
+      -0.7002715,
+      -0.7137713,
+      0
+    ],
+    [
+      -3203.13,
+      1318.281,
+      1966.541,
+      1
+    ]
+  ],
+  "projection_matrix": [
+    [
+      0.0020993,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0.0037321,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0.0010163,
+      0.001
+    ],
+    [
+      0,
+      0,
+      -0.0162602,
+      0
+    ]
+  ],
+  "screen_size": [
+    2560,
+    1600
+  ],
+  "points": [
+    {
+      "city": "濮陽",
+      "map": [
+        120,
+        71
+      ],
+      "cursor_client": [
+        255,
+        733
+      ],
+      "world_xz": [
+        2936.95,
+        1898.09
+      ]
+    },
+    {
+      "city": "平原",
+      "map": [
+        129,
+        54
+      ],
+      "cursor_client": [
+        963,
+        48
+      ],
+      "world_xz": [
+        3084.67,
+        1618.93
+      ]
+    },
+    {
+      "city": "小沛",
+      "map": [
+        136,
+        77
+      ],
+      "cursor_client": [
+        1501,
+        1095
+      ],
+      "world_xz": [
+        3225.38,
+        2001.89
+      ]
+    }
+  ],
+  "affine_world_from_map": {
+    "wx": [
+      17.75994413567321,
+      0.712796211161276,
+      755.1455122417683
+    ],
+    "wz": [
+      0.27499847503366937,
+      16.566794434319718,
+      688.8463753807882
+    ]
+  },
+  "fit": "Three non-collinear points, exact affine fit; residual 0 by construction. World scale ~17.76/16.57 with small cross terms.",
+  "limitations": [
+    "Only 3 points; needs a 4th city for independent validation.",
+    "Assumes map plane y=0 for unprojection; a constant height offset can be absorbed into the affine coefficients."
+  ]
+}
