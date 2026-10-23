@@ -239,7 +239,7 @@ world_z =  0.2722 * map_x + 20.2024 * map_y + 520.42
 - `DEFAULT_MAP_CALIBRATION` 明确标为 4K 四城验证候选，不是生产 offsets。
 
 新增 6 项离线测试（`tests/test_map_camera.py`）：已知 map->world、四城投影
-误差 <20px、自定义 calibration、非法矩阵、退化投影。当前全部 **415 passed**。
+误差 <20px、自定义 calibration、非法矩阵、退化投影。当前全部 **419 passed**。
 
 仍未完成：运行时读取 VIEW/PROJECTION 矩阵。代码层已经不再依赖
 `camera.offset_x/offset_y/zoom_level` 这组未确认字段。
@@ -267,10 +267,42 @@ KOEI_SAN_11_WINDOW  276x45，位于 (-32000,-32000)，被 Win32GameWindow 误选
 要么矩阵是运行时计算/保存在 D3D 设备内部状态，要么当前视角的 projection
 与 trace 里的值不同。仅靠内存扫描无法完成运行时读取。
 
+## 运行时矩阵已打通（代理 DLL）
+
+新增研究用 32-bit d3d9 代理：
+
+- `tools/d3d9_camera_proxy/d3d9_proxy.cpp`；
+- 转发 `Direct3DCreate9` 到 SysWOW64 的真实 d3d9.dll；
+- 等待 `San11WPK.exe+0x6AD6F74`（VA `0x6ED6F74`）出现设备指针；
+- patch `IDirect3DDevice9` vtable 的 `SetTransform`（index 44）；
+- 把 VIEW/PROJECTION 写入 `Local\San11Camera`。
+
+实机读到：
+
+```text
+version 4302
+view_sequence 2151
+projection_sequence 2151
+view[0]  = 0.7071069478988647
+proj[0]  = 0.0020992786157876253
+```
+
+与 4K trace 的矩阵一致。
+
+新增 [camera_reader.py](san11agent/camera_reader.py)：
+
+- 解析 140 字节共享内存；
+- `CameraSnapshot.as_camera(width, height)` 直接得到 `CameraMatrices`；
+- 共享内存缺失/全零时抛 `CameraReadError`，不会拿零矩阵继续算。
+
+新增 4 项离线测试（`tests/test_camera_reader.py`）。当前 **419 passed**。
+注意：代理是研究工具，编译产物不提交；使用后要删除游戏目录里的
+`d3d9.dll`。
+
 ## 下一步
 
-1. 解决运行时读取 VIEW/PROJECTION 矩阵：优先考虑 d3d9 代理 DLL /
-   `GetTransform` 状态导出，而不是继续盲扫内存；
+1. 把 `camera_reader` + `map_camera` 接入 `CitySelector`，替换旧的二维
+   等距 `map_projection` 路径；
 2. 修正 4K 下客户区原点，避免 `cursor_screen` 与 client 混用；
 3. 用另一组城市/缩放做独立回归，确认 `DEFAULT_MAP_CALIBRATION` 是否稳定；
 4. 矩阵读取可用后，把 `map_camera.py` 接入 `CitySelector` 的屏幕坐标
@@ -291,6 +323,10 @@ KOEI_SAN_11_WINDOW  276x45，位于 (-32000,-32000)，被 Win32GameWindow 误选
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary5.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary6.json`
 - `docs/rea/2026-10-23-camera-calibration/matrix_memory_scan.json`
+- `tools/d3d9_camera_proxy/d3d9_proxy.cpp`
+- `tools/d3d9_camera_proxy/README.md`
+- `san11agent/camera_reader.py`
+- `tests/test_camera_reader.py`
 - `docs/rea/2026-10-23-d3d9-trace/camera_solve.json`
 - `docs/rea/2026-10-23-d3d9-trace/camera_solve3.json`
 - `docs/rea/2026-10-23-d3d9-trace/trace_info6.json`
