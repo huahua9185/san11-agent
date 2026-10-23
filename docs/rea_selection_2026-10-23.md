@@ -19,10 +19,12 @@ in_ECX[10])`。也就是说，**当前操作目标城池不是通过一个裸 in
 从 `panel+0x1a0` 指向的候选列表里取最多 3 个指针，经 `FUN_0047a750` 校验后
 写入 `+0x190/+0x194/+0x198`。`FUN_0060af30` 再逐个读取这三个槽。
 
-**推测（待验证）**：城池/据点对象的虚表 `+0x40` 返回城池索引，`+0x44`
-返回所属军团索引。证据是 `FUN_005756b0` 用 `+0x40` 做 0..0x2e 的索引检查，
-而巡察面板 `FUN_0060b4e0` / `FUN_005fecf0` 用 `+0x44` 的返回值去调
-`FUN_00490d00`（已确认的军团访问器）。
+**待验证（重要）**：`FUN_005756b0` 用对象虚表 `+0x40` 的返回值做 0..0x2e
+的索引检查；`FUN_0060b4e0` / `FUN_005fecf0` 用 `+0x44` 的返回值去调
+`FUN_00490d00`（已确认的军团访问器）。但“城市/据点对象”的虚表布局本身仍未
+确认——对 `ctx+0x13c` 同类对象的 vtable 抽样显示 `+0x40/+0x44` 更像 UI/几何
+方法（`FUN_00475890` / `FUN_004d67f0`），不能把这两个槽当成所有对象统一的
+index getter。
 
 **待验证（重要）**：全局上下文 `DAT_091ba048` 的 `+0x13c` / `+0x140` 不是
 城池数组指针。运行时只读读取到：
@@ -52,8 +54,9 @@ city_array=0x7201B30..0x7207B00
   `docs/rea/loaded_text_provenance_2026-10-15.json`。
 - 本轮没有发送键鼠输入、没有写游戏内存、没有调用游戏内部函数、没有切换存档。
   运行时部分只做 `ReadProcessMemory` 双读。
-- `FUN_0047a750` 的完整伪代码分析超过 MCP 单次响应预算，未取得完整结果；
-  它在本报告里只被当作“对象/指针校验器”使用，具体校验条件仍未确认。
+- `FUN_0047a750` 的完整伪代码已用有界 `rea decompile` 取得：它先调用
+  `FUN_00472160(param_1,4,1)`，再调用对象虚表 `+8`，是一个**通用对象校验器**，
+  不区分城池/武将类型；因此不能靠它判断 `param_1` 是哪类对象。
 
 ## 关键证据
 
@@ -69,13 +72,17 @@ city_array=0x7201B30..0x7207B00
 | 两个面板包装 `FUN_005cbdf0` / `FUN_005b7040` 都被 `FUN_005756b0` 调用，并把 `param_1` 传给面板 | `patrol_panel_caller_5cbdf0.json` / `ev_c08fda468550cf1605f6a4ca51d26a906e9f6315a28b480c9518c458d2a53ae4`；`panel_caller_5b7040.json` / `ev_e74004b680534575e442cdf27f946e267a420cd305a214036469024cba7080ab` |
 | 面板把城池指针存在 `+0x18c`，把 3 个执行武将指针存在 `+0x190` 起 | `panel_helper_60b450.json` / `ev_da6b51b33a2f9991959c2fe57512b0f5b171dfa31aa5307d19aa003fa94ce85a`；`panel_helper_60af30.json` / `ev_cb4e6af4d583bcf527af8afe62c6fba35041993018ae3434cf1d3a7737400c00`；`panel_helper_60ae50.json` / `ev_81895d6d9bc0739471222ce7feb35890d5d50e6d5b8c38a986ba22c4463ecb80` |
 | 既有巡察面板证据：`+0x18c` 城池指针、`+0x44` 取军团、`+0x2c` 行動力 | `docs/rea/2026-10-23-budget/patrol_panel_60b4e0.json` / `ev_060e93e30f2ea41c07ab056cd5aa2e39a664f654e0bff9dbba501b0d2081b864`；`docs/rea/2026-10-22/followup/panel_5fecf0.json` / `ev_5349be912e33fbbe239a5207f4acf4442896dbe0a90380a12fee4160b415f7ab` |
+| `FUN_0047a750` 是通用对象校验器：`FUN_00472160(param_1,4,1)` + 虚表 `+8`，不区分类型 | `validator_47a750_decompile.json` / `ev_938ff0230ec3db7488c06ee5adb1dffca4ce97381c5cea54776b3d0aa011c840` |
+| `ctx+0x13c/+0x140` 同用 vtable `0x835bc8`；抽样槽位是 UI/几何方法而非 index getter | `vtable_473210.json` / `ev_596b05999d1d1e72b43a6d33bba8e0f8131ae86c8a8b4aed12af868b516567cf`；`vtable_475890.json` / `ev_712f7f9e96d3e5311050f9ef84399c98f4b8274b056de6ef143cae932e263bcd`；`vtable_4759d0.json` / `ev_c026b34d5d2298eaf0f1d15d9dc2ff3b83c8a01089b17b16a181c6197bd33a65`；`vtable_4eda70.json` / `ev_3c628a6e4e57bd73ce3bbc9ad9ae2dd4ad4da17337a239c2b8eb26ba2dbe27d2`；`vtable_4d67f0.json` / `ev_194f1b5a4e3c6a292bbb102c295f0585f4409a055358d53b026954d9631846ae` |
 | 运行时 `ctx` / `+0x13c` / `+0x140` 双读稳定，且 `+0x13c` 不在城池数组内 | `selected_pointer_probe.json`（本轮只读探针，不是 REA Evidence） |
 
 ## 仍未确认
 
 1. `ctx+0x13c` / `ctx+0x140` 指向的对象类型；它们是否是“当前选中城池”的
    另一种表示，还是 UI 列表项/菜单上下文，尚未证明。
-2. `FUN_0047a750` 的完整校验规则；它可能校验对象类型，也可能只校验指针范围。
+2. 城市/据点对象的真实 vtable 布局，以及 `+0x40/+0x44` 在真实城市对象上的
+   语义；`ctx+0x13c` 同类对象的 vtable 抽样不是 index getter，不能据此推断
+   所有对象。
 3. 命令上下文对象（`FUN_00576650` 的 `in_ECX`）由谁创建、`+0x20` 在哪里
    写入；这决定能否从全局稳定读取“当前选中城池”。
 4. camera 的 `offset_x/offset_y/zoom_level` 本轮没有推进；`selection` 和
@@ -85,7 +92,8 @@ city_array=0x7201B30..0x7207B00
 
 ## 下一步
 
-1. 用有界 CLI 输出分析 `FUN_0047a750`，确认它校验的对象类型/字段。
+1. 用受控动态样本确认城市/据点对象的真实 vtable，尤其是 `+0x40/+0x44`；
+   当前抽样的 `0x835bc8` 不是城市 index getter，不能据此推断所有对象。
 2. 分析命令上下文对象的构造/虚表，定位 `+0x20` 的写入点，判断是否存在
    一个可稳定读取的“当前命令目标城池”指针。
 3. 在明确授权、可恢复存档的前提下做受控实验：依次选中 A 城/B 城，读取

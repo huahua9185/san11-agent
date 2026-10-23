@@ -31,5 +31,15 @@
     "No city selection was performed, so no before/after correlation is available.",
     "The city array range uses the configured GAME_DATA_BASE and 42x0x248 layout.",
     "A stable pointer is not a confirmed selection field; static call-chain evidence is required."
-  ]
+  ],
+  "field_0x13c_vtable": "0x835bc8",
+  "field_0x140_vtable": "0x835bc8",
+  "vtable_methods": {
+    "0x08": "0x473210",
+    "0x40": "0x475890",
+    "0x44": "0x4d67f0",
+    "0x48": "0x4759d0",
+    "0x4c": "0x4eda70"
+  },
+  "vtable_interpretation": "Sampled methods look like UI/geometry setters; not a city index getter. This does not prove the object type, but it is not a city record pointer."
 }
