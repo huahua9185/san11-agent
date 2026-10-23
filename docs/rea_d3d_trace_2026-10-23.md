@@ -317,6 +317,22 @@ CitySelector(..., live_camera=lambda: snapshot.as_camera(3840, 2160))
 新增 3 项测试（`tests/test_live_city_selector.py`）：live 投影成功、屏幕外
 拒绝、camera 读取异常不静默。当前全部 **422 passed**。
 
+## 实机 live hover 验证
+
+2026-10-23 在游戏地图内用真实 `SendInputBackend` 执行了一次 live hover：
+
+```text
+目标：平原 index=4 map=(129,54)
+projected client=(3627.73, 183.21)
+selection before=None
+selection after=4
+```
+
+只发送了鼠标移动，没有点击；`home_esc_presses=0`，避免额外 Esc 改变界面。
+selection reader 确认 `selected_city_index` 从 `None` 变为 `4`。
+
+证据：`docs/rea/2026-10-23-live-hover.json`
+
 ## 下一步
 
 1. 把 `camera_reader` + `map_camera` 接入 `CitySelector`，替换旧的二维

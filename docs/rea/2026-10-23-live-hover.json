@@ -1,0 +1,23 @@
+{
+  "captured_at_utc": "2026-10-23T13:17:11+00:00",
+  "process": "San11WPK.exe",
+  "resolution": [
+    3840,
+    2160
+  ],
+  "target_city": {
+    "name": "平原",
+    "index": 4,
+    "map_x": 129,
+    "map_y": 54
+  },
+  "projected_client": [
+    3627.7322594029038,
+    183.21498041451161
+  ],
+  "selection_before": null,
+  "selection_after": 4,
+  "method": "CitySelector live_camera + SendInputBackend.move_mouse; no click; home_esc_presses=0",
+  "camera_mapping": "Local\\San11Camera via d3d9 proxy",
+  "result": "success"
+}

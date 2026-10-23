@@ -120,7 +120,8 @@ LegalActions、摘要和模型输入不得绕过VisibleGameState读取隐藏信�
 得到 map→world 仿射并固化到 [map_camera.py](san11agent/map_camera.py)。
 已实现 d3d9 代理 DLL，把实时 VIEW/PROJECTION 写入 `Local\San11Camera`，
 [camera_reader.py](san11agent/camera_reader.py) 可读取；实机数值与4K trace
-一致。`CitySelector` 已增加 live camera 分支；当前 422 passed。未修改生产
+一致。`CitySelector` 已增加 live camera 分支；2026-10-23 实机悬停平原成功
+（selection None→4，只移动鼠标未点击）；当前 422 passed。未修改生产
 offsets/ui_layout。
 
 **2026-10-23 selection追加（未写入生产offsets）**：`DAT_096a58f0+0x64`

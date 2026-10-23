@@ -36,7 +36,8 @@ SetTransform，全部是WORLD(0x100)，没有VIEW/PROJECTION；42处`+0x178`
 已用 apitrace 抓取 D3D9 trace，取得真实 VIEW/PROJECTION 矩阵；4K四城验证
 得到 map→world 仿射并固化到 `map_camera.py`；已实现 d3d9 代理 DLL，
 实时 VIEW/PROJECTION 写入 `Local\San11Camera`，`camera_reader.py` 可读取。
-当前422 passed，见[D3D抓帧报告](rea_d3d_trace_2026-10-23.md)。
+当前422 passed。2026-10-23 实机 live hover 平原成功（selection None→4，只移动
+鼠标未点击），见[D3D抓帧报告](rea_d3d_trace_2026-10-23.md)。
 
 **已确认**：便携Ghidra/JDK已可用，游戏已进入可恢复存档并完成一次巡察和一次推进旬；
 早期DirectX启动失败不再是当前阻塞。军团行動力 `Force+0x2C u8` 和表容量47
