@@ -1,0 +1,30 @@
+{
+  "fg": "0x7501ec",
+  "game": "0x2805ba",
+  "top": {
+    "left": 991,
+    "top": 563,
+    "right": 1056,
+    "bottom": 758,
+    "item_height": 34,
+    "count": 6
+  },
+  "sub": {
+    "left": 1065,
+    "top": 566,
+    "right": 1174,
+    "bottom": 807,
+    "item_height": 34,
+    "count": 7
+  },
+  "clicked": {
+    "client": [
+      1023,
+      580
+    ],
+    "screen": [
+      1084,
+      857
+    ]
+  }
+}
