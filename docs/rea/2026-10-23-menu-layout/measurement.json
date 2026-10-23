@@ -1,0 +1,66 @@
+{
+  "captured_at_local": "2026-10-23T21:24+08:00",
+  "resolution": [
+    3840,
+    2160
+  ],
+  "city": "陈留",
+  "city_index": 12,
+  "city_label_center_approx": [
+    1950,
+    1004
+  ],
+  "city_tile_center_approx": [
+    1865,
+    1100
+  ],
+  "top_menu": {
+    "outer_left_top": [
+      1949,
+      1083
+    ],
+    "outer_right_bottom": [
+      2023,
+      1286
+    ],
+    "first_item_center": [
+      1986,
+      1100
+    ],
+    "item_height": 34,
+    "item_count": 6,
+    "relative_to_tile_first_item": [
+      121,
+      0
+    ],
+    "relative_to_label_first_item": [
+      36,
+      96
+    ]
+  },
+  "submenu": {
+    "outer_left_top": [
+      2027,
+      1089
+    ],
+    "outer_right_bottom": [
+      2136,
+      1330
+    ],
+    "first_item_center": [
+      2081,
+      1105
+    ],
+    "item_height": 34,
+    "item_count": 7,
+    "relative_to_top_item": [
+      95,
+      5
+    ]
+  },
+  "source_screenshots": [
+    "top_menu_4k.png",
+    "submenu_4k.png"
+  ],
+  "caveat": "Single city/one sample. Menu anchoring relative to tile vs label still needs validation; production ui_layout not modified."
+}

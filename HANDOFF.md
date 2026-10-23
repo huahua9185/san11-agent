@@ -122,8 +122,9 @@ LegalActions、摘要和模型输入不得绕过VisibleGameState读取隐藏信�
 [camera_reader.py](san11agent/camera_reader.py) 可读取；实机数值与4K trace
 一致。`CitySelector` 已增加 live camera 分支；2026-10-23 实机悬停平原成功
 （selection None→4，只移动鼠标未点击）；`ActionMenuExecutor` 也已接入
-live camera；当前 423 passed。未修改生产
-offsets/ui_layout。
+live camera；当前 423 passed。4K下右键自己的城陈留已测到城池指令菜单与
+“都市”二级菜单坐标，但仅单城单样本，未写入生产ui_layout，见
+[4K菜单测量](rea_4k_menu_2026-10-23.md)。未修改生产offsets/ui_layout。
 
 **2026-10-23 selection追加（未写入生产offsets）**：`DAT_096a58f0+0x64`
 指向当前城池对象；`FUN_004919a0` 用
