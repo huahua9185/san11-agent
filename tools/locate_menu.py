@@ -1,6 +1,6 @@
 """Locate San11 city command menus from a screenshot (research tool).
 
-The game positions its right-click menu relative to the cursor/edge, so a fixed
+The game positions its left-click command menu relative to the cursor/edge, so a fixed
 ``ui_layout`` offset is not reliable. This tool detects the menu's on-screen
 rectangle from a screenshot instead. It is intentionally a research tool and
 uses Pillow/numpy from the DSH bundled runtime; it is not imported by the
