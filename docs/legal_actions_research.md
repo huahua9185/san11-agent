@@ -11,6 +11,24 @@ action_points_cost；缺失或歧义的军团余额标记action_points_balance�
 完整依据与待验证项目见[预算研究报告](rea_action_budget_2026-10-23.md)和
 [人员行动状态报告](rea_general_action_state_2026-10-23.md)。下文保留历史设计记录。
 
+## 2026-10-23追加：子类型金价接入
+
+已确认：`build_facility`、`produce_equipment`、`research_tech`、`diplomacy`
+的资金门槛不能只看动作级 `gold_cost`——这些顶层字段仍是 unknown，但官方手册
+已经给出各子类型的确定金价。LegalActions 现在按每个候选自己的子类型价格检查
+本城资金：
+
+- 设施：`facility_types[].gold_cost`（50~400）；
+- 兵装：`equipment_types[].gold_cost`（700~2000）；
+- 技巧：`tech_types[].gold_cost`（1000/2000/5000/10000）；
+- 外交：`diplomacy_types[].gold_cost`（親善/同盟最低 1000，摒棄/降伏勸告 0）。
+
+已知价格且资金不足时该候选不再生成；子类型价格仍 unknown 时保留候选并标记
+`gold_cost`。动作级 `gold_cost=unknown` 不再掩盖已知子类型价格。
+
+仍未完成：设施/技巧前置条件、外交可变出价上限、同军团整批共享预算，以及
+真实执行器的后置验证。新增 8 项边界测试，全部离线测试 392 项通过。
+
 > 本次范围：只做 M4 里的 LegalActions（内政阶段动作枚举），不做 Execute（把
 > Action 转换成真实键鼠输入）——原因和 M3 一样，真实游戏当前无法运行（用户
 > 机器锁屏、人在远程），Execute 需要真的操作游戏窗口验证，等游戏能跑再做。

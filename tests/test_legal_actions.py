@@ -17,7 +17,13 @@ from pathlib import Path
 
 import pytest
 
-from san11agent.domestic_rules import ActionRuleSpec, DomesticRulesConfig, RuleValue, load_domestic_rules
+from san11agent.domestic_rules import (
+    ActionRuleSpec,
+    DomesticRulesConfig,
+    RuleValue,
+    SubTypeSpec,
+    load_domestic_rules,
+)
 from san11agent.legal_actions import (
     Action,
     ActionKind,
@@ -555,6 +561,134 @@ def test_known_gold_cost_threshold_allows_sufficient_city():
         player_faction_id=PLAYER_FACTION_ID, assigned_general_indices=frozenset(), rules=rules,
     )
     assert len(result) == 1
+
+
+# ---------------------------------------------------------------------------
+# 子类型金价：设施/兵装/技巧/外交各子类型的 gold_cost 必须真正参与过滤。
+# 动作级 build_facility.gold_cost 等仍是 unknown，不能因此掩盖已知子类型价格。
+# ---------------------------------------------------------------------------
+
+
+def _rules_with_subtypes(
+    kind: str,
+    sub_types: dict[str, SubTypeSpec],
+    *,
+    requires_facility_slot: bool = False,
+) -> DomesticRulesConfig:
+    spec = ActionRuleSpec(
+        kind=kind,
+        display_name_cn=kind,
+        requires_own_city=True,
+        requires_facility_slot=requires_facility_slot,
+        min_general_stamina=RuleValue(value=0, unknown=False),
+        gold_cost=RuleValue(value=None, unknown=True),
+        food_cost=RuleValue(value=0, unknown=False),
+        sub_types=sub_types,
+    )
+    return DomesticRulesConfig(label="subtype-cost", verified=True, actions={kind: spec}, raw={})
+
+
+def _subtype(sub_id: str, gold: int | None, *, unknown: bool = False) -> SubTypeSpec:
+    return SubTypeSpec(
+        id=sub_id,
+        display_name_cn=sub_id,
+        gold_cost=RuleValue(value=gold, unknown=unknown),
+    )
+
+
+@pytest.mark.parametrize(
+    ("gold", "expected"),
+    [
+        (49, set()),
+        (50, {"cheap"}),
+        (199, {"cheap"}),
+        (200, {"cheap", "expensive"}),
+    ],
+)
+def test_facility_subtype_gold_cost_filters_by_known_price(gold, expected):
+    rules = _rules_with_subtypes(
+        "build_facility",
+        {"cheap": _subtype("cheap", 50), "expensive": _subtype("expensive", 200)},
+        requires_facility_slot=True,
+    )
+    result = enumerate_legal_actions(
+        _minimal_state_single_general(stamina=50, gold=gold),
+        player_faction_id=PLAYER_FACTION_ID, assigned_general_indices=frozenset(), rules=rules,
+    )
+    facility_actions = [a for a in result if isinstance(a, BuildFacilityAction)]
+    assert {a.facility_type for a in facility_actions} == expected
+    assert all("gold_cost" not in a.unverified_constraints for a in facility_actions)
+
+
+def test_equipment_subtype_gold_cost_filters_by_known_price():
+    rules = _rules_with_subtypes(
+        "produce_equipment",
+        {"spear": _subtype("spear", 700), "warship": _subtype("warship", 2000)},
+    )
+    result = enumerate_legal_actions(
+        _minimal_state_single_general(stamina=50, gold=700),
+        player_faction_id=PLAYER_FACTION_ID, assigned_general_indices=frozenset(), rules=rules,
+    )
+    equipment_actions = [a for a in result if isinstance(a, ProduceEquipmentAction)]
+    assert {a.equipment_type for a in equipment_actions} == {"spear"}
+    assert all("gold_cost" not in a.unverified_constraints for a in equipment_actions)
+    assert all("facility_precondition" in a.unverified_constraints for a in equipment_actions)
+
+
+def test_tech_subtype_gold_cost_filters_by_known_price():
+    rules = _rules_with_subtypes(
+        "research_tech",
+        {"level1": _subtype("level1", 1000), "level2": _subtype("level2", 2000)},
+    )
+    result = enumerate_legal_actions(
+        _minimal_state_single_general(stamina=50, gold=1000),
+        player_faction_id=PLAYER_FACTION_ID, assigned_general_indices=frozenset(), rules=rules,
+    )
+    tech_actions = [a for a in result if isinstance(a, ResearchTechAction)]
+    assert {a.tech_type for a in tech_actions} == {"level1"}
+    assert all("gold_cost" not in a.unverified_constraints for a in tech_actions)
+    assert all("tech_prerequisite_chain" in a.unverified_constraints for a in tech_actions)
+
+
+def test_diplomacy_subtype_gold_cost_filters_by_known_minimum():
+    rules = _rules_with_subtypes(
+        "diplomacy",
+        {"goodwill": _subtype("goodwill", 1000), "break_alliance": _subtype("break_alliance", 0)},
+    )
+    state = _build_state()
+    state.cities[OWN_CITY_WITH_SLOT].gold = 500
+    actions = [
+        a for a in enumerate_legal_actions(
+            state, PLAYER_FACTION_ID, frozenset(), rules,
+        )
+        if isinstance(a, DiplomacyAction) and a.city_index == OWN_CITY_WITH_SLOT
+    ]
+    assert {a.diplomacy_type for a in actions} == {"break_alliance"}
+
+    state.cities[OWN_CITY_WITH_SLOT].gold = 1000
+    actions = [
+        a for a in enumerate_legal_actions(
+            state, PLAYER_FACTION_ID, frozenset(), rules,
+        )
+        if isinstance(a, DiplomacyAction) and a.city_index == OWN_CITY_WITH_SLOT
+    ]
+    assert {a.diplomacy_type for a in actions} == {"goodwill", "break_alliance"}
+    assert all("gold_cost" not in a.unverified_constraints for a in actions)
+
+
+def test_unknown_subtype_gold_cost_keeps_candidate_with_marker():
+    rules = _rules_with_subtypes(
+        "build_facility",
+        {"unknown_price": _subtype("unknown_price", None, unknown=True)},
+        requires_facility_slot=True,
+    )
+    result = enumerate_legal_actions(
+        _minimal_state_single_general(stamina=50, gold=0),
+        player_faction_id=PLAYER_FACTION_ID, assigned_general_indices=frozenset(), rules=rules,
+    )
+    facility_actions = [a for a in result if isinstance(a, BuildFacilityAction)]
+    assert len(facility_actions) == 1
+    assert "gold_cost" in facility_actions[0].unverified_constraints
 
 
 # ---------------------------------------------------------------------------

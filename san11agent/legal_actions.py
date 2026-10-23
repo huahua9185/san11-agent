@@ -241,14 +241,28 @@ def _check_action_points(
     return True, tuple(unverified)
 
 
+def _stamina_and_food_check(
+    general: VisibleGeneralFull, city: VisibleCityDetail, rule: ActionRuleSpec
+) -> tuple[bool, tuple[str, ...]]:
+    """只检查动作级共通的体力/兵糧门槛，不检查资金。
+
+    子类型动作（设施/兵装/技巧/外交）的资金门槛在各自子类型上，见
+    `_check_resource(city.gold, sub_spec.gold_cost, ...)`；把它们拆开是为了
+    避免动作级 `gold_cost=unknown` 掩盖子类型已经确认的具体金价。
+    """
+    unverified: list[str] = []
+    stamina_ok = _check_resource(general.stamina, rule.min_general_stamina, "min_general_stamina", unverified)
+    food_ok = _check_resource(city.food, rule.food_cost, "food_cost", unverified)
+    return (stamina_ok and food_ok), tuple(unverified)
+
+
 def _stamina_and_resource_check(
     general: VisibleGeneralFull, city: VisibleCityDetail, rule: ActionRuleSpec
 ) -> tuple[bool, tuple[str, ...]]:
-    unverified: list[str] = []
-    stamina_ok = _check_resource(general.stamina, rule.min_general_stamina, "min_general_stamina", unverified)
-    gold_ok = _check_resource(city.gold, rule.gold_cost, "gold_cost", unverified)
-    food_ok = _check_resource(city.food, rule.food_cost, "food_cost", unverified)
-    return (stamina_ok and gold_ok and food_ok), tuple(unverified)
+    ok, unverified = _stamina_and_food_check(general, city, rule)
+    unverified_list = list(unverified)
+    gold_ok = _check_resource(city.gold, rule.gold_cost, "gold_cost", unverified_list)
+    return (ok and gold_ok), tuple(unverified_list)
 
 
 def _simple_actions(
@@ -287,23 +301,30 @@ def _facility_actions(
         available_slots = city.development_land_count - city.developed_land_count
         if available_slots <= 0:
             return []
-    ok, unverified = _stamina_and_resource_check(general, city, rule)
+    ok, base_unverified = _stamina_and_food_check(general, city, rule)
     if not ok:
         return []
     # target_tile 只能取城池唯一的一组 domestic_land_x/y 坐标，不是空位列表里
     # 具体某一格——精度有限，见模块说明，固定标记为未验证约束。
     target_tile = (city.domestic_land_x, city.domestic_land_y)
-    tile_unverified = unverified + ("target_tile_precision",)
-    return [
-        BuildFacilityAction(
-            general_index=general.index,
-            city_index=city.index,
-            facility_type=facility_id,
-            target_tile=target_tile,
-            unverified_constraints=tile_unverified,
+    out: list[Action] = []
+    for facility_id, facility_spec in rule.sub_types.items():
+        unverified = list(base_unverified)
+        # 设施资金按子类型不同（50~400），不能再用动作级 gold_cost=unknown
+        # 掩盖它；已知时就按本城资金真正过滤，未知时只标记。
+        if not _check_resource(city.gold, facility_spec.gold_cost, "gold_cost", unverified):
+            continue
+        unverified.append("target_tile_precision")
+        out.append(
+            BuildFacilityAction(
+                general_index=general.index,
+                city_index=city.index,
+                facility_type=facility_id,
+                target_tile=target_tile,
+                unverified_constraints=tuple(unverified),
+            )
         )
-        for facility_id in rule.sub_types
-    ]
+    return out
 
 
 def _equipment_actions(
@@ -312,21 +333,27 @@ def _equipment_actions(
     if not rules.has_action(ActionKind.PRODUCE_EQUIPMENT.value):
         return []
     rule = rules.action(ActionKind.PRODUCE_EQUIPMENT.value)
-    ok, unverified = _stamina_and_resource_check(general, city, rule)
+    ok, base_unverified = _stamina_and_food_check(general, city, rule)
     if not ok:
         return []
-    # 设施前置条件（鍛冶廠/廄舍/工房/造船廠其中之一）无法检查，见
-    # ProduceEquipmentAction 文档字符串。
-    facility_unverified = unverified + ("facility_precondition",)
-    return [
-        ProduceEquipmentAction(
-            general_index=general.index,
-            city_index=city.index,
-            equipment_type=equipment_id,
-            unverified_constraints=facility_unverified,
+    out: list[Action] = []
+    for equipment_id, equipment_spec in rule.sub_types.items():
+        unverified = list(base_unverified)
+        # 兵装资金按种类不同（700~2000），见 rules 的 equipment_types。
+        if not _check_resource(city.gold, equipment_spec.gold_cost, "gold_cost", unverified):
+            continue
+        # 设施前置条件（鍛冶廠/廄舍/工房/造船廠其中之一）无法检查，见
+        # ProduceEquipmentAction 文档字符串。
+        unverified.append("facility_precondition")
+        out.append(
+            ProduceEquipmentAction(
+                general_index=general.index,
+                city_index=city.index,
+                equipment_type=equipment_id,
+                unverified_constraints=tuple(unverified),
+            )
         )
-        for equipment_id in rule.sub_types
-    ]
+    return out
 
 
 def _tech_actions(
@@ -335,21 +362,27 @@ def _tech_actions(
     if not rules.has_action(ActionKind.RESEARCH_TECH.value):
         return []
     rule = rules.action(ActionKind.RESEARCH_TECH.value)
-    ok, unverified = _stamina_and_resource_check(general, city, rule)
+    ok, base_unverified = _stamina_and_food_check(general, city, rule)
     if not ok:
         return []
-    # 研究顺序前置链（需先研究完成同分类上一级）和势力级"技巧P"资源都
-    # 无法检查，见 ResearchTechAction 文档字符串。
-    tech_unverified = unverified + ("tech_prerequisite_chain", "tech_points_cost")
-    return [
-        ResearchTechAction(
-            general_index=general.index,
-            city_index=city.index,
-            tech_type=tech_id,
-            unverified_constraints=tech_unverified,
+    out: list[Action] = []
+    for tech_id, tech_spec in rule.sub_types.items():
+        unverified = list(base_unverified)
+        # 研究资金按技巧等级 1000/2000/5000/10000 分档，见 tech_types。
+        if not _check_resource(city.gold, tech_spec.gold_cost, "gold_cost", unverified):
+            continue
+        # 研究顺序前置链（需先研究完成同分类上一级）和势力级"技巧P"资源都
+        # 无法检查，见 ResearchTechAction 文档字符串。
+        unverified.extend(("tech_prerequisite_chain", "tech_points_cost"))
+        out.append(
+            ResearchTechAction(
+                general_index=general.index,
+                city_index=city.index,
+                tech_type=tech_id,
+                unverified_constraints=tuple(unverified),
+            )
         )
-        for tech_id in rule.sub_types
-    ]
+    return out
 
 
 def _reward_actions(
@@ -417,20 +450,28 @@ def _diplomacy_actions(
     if not rules.has_action(ActionKind.DIPLOMACY.value):
         return []
     rule = rules.action(ActionKind.DIPLOMACY.value)
-    ok, unverified = _stamina_and_resource_check(general, city, rule)
+    ok, base_unverified = _stamina_and_food_check(general, city, rule)
     if not ok:
         return []
-    return [
-        DiplomacyAction(
-            general_index=general.index,
-            city_index=city.index,
-            target_faction_index=faction.index,
-            diplomacy_type=diplomacy_id,
-            unverified_constraints=unverified,
-        )
-        for faction in other_factions
-        for diplomacy_id in rule.sub_types
-    ]
+    out: list[Action] = []
+    for faction in other_factions:
+        for diplomacy_id, diplomacy_spec in rule.sub_types.items():
+            unverified = list(base_unverified)
+            # 外交子类型的资金不同：親善/同盟最低 1000、摒棄/降伏勸告为 0，
+            # 停戰/交換俘虜/請求援軍是可变出价（gold_cost 未给，标记 unknown）。
+            # 已知最低门槛时按本城资金过滤；可变出价仍保留为候选并打标。
+            if not _check_resource(city.gold, diplomacy_spec.gold_cost, "gold_cost", unverified):
+                continue
+            out.append(
+                DiplomacyAction(
+                    general_index=general.index,
+                    city_index=city.index,
+                    target_faction_index=faction.index,
+                    diplomacy_type=diplomacy_id,
+                    unverified_constraints=tuple(unverified),
+                )
+            )
+    return out
 
 
 def _stratagem_actions(
