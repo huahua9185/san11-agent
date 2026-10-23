@@ -1,0 +1,55 @@
+{
+  "method": "Hover four cities; read cursor client and selected city object coordinates.",
+  "stable_points": [
+    {
+      "name": "濮陽",
+      "map": [
+        120,
+        71
+      ],
+      "cursor_client": [
+        731,
+        553
+      ]
+    },
+    {
+      "name": "平原",
+      "map": [
+        129,
+        54
+      ],
+      "cursor_client": [
+        727,
+        601
+      ]
+    },
+    {
+      "name": "南皮",
+      "map": [
+        138,
+        37
+      ],
+      "cursor_client": [
+        727,
+        612
+      ]
+    },
+    {
+      "name": "小沛",
+      "map": [
+        136,
+        77
+      ],
+      "cursor_client": [
+        730,
+        607
+      ]
+    }
+  ],
+  "fit": "Affine fit residual up to ~10 px; fitted matrix does not match the current isometric formula. Not reliable for camera.",
+  "likely_blockers": [
+    "client resolution 1462x1170 vs ui_layout 2560x1600",
+    "hover points may be city labels rather than tile centers"
+  ],
+  "camera_fields_changed": false
+}

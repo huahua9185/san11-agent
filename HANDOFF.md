@@ -109,6 +109,11 @@ LegalActions、摘要和模型输入不得绕过VisibleGameState读取隐藏信�
 
 每项改动应明确：新增字段如何从读取层进入己方可见态、如何被候选/摘要/执行器消费、失败与unknown怎样处理、哪些证据支持、哪些仍未覆盖。不要为让循环“跑通”而吞掉NotImplementedError或把真实依赖换成假成功。
 
+**2026-10-23 camera阻塞（待处理）**：当前客户区实测 `1462×1170`，而
+`ui_layout` 按 `2560×1600` 测量，`map_viewport=(471,12,1772,1542)` 已超出
+客户区；camera 标定和地图点击在视口修正前不可信。详见
+[camera报告](rea_camera_2026-10-23.md)。未修改生产offsets/ui_layout。
+
 **2026-10-23 selection追加（未写入生产offsets）**：`DAT_096a58f0+0x64`
 指向当前城池对象；`FUN_004919a0` 用
 `(obj-(GAME_DATA_BASE+0x89730))/0x38` 算索引。菜单点击和纯悬停两种 A/B

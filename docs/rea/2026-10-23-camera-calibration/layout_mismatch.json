@@ -1,0 +1,22 @@
+{
+  "captured_client_size": [
+    1462,
+    1170
+  ],
+  "ui_layout_assumed_client_resolution": [
+    2560,
+    1600
+  ],
+  "ui_layout_map_viewport": {
+    "x": 471,
+    "y": 12,
+    "width": 1772,
+    "height": 1542
+  },
+  "viewport_fits_client": false,
+  "source": "PrintWindow/GetClientRect observation; game is behind the DSH window; no input sent",
+  "limitations": [
+    "The game window is currently 1462x1170; the ui_layout file was measured at 2560x1600.",
+    "Camera calibration and map projection using the old viewport are invalid at this client size."
+  ]
+}
