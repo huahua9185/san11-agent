@@ -1,0 +1,34 @@
+{
+  "action": "security_patrol",
+  "city": {
+    "index": 3,
+    "name": "南皮",
+    "force_index": 5
+  },
+  "before": {
+    "gold": 8785,
+    "security": 73,
+    "action_points": 255
+  },
+  "after": {
+    "gold": 8685,
+    "security": 82,
+    "action_points": 235
+  },
+  "expected": {
+    "gold_delta": -100,
+    "security_delta_positive": true,
+    "action_points_delta": -20
+  },
+  "observed": {
+    "gold_delta": -100,
+    "security_delta": 9,
+    "action_points_delta": -20
+  },
+  "result": "confirmed",
+  "source": "manual 決定 click; read_game_state after click; panel screenshot patrol_panel_2048.png",
+  "notes": [
+    "行动力显示20/255解释为本次消耗20、军团当前255；点击后force5 AP=235。",
+    "Gold 8785->8685, security 73->82."
+  ]
+}
