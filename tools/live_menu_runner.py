@@ -85,10 +85,18 @@ def detect_top(arr: np.ndarray, near: tuple[int, int]) -> MenuGeometry | None:
     top = min(b["top"] for b in group)
     bottom = max(b["bottom"] for b in group)
     count = max(2, round((bottom - top) / item_height)) if item_height else len(group)
+    left = min(b["left"] for b in group)
+    right = max(b["right"] for b in group)
+    # City top menu is 6 items, ~34 px each, one narrow column. Reject the
+    # false "city list/other panel" detections that caused a wrong click.
+    if not (5 <= count <= 7) or not (25 <= item_height <= 45) or not (40 <= right - left <= 120):
+        return None
+    if abs((left + right) / 2 - near_x) > 180:
+        return None
     return MenuGeometry(
-        left=min(b["left"] for b in group),
+        left=left,
         top=top,
-        right=max(b["right"] for b in group),
+        right=right,
         bottom=bottom,
         item_height=item_height,
         count=count,
@@ -113,6 +121,10 @@ def detect_sub(arr: np.ndarray, near: tuple[int, int]) -> MenuGeometry | None:
     gaps = [rows[i + 1]["cy"] - rows[i]["cy"] for i in range(len(rows) - 1)]
     item_height = int(round(statistics.median(gaps))) if gaps else 34
     count = len(rows) if len(rows) >= 2 else max(1, round((box["bottom"] - box["top"]) / item_height))
+    if not (3 <= count <= 10) or not (25 <= item_height <= 45):
+        return None
+    if not (55 <= box["right"] - box["left"] <= 180):
+        return None
     return MenuGeometry(
         left=box["left"], top=box["top"], right=box["right"], bottom=box["bottom"],
         item_height=item_height, count=count,
