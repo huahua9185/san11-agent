@@ -1,0 +1,75 @@
+{
+  "targets": {
+    "projection_4k": [
+      0.0020993,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0037321,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0010163,
+      0.001,
+      0.0,
+      0.0,
+      -0.0162602,
+      0.0
+    ],
+    "view_4k": [
+      0.7071069,
+      -0.4999996,
+      -0.4999999,
+      0.0,
+      0.0,
+      0.7071068,
+      -0.7071066,
+      0.0,
+      -0.7071064,
+      -0.5,
+      -0.5000003,
+      0.0,
+      -719.1173,
+      2573.048,
+      3195.677,
+      1.0
+    ]
+  },
+  "found": [],
+  "scanned_readable_mb": 825,
+  "window_probe": {
+    "pid": 36392,
+    "d3d_proxy_window": {
+      "class": "D3DProxyWindow",
+      "size": [
+        3840,
+        2160
+      ],
+      "visible": false,
+      "origin": [
+        0,
+        0
+      ]
+    },
+    "koei_window": {
+      "class": "KOEI_SAN_11_WINDOW",
+      "size": [
+        276,
+        45
+      ],
+      "visible": true,
+      "position": [
+        -32000,
+        -32000
+      ]
+    },
+    "note": "Win32GameWindow selected the minimized KOEI window; cursor_client was None. The D3DProxyWindow is the actual 4K render window."
+  },
+  "float_and_double_search": {
+    "exact_projection_components_found": 0,
+    "exact_view_translation_found": 0,
+    "conclusion": "Matrices are not present as a plain 4x4 float/double block in readable memory at the current view; runtime acquisition needs a D3D state/proxy approach."
+  }
+}

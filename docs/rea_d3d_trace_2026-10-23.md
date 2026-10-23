@@ -244,9 +244,33 @@ world_z =  0.2722 * map_x + 20.2024 * map_y + 520.42
 仍未完成：运行时读取 VIEW/PROJECTION 矩阵。代码层已经不再依赖
 `camera.offset_x/offset_y/zoom_level` 这组未确认字段。
 
+## 运行时矩阵内存扫描（未找到）
+
+游戏在本机 4K 下有两个窗口：
+
+```text
+D3DProxyWindow      3840x2160，实际渲染窗口，隐藏
+KOEI_SAN_11_WINDOW  276x45，位于 (-32000,-32000)，被 Win32GameWindow 误选
+```
+
+这解释了 4K 下 `ScreenToClient` 返回 `None`：探针选到了最小化的 KOEI 窗口，
+而不是 D3DProxyWindow。实际客户区原点仍是 `(0,0)`。
+
+随后扫描了约 **825MB** 可读内存（private/image/mapped），按 float 和 double
+查找 4K trace 里的 projection/view 分量：
+
+- `0.0020993 / 0.0037321 / 0.0010163 / -0.0162602` 均未找到；
+- view 的 `2573.048 / 3195.677` 也未找到；
+- 只找到一些无关的 `0.7071069 / -0.4999996` 常量。
+
+结论：当前游戏没有把 4K 矩阵以普通 4x4 float/double 块放在可读内存里；
+要么矩阵是运行时计算/保存在 D3D 设备内部状态，要么当前视角的 projection
+与 trace 里的值不同。仅靠内存扫描无法完成运行时读取。
+
 ## 下一步
 
-1. 解决运行时读取 VIEW/PROJECTION 矩阵（内存定位或 D3D 状态读取）；
+1. 解决运行时读取 VIEW/PROJECTION 矩阵：优先考虑 d3d9 代理 DLL /
+   `GetTransform` 状态导出，而不是继续盲扫内存；
 2. 修正 4K 下客户区原点，避免 `cursor_screen` 与 client 混用；
 3. 用另一组城市/缩放做独立回归，确认 `DEFAULT_MAP_CALIBRATION` 是否稳定；
 4. 矩阵读取可用后，把 `map_camera.py` 接入 `CitySelector` 的屏幕坐标
@@ -266,6 +290,7 @@ world_z =  0.2722 * map_x + 20.2024 * map_y + 520.42
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary4.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary5.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary6.json`
+- `docs/rea/2026-10-23-camera-calibration/matrix_memory_scan.json`
 - `docs/rea/2026-10-23-d3d9-trace/camera_solve.json`
 - `docs/rea/2026-10-23-d3d9-trace/camera_solve3.json`
 - `docs/rea/2026-10-23-d3d9-trace/trace_info6.json`
