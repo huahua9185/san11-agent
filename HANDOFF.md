@@ -120,7 +120,7 @@ LegalActions、摘要和模型输入不得绕过VisibleGameState读取隐藏信�
 得到 map→world 仿射并固化到 [map_camera.py](san11agent/map_camera.py)。
 已实现 d3d9 代理 DLL，把实时 VIEW/PROJECTION 写入 `Local\San11Camera`，
 [camera_reader.py](san11agent/camera_reader.py) 可读取；实机数值与4K trace
-一致。当前 419 passed；`CitySelector` 接入尚未完成。未修改生产
+一致。`CitySelector` 已增加 live camera 分支；当前 422 passed。未修改生产
 offsets/ui_layout。
 
 **2026-10-23 selection追加（未写入生产offsets）**：`DAT_096a58f0+0x64`
@@ -207,7 +207,7 @@ python -m pytest -q
 git diff --check
 ```
 
-基线测试结果为419项通过。这些是离线测试，不能替代实机验收；后续修改后数量会变化，不应为了维持数字删除/伪造测试。新环境缺pytest时可在项目虚拟环境安装requirements-dev；不需要先启动游戏才能运行测试。
+基线测试结果为422项通过。这些是离线测试，不能替代实机验收；后续修改后数量会变化，不应为了维持数字删除/伪造测试。新环境缺pytest时可在项目虚拟环境安装requirements-dev；不需要先启动游戏才能运行测试。
 
 增加状态字段时至少核对未知值、字节宽度/掩码、版本边界及敌方信息不泄漏；修改执行/循环时增加状态变化、结果不明、失败、共享预算和终止条件的测试。文档-only改动检查链接与差异即可，无需新增镜像实现的测试。
 

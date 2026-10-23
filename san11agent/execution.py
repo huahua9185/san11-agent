@@ -13,12 +13,14 @@
   留下的中间状态；失败就整个归位重来，不做"从哪一步接着修"的中途状态恢复。
 - 完整动作日志：每一步都记录到 ActionLog，包含执行前后的关键状态差异。
 
-真实游戏场景下，这条链路目前完全跑不起来：camera 偏移/缩放、当前选中城池
-两组内存字段都是 unknown（见 offsets/pk_1.1_cn.json 的 camera/selection
-struct），map_viewport 界面坐标也完全没有测量数据（见 ui_layout/pk_1.1_cn.json）。
-这是刻意的：在这些缺口解决前，代码会在 project_tile_to_client()/
-UIElement.require_known() 处显式抛出清楚的错误，不会用编出来的坐标点到游戏
-里的未知位置。
+旧路径依赖的 camera.offset_x/offset_y/zoom_level 仍是 unknown（见
+offsets/pk_1.1_cn.json 的 camera struct），因此没有 live camera 时会在
+project_tile_to_client() 处显式报错，不会用编出来的坐标点。
+
+2026-10-23 新增 `live_camera` 分支：由调用方提供实时 D3D9 view/projection
+（camera_reader + map_camera），用四城验证过的 map→world 仿射直接算屏幕
+坐标。live 分支目前只处理“目标已在屏幕内”；目标在屏幕外会明确抛出
+MapProjectionError，不用旧 camera 字段猜平移方向。
 
 一个重要区分：坐标/配置缺失（MapProjectionError 由"camera 字段 unknown"触发、
 或 UILayoutError）不属于"重试也许能修好"的偶发失败——重试并不能凭空生成一个
@@ -36,6 +38,7 @@ from .action_log import ActionLog
 from .clock import Clock
 from .execution_state import CameraState, SelectionState, parse_camera_state, parse_selection_state
 from .input_backend import VK_ESCAPE, InputBackend
+from .map_camera import CameraMatrices, project_map_point
 from .map_projection import MapProjectionError, ScreenPoint, TileCoord, project_tile_to_client
 from .memory import MemoryReader
 from .offsets import OffsetsConfig
@@ -213,6 +216,7 @@ class CitySelector:
         clock: Clock,
         action_log: ActionLog,
         config: ExecutionConfig = ExecutionConfig(),
+        live_camera: Callable[[], CameraMatrices] | None = None,
     ):
         self._reader = reader
         self._offsets = offsets
@@ -222,6 +226,9 @@ class CitySelector:
         self._clock = clock
         self._log = action_log
         self._config = config
+        # 不为 None 时走 4K 实测的 D3D9 投影链路；旧的二维 CameraState
+        # 链路只在没有 live camera 的离线测试/回退场景使用。
+        self._live_camera = live_camera
 
     def select_city(self, city_index: int, target_tile: TileCoord) -> None:
         """把鼠标悬停到 (city_index, target_tile) 对应的城池上，选中它。
@@ -277,12 +284,32 @@ class CitySelector:
     def _read_selection(self, game_data_base: int) -> SelectionState:
         return parse_selection_state(self._reader, self._offsets, game_data_base)
 
+    def _project_live(self, target_tile: TileCoord) -> ScreenPoint:
+        """用实时 D3D9 矩阵投影；目标不在当前屏幕时明确拒绝，不用旧 camera 猜。"""
+        try:
+            camera = self._live_camera()
+            client_x, client_y = project_map_point(target_tile.x, target_tile.y, camera)
+        except Exception as exc:
+            raise MapProjectionError(f"live camera 投影失败: {exc}") from exc
+
+        x = round(client_x)
+        y = round(client_y)
+        if not (0 <= x < camera.screen_width and 0 <= y < camera.screen_height):
+            raise MapProjectionError(
+                f"目标城池 {target_tile} 投影到 {x},{y}，不在当前 "
+                f"{camera.screen_width}x{camera.screen_height} 客户区内；"
+                "live camera 模式尚未实现边缘平移，不能盲点。"
+            )
+        return ScreenPoint(x, y)
+
     def _attempt(self, city_index: int, target_tile: TileCoord, attempt: int) -> None:
         game_data_base = self._game_data_base()
         viewport = self._ui_layout.element("map_viewport")
-        camera = self._read_camera(game_data_base)
-
-        screen_point = self._reveal(target_tile, camera, viewport, game_data_base)
+        if self._live_camera is not None:
+            screen_point = self._project_live(target_tile)
+        else:
+            camera = self._read_camera(game_data_base)
+            screen_point = self._reveal(target_tile, camera, viewport, game_data_base)
 
         before = self._read_selection(game_data_base)
         screen_x, screen_y = self._window.client_to_screen(screen_point.x, screen_point.y)

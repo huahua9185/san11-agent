@@ -22,7 +22,7 @@ vtable 抽样也是 UI/几何方法而非 index getter，不能当裸城池 inde
 `+0x1C/+0x20` 坐标同步变化；移开鼠标后 manager 回到 0。对象坐标是
 `city.map_x/map_y` 候选。未修改生产 offsets。已实现 `selection_reader.py`，
 并接入 `execution_state.parse_selection_state()` 的 unknown 回退；新增 6 项
-离线测试，当前 419 项通过。详见
+离线测试，当前 422 项通过。详见
 [城池选择与命令上下文报告](rea_selection_2026-10-23.md)。本轮无游戏输入。
 
 **2026-10-23 camera阻塞（待处理）**：探针原先未做 DPI 感知，在 175% 缩放下
@@ -36,7 +36,7 @@ SetTransform，全部是WORLD(0x100)，没有VIEW/PROJECTION；42处`+0x178`
 已用 apitrace 抓取 D3D9 trace，取得真实 VIEW/PROJECTION 矩阵；4K四城验证
 得到 map→world 仿射并固化到 `map_camera.py`；已实现 d3d9 代理 DLL，
 实时 VIEW/PROJECTION 写入 `Local\San11Camera`，`camera_reader.py` 可读取。
-当前419 passed，见[D3D抓帧报告](rea_d3d_trace_2026-10-23.md)。
+当前422 passed，见[D3D抓帧报告](rea_d3d_trace_2026-10-23.md)。
 
 **已确认**：便携Ghidra/JDK已可用，游戏已进入可恢复存档并完成一次巡察和一次推进旬；
 早期DirectX启动失败不再是当前阻塞。军团行動力 `Force+0x2C u8` 和表容量47
