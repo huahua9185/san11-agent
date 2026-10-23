@@ -54,6 +54,7 @@ from .map_camera import CameraMatrices, project_map_point
 from .input_backend import VK_ESCAPE, InputBackend
 from .legal_actions import Action, ActionKind
 from .map_projection import MapProjectionError, ScreenPoint, TileCoord
+from .menu_locator import MenuGeometry
 from .memory import MemoryReader
 from .offsets import OffsetsConfig
 from .perception import resolve_anchor
@@ -165,6 +166,8 @@ class ActionMenuExecutor:
         action_log: ActionLog,
         config: ExecutionConfig = ExecutionConfig(),
         live_camera: Callable[[], CameraMatrices] | None = None,
+        top_menu_locator: Callable[[ScreenPoint], MenuGeometry] | None = None,
+        submenu_locator: Callable[[ScreenPoint], MenuGeometry] | None = None,
     ):
         self._reader = reader
         self._offsets = offsets
@@ -175,6 +178,8 @@ class ActionMenuExecutor:
         self._log = action_log
         self._config = config
         self._live_camera = live_camera
+        self._top_menu_locator = top_menu_locator
+        self._submenu_locator = submenu_locator
 
     def execute_action(self, action: Action, target_tile: TileCoord, rules: DomesticRulesConfig) -> None:
         """点出一个 Action 对应的菜单项。
@@ -188,13 +193,22 @@ class ActionMenuExecutor:
         top_index, sub_index = resolve_menu_path(action, rules)
 
         anchor = self.open_city_menu(action.city_index, target_tile)
-        top_menu = self._ui_layout.element("city_top_menu")
-        top_point = self._click_menu_item(anchor, top_menu, top_index)
 
-        submenu = self._ui_layout.element("city_submenu")
-        top_label = _ACTION_TOP_MENU[action.kind]
-        expected_count = len(SUBMENU_ITEMS[top_label])
-        self._click_menu_item(top_point, submenu, sub_index, expected_count=expected_count)
+        if self._top_menu_locator is not None:
+            top_geometry = self._top_menu_locator(anchor)
+            top_point = self._click_geometry_item(top_geometry, top_index, "city_top_menu")
+        else:
+            top_menu = self._ui_layout.element("city_top_menu")
+            top_point = self._click_menu_item(anchor, top_menu, top_index)
+
+        if self._submenu_locator is not None:
+            sub_geometry = self._submenu_locator(top_point)
+            self._click_geometry_item(sub_geometry, sub_index, "city_submenu")
+        else:
+            submenu = self._ui_layout.element("city_submenu")
+            top_label = _ACTION_TOP_MENU[action.kind]
+            expected_count = len(SUBMENU_ITEMS[top_label])
+            self._click_menu_item(top_point, submenu, sub_index, expected_count=expected_count)
 
         self._log.record(
             intent="menu.execute_action",
@@ -287,6 +301,23 @@ class ActionMenuExecutor:
             detail="无法验证菜单是否真的弹出，见 ActionMenuExecutor 类文档",
         )
         return screen_point
+
+    def _click_geometry_item(
+        self, geometry: MenuGeometry, index: int, element_name: str
+    ) -> ScreenPoint:
+        try:
+            point = geometry.item_center(index)
+        except IndexError as exc:
+            raise MenuExecutionError(f"菜单项下标 {index} 超出检测到的菜单范围") from exc
+        screen_x, screen_y = self._window.client_to_screen(point.x, point.y)
+        self._input.click(screen_x, screen_y)
+        self._log.record(
+            intent="menu.click_detected_item",
+            params={"element": element_name, "index": index, "screen": (screen_x, screen_y)},
+            result="sent",
+            detail="按截图检测到的菜单几何点击，无法验证是否命中预期项",
+        )
+        return point
 
     def _click_menu_item(
         self,

@@ -30,6 +30,7 @@ from san11agent.legal_actions import (
     TrainTroopsAction,
 )
 from san11agent.map_projection import TileCoord
+from san11agent.menu_locator import MenuGeometry
 from san11agent.memory import MutableMemoryReader
 from san11agent.menu_execution import (
     ActionMenuExecutor,
@@ -101,7 +102,10 @@ def rules():
     return load_domestic_rules(DOMESTIC_RULES_TEST)
 
 
-def _make_executor(reader, offsets, ui_layout, input_backend, action_log, *, live_camera=None):
+def _make_executor(
+    reader, offsets, ui_layout, input_backend, action_log, *,
+    live_camera=None, top_menu_locator=None, submenu_locator=None,
+):
     return ActionMenuExecutor(
         reader=reader,
         offsets=offsets,
@@ -112,6 +116,8 @@ def _make_executor(reader, offsets, ui_layout, input_backend, action_log, *, liv
         action_log=action_log,
         config=FAST_CONFIG,
         live_camera=live_camera,
+        top_menu_locator=top_menu_locator,
+        submenu_locator=submenu_locator,
     )
 
 
@@ -267,6 +273,26 @@ def test_execute_action_clicks_top_and_submenu_at_expected_coordinates(offsets, 
 
     intents = [e.intent for e in action_log.entries]
     assert intents == ["menu.home", "menu.open_city", "menu.click_item", "menu.click_item", "menu.execute_action"]
+
+
+def test_execute_action_uses_detected_menu_geometry(offsets, ui_layout, rules):
+    reader = _build_reader()
+    input_backend = FakeInputBackend()
+    action_log = ActionLog(FakeClock())
+    top_geometry = MenuGeometry(left=310, top=260, right=370, bottom=440, item_height=30, count=6)
+    sub_geometry = MenuGeometry(left=400, top=270, right=470, bottom=390, item_height=30, count=3)
+    executor = _make_executor(
+        reader, offsets, ui_layout, input_backend, action_log,
+        top_menu_locator=lambda anchor: top_geometry,
+        submenu_locator=lambda point: sub_geometry,
+    )
+    action = TrainTroopsAction(general_index=GENERAL_INDEX, city_index=CITY_INDEX)
+
+    executor.execute_action(action, TileCoord(5, 5), rules)
+
+    clicks = [c.args for c in input_backend.calls if c.method == "click"]
+    # city anchor (300,300); top_index=1 -> (340,305); sub_index=0 -> (435,285)
+    assert clicks == [(300, 300, "left"), (340, 305, "left"), (435, 285, "left")]
 
 
 def test_execute_action_returns_normally_for_terminal_action_kinds(offsets, ui_layout, rules):

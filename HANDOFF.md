@@ -122,7 +122,7 @@ LegalActions、摘要和模型输入不得绕过VisibleGameState读取隐藏信�
 [camera_reader.py](san11agent/camera_reader.py) 可读取；实机数值与4K trace
 一致。`CitySelector` 已增加 live camera 分支；2026-10-23 实机悬停平原成功
 （selection None→4，只移动鼠标未点击）；`ActionMenuExecutor` 也已接入
-live camera；当前 423 passed。4K下右键自己的城陈留已测到城池指令菜单与
+live camera；当前 428 passed。4K下右键自己的城陈留已测到城池指令菜单与
 “都市”二级菜单坐标；游戏崩溃后改用 2048×1152 窗口，又测到南皮的
 2048 坐标。两者不是线性缩放，均仅单城单样本，未写入生产 ui_layout，见
 [4K菜单测量](rea_4k_menu_2026-10-23.md) /
@@ -213,7 +213,7 @@ python -m pytest -q
 git diff --check
 ```
 
-基线测试结果为423项通过。这些是离线测试，不能替代实机验收；后续修改后数量会变化，不应为了维持数字删除/伪造测试。新环境缺pytest时可在项目虚拟环境安装requirements-dev；不需要先启动游戏才能运行测试。
+基线测试结果为428项通过。这些是离线测试，不能替代实机验收；后续修改后数量会变化，不应为了维持数字删除/伪造测试。新环境缺pytest时可在项目虚拟环境安装requirements-dev；不需要先启动游戏才能运行测试。
 
 增加状态字段时至少核对未知值、字节宽度/掩码、版本边界及敌方信息不泄漏；修改执行/循环时增加状态变化、结果不明、失败、共享预算和终止条件的测试。文档-only改动检查链接与差异即可，无需新增镜像实现的测试。
 

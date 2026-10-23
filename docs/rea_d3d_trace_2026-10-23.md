@@ -239,7 +239,7 @@ world_z =  0.2722 * map_x + 20.2024 * map_y + 520.42
 - `DEFAULT_MAP_CALIBRATION` 明确标为 4K 四城验证候选，不是生产 offsets。
 
 新增 6 项离线测试（`tests/test_map_camera.py`）：已知 map->world、四城投影
-误差 <20px、自定义 calibration、非法矩阵、退化投影。当前全部 **423 passed**。
+误差 <20px、自定义 calibration、非法矩阵、退化投影。当前全部 **428 passed**。
 
 仍未完成：运行时读取 VIEW/PROJECTION 矩阵。代码层已经不再依赖
 `camera.offset_x/offset_y/zoom_level` 这组未确认字段。
@@ -295,7 +295,7 @@ proj[0]  = 0.0020992786157876253
 - `CameraSnapshot.as_camera(width, height)` 直接得到 `CameraMatrices`；
 - 共享内存缺失/全零时抛 `CameraReadError`，不会拿零矩阵继续算。
 
-新增 4 项离线测试（`tests/test_camera_reader.py`）。当前 **423 passed**。
+新增 4 项离线测试（`tests/test_camera_reader.py`）。当前 **428 passed**。
 注意：代理是研究工具，编译产物不提交；使用后要删除游戏目录里的
 `d3d9.dll`。
 
@@ -315,12 +315,24 @@ CitySelector(..., live_camera=lambda: snapshot.as_camera(3840, 2160))
 - 原有离线/旧字段路径保留为 fallback。
 
 新增 3 项测试（`tests/test_live_city_selector.py`）：live 投影成功、屏幕外
-拒绝、camera 读取异常不静默。当前全部 **423 passed**。
+拒绝、camera 读取异常不静默。当前全部 **428 passed**。
 
 `ActionMenuExecutor` 的 `open_city_menu()` 也新增 `live_camera` 参数：有实时
 矩阵时直接投影城池并单击，不再走旧 `CameraState`/`reveal_tile`。菜单项自身
 的 `ui_layout` 坐标仍是 unknown，所以这步只解决“点中城池”，不解决“点中
-菜单项”。新增 1 项测试，当前 **423 passed**。
+菜单项”。新增 1 项测试，当前 **428 passed**。
+
+### 检测到的菜单几何接入
+
+新增 [menu_locator.py](san11agent/menu_locator.py)：
+
+- `MenuGeometry` 是纯几何契约（left/top/right/bottom/item_height/count）；
+- `item_center(index)` 把检测到的菜单矩形转成点击坐标；
+- `ActionMenuExecutor` 支持可选的 `top_menu_locator` / `submenu_locator`，
+  检测到菜单时不再读固定 `ui_layout` 偏移。
+
+新增 5 项测试（4 项 `MenuGeometry` + 1 项菜单执行器），当前 **428 passed**。
+截图检测本身仍在研究工具 `tools/locate_menu.py` 中，未进入生产依赖。
 
 ## 实机 live hover 验证
 
@@ -365,8 +377,10 @@ selection reader 确认 `selected_city_index` 从 `None` 变为 `4`。
 - `tools/d3d9_camera_proxy/d3d9_proxy.cpp`
 - `tools/d3d9_camera_proxy/README.md`
 - `san11agent/camera_reader.py`
+- `san11agent/menu_locator.py`
 - `tests/test_camera_reader.py`
 - `tests/test_live_city_selector.py`
+- `tests/test_menu_locator.py`
 - `docs/rea/2026-10-23-d3d9-trace/camera_solve.json`
 - `docs/rea/2026-10-23-d3d9-trace/camera_solve3.json`
 - `docs/rea/2026-10-23-d3d9-trace/trace_info6.json`
