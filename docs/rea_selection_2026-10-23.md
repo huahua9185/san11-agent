@@ -1,0 +1,100 @@
+# REA：城池选择与命令上下文（2026-10-23）
+
+## 本轮结论
+
+**已确认（静态）**：城池指令菜单的调度入口是 `FUN_005756b0`。它接收一个
+城池/据点对象指针 `param_1`，先用 `FUN_0047a750(param_1)` 校验，再通过对象
+虚表 `+0x40` 取 0..0x2e 的城池索引，进入一个 47 个 case 的指令分派 switch。
+`case 3` 调用 `FUN_005cbdf0`（巡察面板包装），`case 0x17` 调用
+`FUN_005b7040`（另一个内政面板包装）；两个包装函数分别把同一个 `param_1`
+传给 `FUN_0060b4e0` / `FUN_005fecf0` 面板函数。
+
+**已确认（静态）**：命令执行回调 `FUN_00576650` 从 `in_ECX[8]`（this+0x20）
+取城池对象指针，校验后直接调用 `FUN_005756b0(in_ECX[8], in_ECX[9],
+in_ECX[10])`。也就是说，**当前操作目标城池不是通过一个裸 index 传入，而是
+由命令/UI 上下文对象在 +0x20 处携带一个对象指针**。
+
+**已确认（静态）**：面板对象把城池指针存在 `panel+0x18c`；`panel+0x190`
+起是 3 个“已选执行武将”指针槽，`panel+0x1a0` 是候选迭代器。`FUN_0060b450`
+从 `panel+0x1a0` 指向的候选列表里取最多 3 个指针，经 `FUN_0047a750` 校验后
+写入 `+0x190/+0x194/+0x198`。`FUN_0060af30` 再逐个读取这三个槽。
+
+**推测（待验证）**：城池/据点对象的虚表 `+0x40` 返回城池索引，`+0x44`
+返回所属军团索引。证据是 `FUN_005756b0` 用 `+0x40` 做 0..0x2e 的索引检查，
+而巡察面板 `FUN_0060b4e0` / `FUN_005fecf0` 用 `+0x44` 的返回值去调
+`FUN_00490d00`（已确认的军团访问器）。
+
+**待验证（重要）**：全局上下文 `DAT_091ba048` 的 `+0x13c` / `+0x140` 不是
+城池数组指针。运行时只读读取到：
+
+```text
+module_base=0x400000, GAME_DATA_BASE=0x7201958
+DAT_091ba048 -> ctx=0x4EFD660 (双读稳定)
+ctx+0x13C -> 0x4EFF7C0 (双读稳定)
+ctx+0x140 -> 0x4EFF980 (双读稳定)
+city_array=0x7201B30..0x7207B00
+0x4EFF7C0 不在 city_array 内
+```
+
+`0x4EFF7C0` 的首 dword 是 `0x00835BC8`（vtable 样式），对象内部还有指回
+`ctx` 的字段，形态更像 UI/列表对象而不是城池记录。因此，当前生产配置里
+`selection.selected_city_index` 这个“单一全局裸 index”的模型未必成立：
+城池选择更可能是**对象指针**，且可能随命令上下文/UI 对象变化。
+
+## 范围与方法
+
+- 目标：Steam 繁中 `San11WPK.exe`，x86，SHA-256
+  `f2a304b118e72673f4a788b1e87322fa891ff57218a8b89e671d4f8cb6aca041`。
+- REA 6.4.0 / Ghidra 12.1.4，分析载体
+  `.rea-tools/san11-loaded-text.pe.bin`，SHA-256
+  `bc7f57cf26fc7a17f3e85d520543f397d93fbba7bea13a74162f32bbe6410e8f`。
+  该载体只替换了加载后的 `.text`，不是原始 EXE；来源见
+  `docs/rea/loaded_text_provenance_2026-10-15.json`。
+- 本轮没有发送键鼠输入、没有写游戏内存、没有调用游戏内部函数、没有切换存档。
+  运行时部分只做 `ReadProcessMemory` 双读。
+- `FUN_0047a750` 的完整伪代码分析超过 MCP 单次响应预算，未取得完整结果；
+  它在本报告里只被当作“对象/指针校验器”使用，具体校验条件仍未确认。
+
+## 关键证据
+
+以下路径均相对 `docs/rea/2026-10-23-camera-selection/`；`ev_...` 为 Evidence ID。
+
+| 观察 | 证据 |
+|---|---|
+| `FUN_004ec980` 返回 `DAT_091ba048`；`FUN_004ec990` 返回 `[ctx+0x13c]`；`FUN_004ec9b0` 返回 `[ctx+0x140]` | `ctx_accessor_4ec980_pseudo.json` / `ev_2b09fa304dd1374a5232b32e7a9bf6f0dcc5f51617a01c989649b7d89eca0a4c`；`selected_object_getter_4ec990.json` / `ev_3202be19c2b16873db7d10727574f741df19bd78c91f2e7cf51f045d73f117dc`；`ctx_accessor_4ec9b0_pseudo.json` / `ev_8ec388786b21324c6d8d45d5448f1805824b0f6d39c7e3a2b832cd5eea0b7407` |
+| `FUN_004eca30` 安装全局上下文；`FUN_004ed540` 构造默认上下文 | `ctx_accessor_4eca30_pseudo.json` / `ev_88d9fec1d66a0dda5958ee03863c8f200e8f29cd10cfa32a4de1894aec19acf5`；`ctx_accessor_4ed540_pseudo.json` / `ev_032daa37f862a208dafddd9159019b9c32728d39314204ef2cb3eb02631b8e2a` |
+| `FUN_005756b0` 以 `param_1` 城池对象进入 47 个 case 的指令分派；case 3/0x17 分别调用巡察/另一面板包装 | `command_dispatcher_5756b0.json` / `ev_7ffffee7d4daff6b420bfb27ea4a127938c1224338b93047df7ce0cbcf5790c9` |
+| `FUN_00576650` 从 `in_ECX[8]`（+0x20）取城池指针并调用分派器 | `dispatcher_caller_576650.json` / `ev_aa694173223aa1d2eead093ac7193823a59d98c031d3cc1de960c9eb8fb23b1b` |
+| `FUN_005ba0f0` 遍历 44 个命令条目，把城池指针传给条目虚方法 | `city_menu_builder_5ba0f0.json` / `ev_ed61ebd24b902e42ca54379b5d5c7c58b10a600b5d61ff9d5ab6f84846db95b7` |
+| 两个面板包装 `FUN_005cbdf0` / `FUN_005b7040` 都被 `FUN_005756b0` 调用，并把 `param_1` 传给面板 | `patrol_panel_caller_5cbdf0.json` / `ev_c08fda468550cf1605f6a4ca51d26a906e9f6315a28b480c9518c458d2a53ae4`；`panel_caller_5b7040.json` / `ev_e74004b680534575e442cdf27f946e267a420cd305a214036469024cba7080ab` |
+| 面板把城池指针存在 `+0x18c`，把 3 个执行武将指针存在 `+0x190` 起 | `panel_helper_60b450.json` / `ev_da6b51b33a2f9991959c2fe57512b0f5b171dfa31aa5307d19aa003fa94ce85a`；`panel_helper_60af30.json` / `ev_cb4e6af4d583bcf527af8afe62c6fba35041993018ae3434cf1d3a7737400c00`；`panel_helper_60ae50.json` / `ev_81895d6d9bc0739471222ce7feb35890d5d50e6d5b8c38a986ba22c4463ecb80` |
+| 既有巡察面板证据：`+0x18c` 城池指针、`+0x44` 取军团、`+0x2c` 行動力 | `docs/rea/2026-10-23-budget/patrol_panel_60b4e0.json` / `ev_060e93e30f2ea41c07ab056cd5aa2e39a664f654e0bff9dbba501b0d2081b864`；`docs/rea/2026-10-22/followup/panel_5fecf0.json` / `ev_5349be912e33fbbe239a5207f4acf4442896dbe0a90380a12fee4160b415f7ab` |
+| 运行时 `ctx` / `+0x13c` / `+0x140` 双读稳定，且 `+0x13c` 不在城池数组内 | `selected_pointer_probe.json`（本轮只读探针，不是 REA Evidence） |
+
+## 仍未确认
+
+1. `ctx+0x13c` / `ctx+0x140` 指向的对象类型；它们是否是“当前选中城池”的
+   另一种表示，还是 UI 列表项/菜单上下文，尚未证明。
+2. `FUN_0047a750` 的完整校验规则；它可能校验对象类型，也可能只校验指针范围。
+3. 命令上下文对象（`FUN_00576650` 的 `in_ECX`）由谁创建、`+0x20` 在哪里
+   写入；这决定能否从全局稳定读取“当前选中城池”。
+4. camera 的 `offset_x/offset_y/zoom_level` 本轮没有推进；`selection` 和
+   camera 应作为两条独立链继续。
+5. 没有做“选中 A 城 / B 城 → 观察对象指针变化”的动态实验，因此不能把
+   任何候选写成生产 offsets。
+
+## 下一步
+
+1. 用有界 CLI 输出分析 `FUN_0047a750`，确认它校验的对象类型/字段。
+2. 分析命令上下文对象的构造/虚表，定位 `+0x20` 的写入点，判断是否存在
+   一个可稳定读取的“当前命令目标城池”指针。
+3. 在明确授权、可恢复存档的前提下做受控实验：依次选中 A 城/B 城，读取
+   该指针和对象虚表 `+0x40` 返回的索引，确认指针→城池记录的映射；没有
+   这一步，不修改 `offsets/pk_1.1_cn.json`。
+4. camera 另行从地图滚动/投影调用链切入，不要与 selection 混在同一个候选里。
+
+## 证据目录
+
+`docs/rea/2026-10-23-camera-selection/`，包含本轮 open_binary、xrefs、
+function 分析与运行时只读探针；其中 `validator_47a750.json` 是因 MCP
+响应预算失败的错误记录，不代表该函数不存在。

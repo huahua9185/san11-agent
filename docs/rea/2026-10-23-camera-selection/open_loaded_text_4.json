@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"result\":{\"path\":\"C:\\\\projects\\\\san11-agent\\\\.rea-tools\\\\san11-loaded-text.pe.bin\",\"format\":\"pe\",\"kind\":\"executable\",\"sha256\":\"bc7f57cf26fc7a17f3e85d520543f397d93fbba7bea13a74162f32bbe6410e8f\",\"architecture\":\"x86\"}}"
+    }
+  ],
+  "structuredContent": {
+    "result": {
+      "path": "C:\\projects\\san11-agent\\.rea-tools\\san11-loaded-text.pe.bin",
+      "format": "pe",
+      "kind": "executable",
+      "sha256": "bc7f57cf26fc7a17f3e85d520543f397d93fbba7bea13a74162f32bbe6410e8f",
+      "architecture": "x86"
+    }
+  },
+  "isError": false,
+  "resultType": "complete"
+}

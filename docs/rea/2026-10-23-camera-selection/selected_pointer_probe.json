@@ -1,0 +1,35 @@
+{
+  "captured_at_utc": "2026-10-23T02:20:14+00:00",
+  "source": "ReadProcessMemory; no input, no injection, no memory writes",
+  "pid": 33888,
+  "module_base": "0x400000",
+  "game_data_base": "0x7201958",
+  "global_context_slot": "0x91ba048",
+  "context_pointer_reads": [
+    "0x4efd660",
+    "0x4efd660"
+  ],
+  "context_pointer_stable": true,
+  "context_field_0x13c_reads": [
+    "0x4eff7c0",
+    "0x4eff7c0"
+  ],
+  "context_field_0x13c_stable": true,
+  "context_field_0x140_reads": [
+    "0x4eff980",
+    "0x4eff980"
+  ],
+  "context_field_0x140_stable": true,
+  "city_array": [
+    "0x7201b30",
+    "0x7207b00"
+  ],
+  "field_0x13c_is_city_record_pointer": false,
+  "field_0x13c_first_0x80_hex": "c85b8300d0070000a0d6ef040000000000000000000a0000000800000500100060d6ef0401000000010000000100000000000000ffffff7fffffff7f10000000fc64790000000000000000000000000000000000000000000a00000000000000c0f7ef0401000000000000000000000000000000010000004c40830000000000",
+  "limitations": [
+    "This is one process/session and one UI state; it does not prove which object type +0x13c points to.",
+    "No city selection was performed, so no before/after correlation is available.",
+    "The city array range uses the configured GAME_DATA_BASE and 42x0x248 layout.",
+    "A stable pointer is not a confirmed selection field; static call-chain evidence is required."
+  ]
+}
