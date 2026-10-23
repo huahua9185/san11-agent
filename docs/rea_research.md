@@ -33,6 +33,8 @@ camera字段仍未定位。已开始D3D静态排查：修正vtable偏移后找�
 SetTransform，全部是WORLD(0x100)，没有VIEW/PROJECTION；42处`+0x178`
 调用的语义仍待确认。未修改生产 offsets/ui_layout，未发送输入。详见
 [camera报告](rea_camera_2026-10-23.md)和[D3D报告](rea_d3d_2026-10-23.md)。
+已用 apitrace 抓取 D3D9 trace，取得真实 VIEW/PROJECTION 矩阵；下一步对齐
+城市世界坐标，见[D3D抓帧报告](rea_d3d_trace_2026-10-23.md)。
 
 **已确认**：便携Ghidra/JDK已可用，游戏已进入可恢复存档并完成一次巡察和一次推进旬；
 早期DirectX启动失败不再是当前阻塞。军团行動力 `Force+0x2C u8` 和表容量47

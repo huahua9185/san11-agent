@@ -1,0 +1,13 @@
+{
+  "file": "C:/Users/hhhh/Desktop/San11WPK.trace",
+  "container_size": 3157093015,
+  "actual_data_size": 1434296394,
+  "frames": 1733,
+  "api": "DirectX (D3D9)",
+  "capture_method": "apitrace 14.0 d3d9 wrapper copied into game dir; game launched through Steam app 628070",
+  "cleanup": "wrapper d3d9.dll removed from game directory after trace; game closed gracefully",
+  "notes": [
+    "Direct launch of San11WPK.exe without Steam exits 53.",
+    "Trace file was finalized by CloseMainWindow; apitrace info reports 1733 frames."
+  ]
+}

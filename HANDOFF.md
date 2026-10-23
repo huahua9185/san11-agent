@@ -116,7 +116,9 @@ LegalActions、摘要和模型输入不得绕过VisibleGameState读取隐藏信�
 详见[camera报告](rea_camera_2026-10-23.md)。已开始D3D静态排查：修正vtable
 偏移后找到4处SetTransform，全部是WORLD(0x100)，没有VIEW/PROJECTION；
 42处`+0x178`调用的语义仍待确认，见[D3D报告](rea_d3d_2026-10-23.md)。
-未修改生产offsets/ui_layout。
+已用 apitrace 抓取 D3D9 trace，拿到真实 VIEW/PROJECTION 矩阵；下一步对齐
+城市世界坐标，见[D3D抓帧报告](rea_d3d_trace_2026-10-23.md)。未修改生产
+offsets/ui_layout。
 
 **2026-10-23 selection追加（未写入生产offsets）**：`DAT_096a58f0+0x64`
 指向当前城池对象；`FUN_004919a0` 用
