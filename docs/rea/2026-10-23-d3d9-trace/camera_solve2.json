@@ -1,0 +1,152 @@
+{
+  "probe": "docs/rea/2026-10-23-camera-calibration/probe8.jsonl",
+  "trace_frames": 7030,
+  "screen_size": [
+    2560,
+    1600
+  ],
+  "view_matrix": [
+    [
+      0.7071066,
+      -0.5000001,
+      -0.5000001,
+      0
+    ],
+    [
+      0,
+      0.7071066,
+      -0.7071068,
+      0
+    ],
+    [
+      -0.7071068,
+      -0.4999999,
+      -0.4999999,
+      0
+    ],
+    [
+      -540.5741,
+      2378.417,
+      3001.044,
+      1
+    ]
+  ],
+  "projection_matrix": [
+    [
+      0.0020993,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0.0037321,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0.0010163,
+      0.001
+    ],
+    [
+      0,
+      0,
+      -0.0162602,
+      0
+    ]
+  ],
+  "points": [
+    {
+      "name": "鄴",
+      "index": 6,
+      "map": [
+        109,
+        53
+      ],
+      "cursor_client": [
+        1704,
+        93
+      ],
+      "world_xz": [
+        2658.5,
+        1711.97
+      ]
+    },
+    {
+      "name": "濮陽",
+      "index": 11,
+      "map": [
+        120,
+        71
+      ],
+      "cursor_client": [
+        1671,
+        959
+      ],
+      "world_xz": [
+        2852.97,
+        1966.83
+      ]
+    },
+    {
+      "name": "陳留",
+      "index": 12,
+      "map": [
+        108,
+        79
+      ],
+      "cursor_client": [
+        480,
+        808
+      ],
+      "world_xz": [
+        2631.6,
+        2128.56
+      ]
+    },
+    {
+      "name": "白馬港",
+      "index": 55,
+      "map": [
+        110,
+        63
+      ],
+      "cursor_client": [
+        1414,
+        321
+      ],
+      "world_xz": [
+        2667.83,
+        1851.05
+      ]
+    }
+  ],
+  "city_only_affine": {
+    "wx": [
+      18.225,
+      -0.334,
+      689.651
+    ],
+    "wz": [
+      -2.869,
+      15.912,
+      1181.367
+    ]
+  },
+  "all_four_affine": {
+    "wx": [
+      18.3134,
+      -0.2894,
+      675.4527
+    ],
+    "wz": [
+      -2.5947,
+      16.0497,
+      1137.2571
+    ],
+    "max_world_residual": 11.92
+  },
+  "conclusion": "The three cities still give a plausible ~18/16 scale. 白馬港 is a port (index 55, name None) and is an outlier; it should not be treated as a fourth city. Need a fourth actual city for validation."
+}

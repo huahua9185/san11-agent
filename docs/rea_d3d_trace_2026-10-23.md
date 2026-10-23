@@ -174,9 +174,36 @@ world_z =  0.2750 * map_x + 16.5668 * map_y + 688.85
 比前几轮合理得多。**这是目前最可信的坐标映射候选**，但还只有三个点，
 需要第四座城做独立验证。
 
+## 第四点验证尝试
+
+用户换到城池较多的区域，依次悬停：
+
+| 地点 | index | map 坐标 | cursor client | 类型 |
+|---|---:|---:|---:|---|
+| 鄴 | 6 | `(109,53)` | `(1704,93)` | 城 |
+| 濮陽 | 11 | `(120,71)` | `(1671,959)` | 城 |
+| 陳留 | 12 | `(108,79)` | `(480,808)` | 城 |
+| 白馬港 | 55 | `(110,63)` | `(1414,321)` | 港口/`name=None` |
+
+用鄴、濮陽、陳留三座城拟合：
+
+```text
+world_x = 18.225 * map_x - 0.334 * map_y + 689.65
+world_z = -2.869 * map_x + 15.912 * map_y + 1181.37
+```
+
+把白馬港当第四点做验证时，世界坐标残差约 **11.9**。它很可能不是普通城池
+（index 55、`name=None`），不能当第四座城使用。
+
+因此：
+
+- 三座城仍然给出一致的 **~18 / ~16** 世界缩放；
+- 但还缺一个真正的第四座**城**做独立验证；
+- 港口/特殊对象需要单独处理，不能混进城市坐标拟合。
+
 ## 下一步
 
-1. 再做一次 **不缩放、不滚动地图** 的悬停，增加第四座城验证上面的仿射；
+1. 再做一次 **不缩放、不滚动地图** 的悬停，增加第四座**城**验证上面的仿射；
 2. 或者实现逐帧同时记录 `SetTransform` 矩阵和 cursor 的日志；
 2. 用本次 trace 里一个稳定的地图 VIEW/PROJECTION 组合，结合已知城市
    屏幕点做坐标基/缩放拟合；
@@ -197,5 +224,8 @@ world_z =  0.2750 * map_x + 16.5668 * map_y + 688.85
 - `docs/rea/2026-10-23-d3d9-trace/trace_info3.json`
 - `docs/rea/2026-10-23-d3d9-trace/trace_info4.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary4.json`
+- `docs/rea/2026-10-23-d3d9-trace/settransform_summary5.json`
 - `docs/rea/2026-10-23-d3d9-trace/camera_solve.json`
+- `docs/rea/2026-10-23-d3d9-trace/camera_solve2.json`
+- `docs/rea/2026-10-23-d3d9-trace/trace_info5.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_dump.txt`
