@@ -1,0 +1,173 @@
+{
+  "source": "ReadProcessMemory probe; no input, injection, or memory writes",
+  "file": "probe2.jsonl",
+  "samples": 310,
+  "first_captured_at_utc": "2026-10-23T03:24:03.796+00:00",
+  "last_captured_at_utc": "2026-10-23T03:26:38.517+00:00",
+  "segments": [
+    {
+      "start_index": 0,
+      "end_index": 144,
+      "samples": 145,
+      "state": [
+        "0x0",
+        null,
+        null,
+        null,
+        []
+      ]
+    },
+    {
+      "start_index": 145,
+      "end_index": 167,
+      "samples": 23,
+      "state": [
+        "0x464cad0",
+        "0x728b2f0",
+        11,
+        [
+          11,
+          "濮陽",
+          5
+        ],
+        [
+          120,
+          71
+        ]
+      ]
+    },
+    {
+      "start_index": 168,
+      "end_index": 168,
+      "samples": 1,
+      "state": [
+        "0x0",
+        null,
+        null,
+        null,
+        []
+      ]
+    },
+    {
+      "start_index": 169,
+      "end_index": 171,
+      "samples": 3,
+      "state": [
+        "0x464cad0",
+        "0x728b2f0",
+        11,
+        [
+          11,
+          "濮陽",
+          5
+        ],
+        [
+          120,
+          71
+        ]
+      ]
+    },
+    {
+      "start_index": 172,
+      "end_index": 172,
+      "samples": 1,
+      "state": [
+        "0x0",
+        null,
+        null,
+        null,
+        []
+      ]
+    },
+    {
+      "start_index": 173,
+      "end_index": 187,
+      "samples": 15,
+      "state": [
+        "0x464cad0",
+        "0x728b2f0",
+        11,
+        [
+          11,
+          "濮陽",
+          5
+        ],
+        [
+          120,
+          71
+        ]
+      ]
+    },
+    {
+      "start_index": 188,
+      "end_index": 194,
+      "samples": 7,
+      "state": [
+        "0x0",
+        null,
+        null,
+        null,
+        []
+      ]
+    },
+    {
+      "start_index": 195,
+      "end_index": 309,
+      "samples": 115,
+      "state": [
+        "0x46487d0",
+        "0x728b130",
+        3,
+        [
+          3,
+          "南皮",
+          5
+        ],
+        [
+          138,
+          37
+        ]
+      ]
+    }
+  ],
+  "conclusion": {
+    "observed_A": {
+      "manager": "0x464cad0",
+      "selected_object": "0x728b2f0",
+      "index": 11,
+      "city": "濮陽",
+      "force_id": 5,
+      "map_object_coord": [
+        120,
+        71
+      ],
+      "domestic_land": [
+        109,
+        70
+      ]
+    },
+    "observed_B": {
+      "manager": "0x46487d0",
+      "selected_object": "0x728b130",
+      "index": 3,
+      "city": "南皮",
+      "force_id": 5,
+      "map_object_coord": [
+        138,
+        37
+      ],
+      "domestic_land": [
+        129,
+        34
+      ]
+    },
+    "confirmed": "The manager+0x64 pointer, index and city name follow the two city-menu selections.",
+    "not_confirmed": "Hover-only selection, persistent idle selection, and map coordinate semantics still need independent A/B/hover checks."
+  },
+  "limitations": [
+    "Manager is non-zero only while a city menu/command context exists; it returns to 0 after closing the menu.",
+    "This validates city-menu target selection, not hover-only selection.",
+    "The object array alignment with city index is inferred from the 42-city coordinate correlation and two A/B points.",
+    "map_object_coord is inferred from +0x1C high word / +0x20 low word; not yet a production offset."
+  ]
+}

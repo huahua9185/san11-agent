@@ -103,10 +103,53 @@ if GAME_DATA_BASE + 0x89730 <= selected_object < ... + 0x4000*0x38:
 `domestic_land (103,74)` 相差 `+5/+5`。因此对象坐标很可能是
 **城池在地图上的格子坐标**，与内政用地坐标相近但不同。
 
-**仍不能直接上线**：这只是单个 UI 状态；当前选中对象可能只是“上次选中的
-陈留”，还没有做 A/B 城池切换对照。对象数组前 42 项与 city 索引的对齐、
-`+0x1C/+0x20` 的坐标语义、以及 `map_x/map_y` 是否就是这两个半字，都需要
+**仍不能直接上线**：这只是单个 UI 状态；对象数组前 42 项与 city 索引的对齐、
+`+0x1C/+0x20` 的坐标语义、以及 `map_x/map_y` 是否就是这两个半字，仍需要
 受控动态实验确认。生产 `offsets` 仍未修改。
+
+### A/B 受控验证结果（2026-10-23）
+
+用户实际点击了**濮陽**和**南皮**的城池菜单（只打开菜单，未执行任何指令）。
+只读探针 `probe2.jsonl` 捕获到三次稳定状态：
+
+| 状态 | manager | selected object | index | city | object coord | domestic_land |
+|---|---|---:|---:|---|---:|---:|
+| 空闲 | `0x0` | `None` | `None` | — | — | — |
+| 濮陽菜单 | `0x464cad0` | `0x728b2f0` | `11` | 濮陽 (force 5) | `(120,71)` | `(109,70)` |
+| 南皮菜单 | `0x46487d0` | `0x728b130` | `3` | 南皮 (force 5) | `(138,37)` | `(129,34)` |
+
+**已确认（A/B）**：
+
+- `[manager+0x64]` 确实随城池菜单切换；
+- `(obj-(GAME_DATA_BASE+0x89730))/0x38` 对两座城都返回正确的 `city.index`；
+- 对象 `+0x1C` 高 16 位 / `+0x20` 低 16 位与两城的 `domestic_land` 坐标
+  方向一致，差值与 42 城统计一致。
+
+**仍不能当成完整 selection 方案**：
+
+- manager 只在城池菜单/命令上下文存在时非零，关闭菜单后回到 `0x0`；
+- 这次验证的是“城池菜单目标”，**没有验证仅悬停时的选中状态**；
+- 因此它可以直接服务于“点开城池菜单后确认目标”的 Execute 流程，但还不能
+  直接替换当前基于悬停的 `CitySelector` 轮询；
+- `map_x/map_y` 仍是候选，尚未写入生产 offsets。
+
+证据：`probe2.jsonl`、`probe_summary.json`。两次 A/B 分别有 41/71 个稳定
+采样点，空闲段 manager 为 0，排除了“只捕获到一次瞬时值”的可能。
+
+### Reader 落地
+
+新增 [selection_reader.py](san11agent/selection_reader.py)：
+
+- `SelectionLayout` 把版本相关的地址集中在一个 dataclass 里，便于以后迁入
+  offsets schema；
+- `read_selected_city()` 返回 `SelectedCity(city_index, city_name, map_x,
+  map_y, manager_address, object_address)`；空闲时返回 `None`；
+- `read_city_map_coordinate()` 独立按 city index 读取对象数组候选坐标；
+- 不发送输入、不写内存；对象数组/坐标仍标为候选。
+
+5 项离线测试覆盖濮陽/南皮、空闲、非法指针、独立坐标读取。当前 408 项
+离线测试通过。这个 reader 还没有接进 `CitySelector`：后者依赖“悬停选中”，
+而本轮 A/B 验证的是“点开城池菜单后的目标”，两者不能混用。
 
 ## 范围与方法
 
@@ -143,6 +186,7 @@ if GAME_DATA_BASE + 0x89730 <= selected_object < ... + 0x4000*0x38:
 | `FUN_00574f10` 初始化命令对象；`FUN_00574060` 用对象虚表 `+0x40` 生成状态 | `command_init_574f10.json` / `ev_cddb936852968aed68b3111e7fb716956f555abac2a68e2312b6c6b46b8071d9`；`command_helper_574060.json` / `ev_7c5e945d0885f2717ae314c76dab5f082752e7d2386b66faba873caff751331c` |
 | `DAT_096a58f0` 引用点集中在 0x5746xx–0x57cfxx；其中 0x5746C8 写入命令上下文 `+0x20` | `command_global_96a58f0_xrefs.json` / `ev_db2e4854fa14f458aef626e65b4a61f4f389a170c326d2004388372c3451d9f7`；`command_selection_setter_disassembly.json`（Capstone 只读反汇编） |
 | 当前 `DAT_096a58f0+0x64` 指向对象索引 12，对应 city[12]=陳留；对象坐标 (108,79)，domestic_land=(103,74) | `selected_city_probe.json`（本轮只读探针） |
+| A/B 点击濮陽/南皮菜单后，manager+0x64 分别指向 index 11/3，city 名和坐标同步变化 | `probe2.jsonl`、`probe_summary.json`（只读轮询探针） |
 | `ctx+0x13c/+0x140` 同用 vtable `0x835bc8`；抽样槽位是 UI/几何方法而非 index getter | `vtable_473210.json` / `ev_596b05999d1d1e72b43a6d33bba8e0f8131ae86c8a8b4aed12af868b516567cf`；`vtable_475890.json` / `ev_712f7f9e96d3e5311050f9ef84399c98f4b8274b056de6ef143cae932e263bcd`；`vtable_4759d0.json` / `ev_c026b34d5d2298eaf0f1d15d9dc2ff3b83c8a01089b17b16a181c6197bd33a65`；`vtable_4eda70.json` / `ev_3c628a6e4e57bd73ce3bbc9ad9ae2dd4ad4da17337a239c2b8eb26ba2dbe27d2`；`vtable_4d67f0.json` / `ev_194f1b5a4e3c6a292bbb102c295f0585f4409a055358d53b026954d9631846ae` |
 | 运行时 `ctx` / `+0x13c` / `+0x140` 双读稳定，且 `+0x13c` 不在城池数组内 | `selected_pointer_probe.json`（本轮只读探针，不是 REA Evidence） |
 
@@ -153,20 +197,20 @@ if GAME_DATA_BASE + 0x89730 <= selected_object < ... + 0x4000*0x38:
 2. 城市/据点对象的真实 vtable 布局，以及 `+0x40/+0x44` 在真实城市对象上的
    语义；`ctx+0x13c` 同类对象的 vtable 抽样不是 index getter，不能据此推断
    所有对象。
-3. 对象数组前 42 项是否严格按 city index 对齐，以及 `+0x1C/+0x20` 是否就是
-   `city.map_x/map_y`；当前只有 42 城的空间相关性，没有 A/B 选择对照。
-4. camera 的 `offset_x/offset_y/zoom_level` 本轮没有推进；`selection` 和
+3. 对象数组前 42 项按 city index 对齐已有 42 城坐标相关性和两个 A/B 点支持，
+   但 `+0x1C/+0x20` 是否就是 `city.map_x/map_y` 仍需更多城市或地图坐标对照。
+4. 仅悬停（不打开菜单）时的选中状态没有验证；manager 只在菜单/命令上下文
+   存在时非零，关闭菜单后回到 0。
+5. camera 的 `offset_x/offset_y/zoom_level` 本轮没有推进；`selection` 和
    camera 应作为两条独立链继续。
-5. 没有做“选中 A 城 / B 城 → 观察对象指针变化”的动态实验，因此不能把
-   任何候选写成生产 offsets。
 
 ## 下一步
 
-1. 在明确授权、可恢复存档的前提下做受控实验：依次选中 A 城/B 城，读取
-   `[DAT_096a58f0+0x64]` 和 `FUN_004919a0` 的索引，确认指针→city index
-   的映射；这是把 selection 写进生产 offsets 前必须的一步。
-2. 对 42 个 city 对象的 `+0x1C/+0x20` 与 `domestic_land_x/y` 做完整差值
-   统计，排除“只是地址相邻造成的巧合”；目前只看了前 15 行。
+1. 把“城池菜单目标”读法实现成一个独立 reader（manager global + 0x64 +
+   `0x89730/0x38` 索引），先用于真实执行器的目标确认；这不需要 globals
+   结构先改 offsets，可以在模块里明确标注版本绑定。
+2. 增加仅悬停 A/B 的对照，判断 `CitySelector` 是否能用同一指针；如果悬停
+   不写这个字段，就要另找悬停高亮字段，或把执行流程改成“点击打开菜单后确认”。
 3. 用有界 CLI 分析 `FUN_00487d00` / `FUN_00490dc0`，确认对象 `+8` 的语义
    （当前 42 项大多为 0，不能直接当作势力 ID）。
 4. camera 另行从地图滚动/投影调用链切入，不要与 selection 混在同一个候选里。
