@@ -1,0 +1,33 @@
+{
+  "resolution": [
+    2048,
+    1152
+  ],
+  "panel": "巡察",
+  "city": "南皮",
+  "observed": {
+    "治安": "73 -> 82",
+    "资金": "100/8785",
+    "行動力": "20/255",
+    "执行武将": [
+      "張燕",
+      "程遠志",
+      "眭固"
+    ]
+  },
+  "buttons_approx": {
+    "決定": [
+      885,
+      735
+    ],
+    "返回": [
+      976,
+      735
+    ]
+  },
+  "source_screenshots": [
+    "patrol_panel_2048.png",
+    "patrol_panel_crop_2048.png"
+  ],
+  "caveat": "Button coordinates single sample; no click yet."
+}
