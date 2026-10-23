@@ -111,9 +111,29 @@ PROJECTION:
 这说明当前悬停点**不足以确定世界坐标的轴和缩放**：它们在地图上太接近，
 或者悬停落在名字/缩放后的城池图标上，而不是分散的格子中心。
 
+## 放大后的同帧尝试
+
+第三次抓帧时用户先把地图放大了 2~3 档，四座城的悬停点这次明显分开：
+
+| 城 | map 坐标 | cursor client | 样本 |
+|---|---:|---:|---:|
+| 濮陽 | `(120,71)` | `(951,343)` | 14 |
+| 南皮 | `(138,37)` | `(1015,587)` | 22 |
+| 小沛 | `(136,77)` | `(728,816)` | 20 |
+| 平原 | `(129,54)` | `(1033,600)` | 14 |
+
+但这一轮 trace 出现 **1013 组 VIEW、67 组 PROJECTION**，说明缩放/移动地图
+让相机在四次悬停之间变化了。逐组尝试后，**没有任何单一 VIEW/PROJECTION
+能同时拟合这四个点**。
+
+因此这轮仍然不能确定坐标轴/缩放，但已经排除了“点太近导致无法拟合”的解释；
+问题变成了**矩阵与悬停点不是同一时刻**。
+
 ## 下一步
 
-1. 用本次 trace 里一个稳定的地图 VIEW/PROJECTION 组合，结合已知城市
+1. 再做一次 **不缩放、不滚动地图** 的悬停；或者实现逐帧同时记录
+   `SetTransform` 矩阵和 cursor 的日志；
+2. 用本次 trace 里一个稳定的地图 VIEW/PROJECTION 组合，结合已知城市
    屏幕点做坐标基/缩放拟合；
 2. 如果拟合不唯一，再做一次很短的 trace，同时记录鼠标悬停城市和
    cursor client，保证矩阵与屏幕点来自同一帧；
@@ -125,5 +145,9 @@ PROJECTION:
 - `docs/rea/2026-10-23-d3d9-trace/trace_info.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary2.json`
+- `docs/rea/2026-10-23-d3d9-trace/settransform_summary3.json`
 - `docs/rea/2026-10-23-d3d9-trace/same_frame_probe.json`
+- `docs/rea/2026-10-23-d3d9-trace/same_frame_probe2.json`
+- `docs/rea/2026-10-23-d3d9-trace/trace_info2.json`
+- `docs/rea/2026-10-23-d3d9-trace/trace_info3.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_dump.txt`

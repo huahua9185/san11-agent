@@ -1,0 +1,54 @@
+{
+  "source": "probe6.jsonl",
+  "stable_points": [
+    {
+      "city": "濮陽",
+      "map": [
+        120,
+        71
+      ],
+      "cursor_client": [
+        951,
+        343
+      ],
+      "samples": 14
+    },
+    {
+      "city": "南皮",
+      "map": [
+        138,
+        37
+      ],
+      "cursor_client": [
+        1015,
+        587
+      ],
+      "samples": 22
+    },
+    {
+      "city": "小沛",
+      "map": [
+        136,
+        77
+      ],
+      "cursor_client": [
+        728,
+        816
+      ],
+      "samples": 20
+    },
+    {
+      "city": "平原",
+      "map": [
+        129,
+        54
+      ],
+      "cursor_client": [
+        1033,
+        600
+      ],
+      "samples": 14
+    }
+  ],
+  "conclusion": "Points are now separated, but no single VIEW/PROJECTION pair fits all four; camera moved between hover samples. Need a still-camera pass or per-frame matrix+cursor logging."
+}
