@@ -1,0 +1,67 @@
+{
+  "captured_at_utc": "2026-10-22T06:30:30.419425+00:00",
+  "status": "candidate_only_requires_ui_and_before_after_verification",
+  "source": "ReadProcessMemory, no input or memory writes",
+  "pid": 33888,
+  "executable": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\San11WPK\\San11WPK.exe",
+  "sha256": "f2a304b118e72673f4a788b1e87322fa891ff57218a8b89e671d4f8cb6aca041",
+  "module_base": "0x400000",
+  "game_data_base": "0x7201958",
+  "rows": [
+    {
+      "force_index": 42,
+      "record_address": "0x720d884",
+      "faction_id_existing_layout": 42,
+      "force_number_existing_layout": 1,
+      "commander_existing_layout": 723,
+      "candidate_action_points_u8_at_0x2c": 44,
+      "candidate_field_stable_across_two_reads": true,
+      "record_stable_across_two_reads": true
+    },
+    {
+      "force_index": 43,
+      "record_address": "0x720d8d4",
+      "faction_id_existing_layout": 43,
+      "force_number_existing_layout": 1,
+      "commander_existing_layout": 725,
+      "candidate_action_points_u8_at_0x2c": 44,
+      "candidate_field_stable_across_two_reads": true,
+      "record_stable_across_two_reads": true
+    },
+    {
+      "force_index": 44,
+      "record_address": "0x720d924",
+      "faction_id_existing_layout": 44,
+      "force_number_existing_layout": 1,
+      "commander_existing_layout": 721,
+      "candidate_action_points_u8_at_0x2c": 44,
+      "candidate_field_stable_across_two_reads": true,
+      "record_stable_across_two_reads": true
+    },
+    {
+      "force_index": 45,
+      "record_address": "0x720d974",
+      "faction_id_existing_layout": 45,
+      "force_number_existing_layout": 1,
+      "commander_existing_layout": 727,
+      "candidate_action_points_u8_at_0x2c": 44,
+      "candidate_field_stable_across_two_reads": true,
+      "record_stable_across_two_reads": true
+    },
+    {
+      "force_index": 46,
+      "record_address": "0x720d9c4",
+      "faction_id_existing_layout": 46,
+      "force_number_existing_layout": 1,
+      "commander_existing_layout": 745,
+      "candidate_action_points_u8_at_0x2c": 40,
+      "candidate_field_stable_across_two_reads": true,
+      "record_stable_across_two_reads": true
+    }
+  ],
+  "limitations": [
+    "Byte meaning and ownership are not dynamically verified",
+    "A live process need not contain a loaded game",
+    "Do not use these values as verified LegalActions constraints"
+  ]
+}

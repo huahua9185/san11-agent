@@ -1,5 +1,16 @@
 # LegalActions 设计取舍报告（M4·上半场）
 
+## 2026-10-23追加：实机行动状态与军团预算
+
+已确认：己方武将has_acted=True时不生成发起动作；未知时标记general_action_state。
+巡察的有效费用20已由REA前置检查、扣减链和实机实验确认，LegalActions据所属己方
+军团余额检查单条可负担性。其他指令的基础标价不自动当有效费用，标记
+action_points_cost；缺失或歧义的军团余额标记action_points_balance。
+
+候选列表没有预留整批共享预算，主循环仍需逐动作重读/重算；真实执行器尚未接入。
+完整依据与待验证项目见[预算研究报告](rea_action_budget_2026-10-23.md)和
+[人员行动状态报告](rea_general_action_state_2026-10-23.md)。下文保留历史设计记录。
+
 > 本次范围：只做 M4 里的 LegalActions（内政阶段动作枚举），不做 Execute（把
 > Action 转换成真实键鼠输入）——原因和 M3 一样，真实游戏当前无法运行（用户
 > 机器锁屏、人在远程），Execute 需要真的操作游戏窗口验证，等游戏能跑再做。
@@ -415,3 +426,53 @@ build_facility/produce_equipment的同款限制一样未建模，ActionBase 目�
 `tests/test_legal_actions.py` 新增3个 `ResearchTechAction` 枚举测试 +
 1个 `describe_action` 测试，更新组合数学断言（22→26，多出的4个是
 "2种技巧 × 2座己方城池"）。全部343项测试通过。
+
+## 10. 2026-08-20 补完剩余的简单都市/人材指令：商人/探索人材/褒賞/登庸武將
+
+同一天第三次扩展，把"指令一覽"里剩下的、之前完全没建模的4个 都市/人材
+指令补完，新增4个 `ActionKind`（`merchant`/`seek_talent`/`reward`/
+`recruit_general`），项目里的 `ActionKind` 总数从6种变成10种。
+
+**商人（`MerchantAction`）/探索人材（`SeekTalentAction`）**：都是无目标、
+无子类型的"简单动作"，直接加进 `_simple_actions()` 的循环，跟
+recruit_troops/train_troops/security_patrol 是同一种模式。商人买卖兵糧的
+方向和数量是运行时滑桿选择，探索人材的搜索结果是运行时随机结果——两者
+都不是可枚举的离散选项，所以动作本身没有参数。
+
+**褒賞（`RewardAction`）**：目标是同城的己方武将（含执行武将自己——手册
+没有提到禁止自我褒赏，没有臆造这条排除），过滤条件是"忠誠 < 100"（手册
+原文"無法對於忠誠100的武將實行"，`VisibleGeneralFull.loyalty` 字段刚好
+能直接检查，是这批新增动作里唯一一个能做到"手册条件=可检查条件"完全
+对应的）。手册"可1次給與複數的武將資金"的多人褒赏没有建模——
+`ActionBase` 目前只支持单武将单目标，`gold_cost`/`action_points_cost`
+记录的是单人份数值（100/5）。
+
+**登庸武將（`RecruitGeneralAction`）**：这个最复杂。手册列出的可/不可
+登庸条件一大串（可登庸：其他勢力的武將、我方勢力的俘虜、我方勢力所支配
+都市的在野武將、空白都市的在野武將；不可登庸：其他勢力的君主、其他勢力
+所支配都市的在野武將、正在接受我方援軍請求而出征中的武將、義兄弟、夫婦、
+忠誠100的武將），但目前的数据模型（`VisibleGeneralPublic`/`Full`）完全
+没有解析出"是否为君主"（`identity` 字段编码未知）、"義兄弟/夫婦关系"、
+"俘虜身份"、"是否出征中"这些信息，只有 `faction_id` 是可靠可查的。所以
+`_recruit_general_actions()` 只实现了最基本的过滤——目标武将
+`faction_id != 玩家势力ID`（同时覆盖"其他勢力的武將"和全部"在野武將"，
+用 `FREE_AGENT_FACTION_ID = -1` 这个已确认的哨兵值），其余全部条件固定
+标记 `unverified_constraints = "recruit_general_eligibility"`，不假装
+已经检查过。登庸目标是全局候选（跟发起城池无关），在
+`enumerate_legal_actions()` 里一次性算好 `recruitable_generals`，不是
+每座城单独算。
+
+测试：`tests/fixtures/domestic_rules_test.json` 新增4个动作条目；
+`tests/test_legal_actions.py` 新增 `GENERAL_LOYALTY_MAXED`（忠诚已满的
+第二个 city0 己方武将，专门测试 reward 的排除逻辑）和8个新测试（简单
+动作产出、reward 目标集合与排除、recruit_general 目标与未验证标记、
+describe_action 覆盖），更新了 `test_only_eligible_generals_produce_actions`
+（新增了 GENERAL_LOYALTY_MAXED 这个行动武将）和组合数学断言
+（26→52，主要因为 city0 现在有2个行动武将，而不是数量本身翻倍）。
+全部348项测试通过。
+
+至此，"指令一覽"里能在当前 VisibleGameState 数据模型下枚举的 都市/人材/
+外交/計略 指令已经基本补完。剩下没做的（軍事的出征/輸送、君主的評定/
+軍團/軍師/官職/仲介/流放、以及全部战斗/單挑/舌戰机制）都需要新的数据
+模型支撑（部队战斗状态、武将关系网络、军团结构等），不是"缺一条规则"
+量级的工作，留给以后有专门会话时再做，不在本次顺手补完的范围内。

@@ -1,0 +1,23 @@
+{
+  "captured_at_utc": "2026-10-23T01:19:33.777921+00:00",
+  "source": "Production read and enumeration after adding explicit unresolved patrol preconditions; no input or execution",
+  "sha256": "f2a304b118e72673f4a788b1e87322fa891ff57218a8b89e671d4f8cb6aca041",
+  "pid": 33888,
+  "turn": 1,
+  "own_force_budgets": [
+    {
+      "index": 0,
+      "action_points": 90
+    }
+  ],
+  "effective_patrol_cost": 20,
+  "patrol_candidate_count": 15,
+  "patrol_unverified_constraints": [
+    "patrol_preconditions"
+  ],
+  "limitations": [
+    "No insufficient-budget gameplay experiment",
+    "Candidates are alternatives, not a batch with reserved resources",
+    "Rule loading and RealGameStateSource do not add automatic file fingerprint enforcement; verified_image was called by this collector"
+  ]
+}

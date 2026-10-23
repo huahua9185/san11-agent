@@ -335,8 +335,17 @@ def test_visible_general_public_field_whitelist_is_exact():
 
 def test_visible_general_full_field_whitelist_is_exact():
     assert _field_names(VisibleGeneralFull) == _field_names(VisibleGeneralPublic) | {
-        "loyalty", "merit", "stamina", "garrison_count", "health", "force_id",
+        "loyalty", "merit", "stamina", "garrison_count", "health", "force_id", "has_acted",
     }
+
+
+def test_general_action_state_reaches_own_tier_only():
+    state = _build_state()
+    state.generals[0].has_acted = True
+    state.generals[1].has_acted = True
+    visible = filter_game_state(state, _build_visibility())
+    assert next(g for g in visible.generals if g.index == 0).has_acted is True
+    assert not hasattr(next(g for g in visible.generals if g.index == 1), "has_acted")
 
 
 def test_visible_city_summary_field_whitelist_is_exact():

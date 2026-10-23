@@ -1,0 +1,74 @@
+{
+  "source": "bounded ReadProcessMemory before/after one UI patrol",
+  "pid": 33888,
+  "generals": [
+    {
+      "index": 78,
+      "name": "夏侯淵",
+      "changed_bytes": [
+        {
+          "offset": "0xae",
+          "before": 184,
+          "after": 234
+        },
+        {
+          "offset": "0x124",
+          "before": 200,
+          "after": 201
+        },
+        {
+          "offset": "0x12a",
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "index": 85,
+      "name": "夏侯惇",
+      "changed_bytes": [
+        {
+          "offset": "0xae",
+          "before": 184,
+          "after": 234
+        },
+        {
+          "offset": "0x124",
+          "before": 200,
+          "after": 201
+        },
+        {
+          "offset": "0x12a",
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "index": 343,
+      "name": "曹操",
+      "changed_bytes": [
+        {
+          "offset": "0xae",
+          "before": 224,
+          "after": 18
+        },
+        {
+          "offset": "0xaf",
+          "before": 46,
+          "after": 47
+        },
+        {
+          "offset": "0x124",
+          "before": 248,
+          "after": 249
+        },
+        {
+          "offset": "0x12a",
+          "before": 0,
+          "after": 2
+        }
+      ]
+    }
+  ]
+}

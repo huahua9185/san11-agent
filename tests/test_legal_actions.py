@@ -23,9 +23,13 @@ from san11agent.legal_actions import (
     ActionKind,
     BuildFacilityAction,
     DiplomacyAction,
+    MerchantAction,
     ProduceEquipmentAction,
+    RecruitGeneralAction,
     RecruitTroopsAction,
     ResearchTechAction,
+    RewardAction,
+    SeekTalentAction,
     SecurityPatrolAction,
     StratagemAction,
     TrainTroopsAction,
@@ -57,6 +61,7 @@ GENERAL_ELSEWHERE = 2  # 己方、location 不匹配任何己方城池 -> 不应
 GENERAL_NO_STAMINA = 3  # 己方、在 city0，但体力为 0 -> 不应该产生动作
 GENERAL_ALREADY_ASSIGNED = 4  # 己方、在 city0、体力充足，但本回合已被指派 -> 不应该产生动作
 GENERAL_ENEMY = 5  # 非己方，只有 Public 档 -> 不应该产生动作
+GENERAL_LOYALTY_MAXED = 7  # 己方、在 city0、忠诚已满100 -> 不应该成为褒赏目标
 
 OWN_CITY_WITH_SLOT = 0
 OWN_CITY_FULL = 1
@@ -84,13 +89,15 @@ def _own_city(index: int, *, gold: int, food: int, dev_count: int, developed: in
     )
 
 
-def _general_full(index: int, *, faction_id: int, location: int, stamina: int) -> VisibleGeneralFull:
+def _general_full(
+    index: int, *, faction_id: int, location: int, stamina: int, loyalty: int = 80
+) -> VisibleGeneralFull:
     return VisibleGeneralFull(
         index=index, name=f"g{index}", portrait_id=0, gender=0, debut_year=0,
         birth_year=0, death_year=-1, faction_id=faction_id, identity=0, office=0,
         location=location, special_skill_id=-1,
         display_stats_wound=b"\x00" * 5, display_stats_normal=b"\x00" * 5,
-        loyalty=80, merit=0, stamina=stamina, garrison_count=0, health=1, force_id=faction_id,
+        loyalty=loyalty, merit=0, stamina=stamina, garrison_count=0, health=1, force_id=faction_id,
     )
 
 
@@ -113,6 +120,10 @@ def _build_state() -> VisibleGameState:
         _general_full(GENERAL_ELSEWHERE, faction_id=PLAYER_FACTION_ID, location=99, stamina=100),
         _general_full(GENERAL_NO_STAMINA, faction_id=PLAYER_FACTION_ID, location=OWN_CITY_WITH_SLOT, stamina=0),
         _general_full(GENERAL_ALREADY_ASSIGNED, faction_id=PLAYER_FACTION_ID, location=OWN_CITY_WITH_SLOT, stamina=50),
+        _general_full(
+            GENERAL_LOYALTY_MAXED, faction_id=PLAYER_FACTION_ID, location=OWN_CITY_WITH_SLOT,
+            stamina=50, loyalty=100,
+        ),
         VisibleGeneralPublic(
             index=GENERAL_ENEMY, name="enemy_general", portrait_id=0, gender=0, debut_year=0,
             birth_year=0, death_year=-1, faction_id=ENEMY_FACTION_ID, identity=0, office=0,
@@ -198,7 +209,7 @@ def test_own_general_without_full_tier_is_defensively_skipped(rules):
 
 def test_only_eligible_generals_produce_actions(actions):
     general_indices = {a.general_index for a in actions}
-    assert general_indices == {GENERAL_AT_CITY0, GENERAL_AT_CITY1}
+    assert general_indices == {GENERAL_AT_CITY0, GENERAL_AT_CITY1, GENERAL_LOYALTY_MAXED}
 
 
 def test_general_elsewhere_produces_no_actions(actions):
@@ -279,6 +290,37 @@ def test_research_tech_prerequisite_and_points_are_marked_unverified(actions):
         assert "tech_points_cost" in a.unverified_constraints
 
 
+def test_merchant_and_seek_talent_produced_with_no_target(actions):
+    assert any(isinstance(a, MerchantAction) for a in actions)
+    assert any(isinstance(a, SeekTalentAction) for a in actions)
+
+
+def test_reward_targets_own_generals_in_same_city_excluding_loyalty_maxed(actions):
+    reward_actions = [a for a in actions if isinstance(a, RewardAction)]
+    targets_at_city0 = {
+        a.target_general_index for a in reward_actions if a.city_index == OWN_CITY_WITH_SLOT
+    }
+    # city0 只有 GENERAL_AT_CITY0（忠诚80）和 GENERAL_LOYALTY_MAXED（忠诚100）两个
+    # 己方在场武将，后者应该被排除；GENERAL_AT_CITY0 可以把自己当目标（手册没有
+    # 禁止自我褒赏）。
+    assert targets_at_city0 == {GENERAL_AT_CITY0}
+
+
+def test_recruit_general_targets_enemy_general_regardless_of_acting_city(actions):
+    recruit_actions = [a for a in actions if isinstance(a, RecruitGeneralAction)]
+    assert recruit_actions
+    assert all(a.target_general_index == GENERAL_ENEMY for a in recruit_actions)
+    # 两座己方城池的武将都应该能把这个目标枚举出来（目标候选跟发起城池无关）。
+    assert {a.city_index for a in recruit_actions} == {OWN_CITY_WITH_SLOT, OWN_CITY_FULL}
+
+
+def test_recruit_general_eligibility_is_marked_unverified(actions):
+    recruit_actions = [a for a in actions if isinstance(a, RecruitGeneralAction)]
+    assert recruit_actions
+    for a in recruit_actions:
+        assert "recruit_general_eligibility" in a.unverified_constraints
+
+
 # ---------------------------------------------------------------------------
 # 外交 / 计略 目标枚举
 # ---------------------------------------------------------------------------
@@ -319,20 +361,125 @@ def test_simple_action_kinds_present_for_eligible_generals(actions):
 
 
 def test_total_action_count_matches_expected_combinatorics(actions):
-    # 2026-08-18 levy_gold/levy_food 两个 ActionKind 已删除（游戏里没有'征收'指令），
-    # 简单动作从 5 项减为 3 项（徵兵/訓練/巡察），总数相应从 22 减为 16。
-    # 2026-08-20 新增 produce_equipment（2种兵装）和 research_tech（2种技巧），
-    # 两者都不受开发位限制，两座己方城池都产出。
-    # city0（有空闲开发位，2种设施）：2(设施) + 2(兵装) + 2(技巧) + 3(简单动作) + 4(外交 2子类型x2势力) + 1(计略 1子类型x1合法目标) = 14
-    # city1（开发位已满，0种设施）：0 + 2(兵装) + 2(技巧) + 3 + 4 + 1 = 12
-    assert len(actions) == 26
+    # 2026-08-18 levy_gold/levy_food 两个 ActionKind 已删除（游戏里没有'征收'指令）。
+    # 2026-08-20 新增 produce_equipment（2种兵装）、research_tech（2种技巧）、
+    # merchant/seek_talent（简单动作，+2）、reward（同城己方武将，忠诚<100）、
+    # recruit_general（GENERAL_ENEMY 这一个目标）。同时新增了 GENERAL_LOYALTY_MAXED
+    # （city0 的第二个己方在场武将，忠诚100，用来测试 reward 的排除逻辑），
+    # 城0现在有2个行动武将，城1还是1个。
+    # 每个 city0 的行动武将：2(设施)+2(兵装)+2(技巧)+5(简单动作:徵兵/訓練/巡察/
+    #   商人/探索人材)+1(褒赏，只有GENERAL_AT_CITY0忠诚<100合格)+1(登庸,目标
+    #   GENERAL_ENEMY)+4(外交 2子类型x2势力)+1(计略) = 18，共2个武将 = 36
+    # city1 的行动武将（开发位已满，0种设施）：0+2+2+5+1(褒赏自己)+1+4+1 = 16
+    assert len(actions) == 52
 
 
 def test_unknown_cost_rules_never_block_but_are_recorded(actions):
     recruit_actions = [a for a in actions if isinstance(a, RecruitTroopsAction)]
     assert recruit_actions
     for a in recruit_actions:
-        assert set(a.unverified_constraints) == {"min_general_stamina", "gold_cost", "food_cost"}
+        assert set(a.unverified_constraints) == {
+            "min_general_stamina", "gold_cost", "food_cost", "general_action_state",
+            "action_points_cost", "action_points_balance",
+        }
+
+
+def test_general_action_state_blocks_acted_and_marks_unknown(rules):
+    state = _build_state()
+    general = next(g for g in state.generals if g.index == GENERAL_AT_CITY0)
+    for value in (True, False, None):
+        general.has_acted = value
+        candidates = [a for a in enumerate_legal_actions(state, PLAYER_FACTION_ID, frozenset(), rules)
+                      if a.general_index == general.index]
+        if value is True:
+            assert candidates == []  # Stamina remains positive and caller history is empty.
+        else:
+            assert candidates
+            assert all(("general_action_state" in a.unverified_constraints) == (value is None)
+                       for a in candidates)
+
+
+def _patrol_only_with_effective_cost(rules, *, effective=True):
+    from dataclasses import replace
+    spec = replace(
+        rules.action("security_patrol"),
+        action_points_cost=RuleValue(20, unknown=False),
+        effective_action_points_cost=RuleValue(20, unknown=not effective),
+    )
+    return replace(rules, actions={"security_patrol": spec})
+
+
+@pytest.mark.parametrize("points, allowed", [(0, False), (19, False), (20, True), (35, True)])
+def test_patrol_uses_effective_cost_and_force_balance(rules, points, allowed):
+    from san11agent.visible_state import VisibleForce
+    state = _build_state()
+    state.forces = [VisibleForce(0, PLAYER_FACTION_ID, points)]
+    actions = enumerate_legal_actions(state, PLAYER_FACTION_ID, frozenset(),
+                                     _patrol_only_with_effective_cost(rules))
+    assert bool(actions) is allowed
+    assert all("action_points_cost" not in a.unverified_constraints and
+               "action_points_balance" not in a.unverified_constraints for a in actions)
+    assert all("patrol_preconditions" in a.unverified_constraints for a in actions)
+
+
+def test_base_price_is_not_a_verified_effective_cost(rules):
+    from san11agent.visible_state import VisibleForce
+    state = _build_state()
+    state.forces = [VisibleForce(0, PLAYER_FACTION_ID, 0)]
+    actions = enumerate_legal_actions(state, PLAYER_FACTION_ID, frozenset(),
+                                     _patrol_only_with_effective_cost(rules, effective=False))
+    assert actions  # Research candidates, not certified executable instructions.
+    assert all("action_points_cost" in a.unverified_constraints for a in actions)
+
+
+def test_city_uses_its_own_force_budget_not_other_own_force(rules):
+    from san11agent.visible_state import VisibleForce
+    state = _build_state()
+    state.cities[1].force_id = 1
+    state.forces = [VisibleForce(0, PLAYER_FACTION_ID, 19), VisibleForce(1, PLAYER_FACTION_ID, 20)]
+    actions = enumerate_legal_actions(state, PLAYER_FACTION_ID, frozenset(),
+                                     _patrol_only_with_effective_cost(rules))
+    assert actions
+    assert {a.city_index for a in actions} == {OWN_CITY_FULL}
+
+
+@pytest.mark.parametrize("force_kind", ["missing", "unknown", "enemy", "duplicate"])
+def test_missing_or_ambiguous_own_force_balance_is_marked(rules, force_kind):
+    from san11agent.visible_state import VisibleForce
+    state = _build_state()
+    state.forces = {
+        "missing": [],
+        "unknown": [VisibleForce(0, PLAYER_FACTION_ID, None)],
+        "enemy": [VisibleForce(0, ENEMY_FACTION_ID, 255)],
+        "duplicate": [VisibleForce(0, PLAYER_FACTION_ID, 20), VisibleForce(0, PLAYER_FACTION_ID, 200)],
+    }[force_kind]
+    actions = enumerate_legal_actions(state, PLAYER_FACTION_ID, frozenset(),
+                                     _patrol_only_with_effective_cost(rules))
+    assert actions
+    assert all("action_points_balance" in a.unverified_constraints for a in actions)
+
+
+def test_same_force_cities_get_alternatives_not_separate_reserved_budgets(rules):
+    from san11agent.visible_state import VisibleForce
+    state = _build_state()
+    state.forces = [VisibleForce(0, PLAYER_FACTION_ID, 20)]
+    before = state.forces[0].action_points
+    actions = enumerate_legal_actions(state, PLAYER_FACTION_ID, frozenset(),
+                                     _patrol_only_with_effective_cost(rules))
+    assert {a.city_index for a in actions} == {OWN_CITY_WITH_SLOT, OWN_CITY_FULL}
+    assert state.forces[0].action_points == before  # Enumeration does not spend or reserve.
+
+
+@pytest.mark.parametrize("security, allowed", [(99, True), (100, False)])
+def test_patrol_requires_security_below_native_cap(rules, security, allowed):
+    from san11agent.visible_state import VisibleForce
+    state = _build_state()
+    state.cities = state.cities[:1]
+    state.cities[0].security = security
+    state.forces = [VisibleForce(0, PLAYER_FACTION_ID, 20)]
+    actions = enumerate_legal_actions(state, PLAYER_FACTION_ID, frozenset(),
+                                     _patrol_only_with_effective_cost(rules))
+    assert bool(actions) is allowed
 
 
 # ---------------------------------------------------------------------------
@@ -462,3 +609,15 @@ def test_describe_action_includes_tech_display_name(actions, rules):
     assert "研究技巧" in text
     assert tech_action.tech_type in {"spear_training", "elite_cavalry"}
     assert ("鍛鍊槍兵" in text) or ("精銳騎兵" in text)
+
+
+def test_describe_action_includes_reward_and_recruit_general_targets(actions, rules):
+    reward_action = next(a for a in actions if isinstance(a, RewardAction))
+    text = describe_action(reward_action, rules)
+    assert "褒賞" in text
+    assert str(reward_action.target_general_index) in text
+
+    recruit_action = next(a for a in actions if isinstance(a, RecruitGeneralAction))
+    text = describe_action(recruit_action, rules)
+    assert "登庸武將" in text
+    assert str(recruit_action.target_general_index) in text

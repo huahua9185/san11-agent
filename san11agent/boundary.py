@@ -33,6 +33,7 @@ from .visible_state import (
     VisibleCitySummary,
     VisibleFactionFull,
     VisibleFactionPublic,
+    VisibleForce,
     VisibleGameState,
     VisibleGeneralFull,
     VisibleGeneralPublic,
@@ -100,6 +101,7 @@ def _to_general_full(g: General, resolved_faction_id: int | None) -> VisibleGene
         garrison_count=g.garrison_count,
         health=g.health,
         force_id=g.force_id,
+        has_acted=g.has_acted,
     )
 
 
@@ -265,4 +267,9 @@ def filter_game_state(state: GameState, visibility: VisibilitySource) -> Visible
             if v is not None
         ],
         factions=[_filter_faction(f, player_faction_id) for f in state.factions],
+        forces=[
+            VisibleForce(index=f.index, faction_id=f.faction_id, action_points=f.action_points)
+            for f in state.forces
+            if f.faction_id == player_faction_id
+        ],
     )

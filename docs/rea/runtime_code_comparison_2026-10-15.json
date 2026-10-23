@@ -1,0 +1,68 @@
+{
+  "source": "ReadProcessMemory observation, not REA static Evidence",
+  "pid": 14908,
+  "executable": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\San11WPK\\San11WPK.exe",
+  "sha256": "f2a304b118e72673f4a788b1e87322fa891ff57218a8b89e671d4f8cb6aca041",
+  "module_base": "0x400000",
+  "comparisons": [
+    {
+      "historical_va": "0x47c4c0",
+      "rva": "0x7c4c0",
+      "runtime_address": "0x47c4c0",
+      "stable_across_two_reads": true,
+      "identical_to_disk": false,
+      "runtime_sha256": "9c4c4faeba13782799d1a8c056afbfe3a7adf22ef613e3ba46d7544ad0d06cd9",
+      "disk_sha256": "036f3aa3fb83f43d32c9a795d0ddf6895ff2ece524cc795fe8a5b33f4feb4c79"
+    },
+    {
+      "historical_va": "0x4c0c30",
+      "rva": "0xc0c30",
+      "runtime_address": "0x4c0c30",
+      "stable_across_two_reads": true,
+      "identical_to_disk": false,
+      "runtime_sha256": "187ae4e10a581bbd11469b7ab1c9161db549015fae2b4bcdc094a9fe2cc2c40f",
+      "disk_sha256": "195cf9862b210047065b0c16ea3703d074d2c345061907d2d291f9835efe84fe"
+    },
+    {
+      "historical_va": "0x4c8720",
+      "rva": "0xc8720",
+      "runtime_address": "0x4c8720",
+      "stable_across_two_reads": true,
+      "identical_to_disk": false,
+      "runtime_sha256": "56d1ca46a9b129ff71e29916c64beefff5766d0b0892516fc7f556fe736990d7",
+      "disk_sha256": "4781e2bfb4374a1379254fb94a1dee9e2f9301a82f421160c61f8b11d02a720e"
+    },
+    {
+      "historical_va": "0x4824b0",
+      "rva": "0x824b0",
+      "runtime_address": "0x4824b0",
+      "stable_across_two_reads": true,
+      "identical_to_disk": false,
+      "runtime_sha256": "12ade1afb91a0405110da4922836a2285ddcd857fc322f9856032ea36910e0a1",
+      "disk_sha256": "5d49e2a25f46e3f5f26f872f2f3ef12f8a4e73a52ef67dbc5ff8c95ebd2d75bc"
+    },
+    {
+      "historical_va": "0x4824f0",
+      "rva": "0x824f0",
+      "runtime_address": "0x4824f0",
+      "stable_across_two_reads": true,
+      "identical_to_disk": false,
+      "runtime_sha256": "11f6949108686be7e09a32a30a6b37f9ecb3cce69ee1e550368fbbfea2b28baa",
+      "disk_sha256": "cfd876f0ef747c7fb5f7da9c055e37efebf9802647e5bf016add14076dcea712"
+    },
+    {
+      "historical_va": "0x482530",
+      "rva": "0x82530",
+      "runtime_address": "0x482530",
+      "stable_across_two_reads": true,
+      "identical_to_disk": false,
+      "runtime_sha256": "d1504164fb4c3ca61e74fc1faed16fb8eb2f0fe98616de19c4361e17d5d8d8bb",
+      "disk_sha256": "5d74246b9f5029600bbbe651a5cbc6d27f5634d3676f1022c7c8007074738f41"
+    }
+  ],
+  "limitations": [
+    "Only six historical candidate ranges; identities remain unverified",
+    "Different bytes can result from relocation, patching or transformation",
+    "No inference of protection scheme or game state from byte differences"
+  ]
+}

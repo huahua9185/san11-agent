@@ -1,0 +1,17 @@
+{
+  "source": "production RealGameStateSource.read -> filter -> summarize",
+  "turn": 1,
+  "own_forces": [
+    {
+      "index": 0,
+      "faction_id": 0,
+      "action_points": 90
+    }
+  ],
+  "summary_own_force_action_points": [
+    [
+      0,
+      90
+    ]
+  ]
+}

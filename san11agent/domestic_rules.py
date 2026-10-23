@@ -68,12 +68,13 @@ class ActionRuleSpec:
     min_general_stamina: RuleValue
     gold_cost: RuleValue
     food_cost: RuleValue
-    # 2026-08-19 新增：城池级"行動力"资源池的消耗，见 rules/schema.json 里
-    # 这个字段的说明——是真正的门槛资源，min_general_stamina 反而大概率
-    # 不是（官方手册对这些内政指令完全没有提到"体力"这个概念）。
+    # 基础行動力标价；有条件折扣时不能直接用作硬性余额门槛。
     action_points_cost: RuleValue = _UNKNOWN_RULE_VALUE
     sub_types: dict[str, SubTypeSpec] = field(default_factory=dict)
     note: str = ""
+    # 已核实有效费用，未知时不把手册基础标价当实际费用。
+    # 2026-10-23仅生产巡察由REA检查/扣费路径确认，见相应研究报告。
+    effective_action_points_cost: RuleValue = _UNKNOWN_RULE_VALUE
 
 
 @dataclass(frozen=True)
@@ -138,6 +139,11 @@ def _load_sub_types(raw_action: dict[str, Any]) -> dict[str, SubTypeSpec]:
 def _load_action_rule(kind: str, raw: dict[str, Any]) -> ActionRuleSpec:
     if "display_name_cn" not in raw or "requires_own_city" not in raw:
         raise DomesticRulesError(f"动作类型 {kind!r} 缺少 display_name_cn 或 requires_own_city")
+    effective_cost = _load_rule_value(raw.get("effective_action_points_cost"))
+    if effective_cost.is_known and (
+        type(effective_cost.value) is not int or effective_cost.value < 0
+    ):
+        raise DomesticRulesError(f"动作类型 {kind!r} 的有效行動力费用必须是非负整数")
     return ActionRuleSpec(
         kind=kind,
         display_name_cn=raw["display_name_cn"],
@@ -147,6 +153,7 @@ def _load_action_rule(kind: str, raw: dict[str, Any]) -> ActionRuleSpec:
         gold_cost=_load_rule_value(raw.get("gold_cost")),
         food_cost=_load_rule_value(raw.get("food_cost")),
         action_points_cost=_load_rule_value(raw.get("action_points_cost")),
+        effective_action_points_cost=effective_cost,
         sub_types=_load_sub_types(raw),
         note=raw.get("note", ""),
     )

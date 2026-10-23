@@ -58,6 +58,7 @@ class IdleGeneralSituation:
     city_index: int | None
     stamina: int
     loyalty: int
+    has_acted: bool | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -76,6 +77,7 @@ class SituationSummary:
     total_gold: int
     total_food: int
     faction_count: int
+    own_force_action_points: tuple[tuple[int, int | None], ...] = ()
 
 
 def _city_situation(city, *, is_own: bool) -> CitySituation:
@@ -95,9 +97,8 @@ def summarize_situation(
     """从 VisibleGameState 生成结构化局势摘要。
 
     assigned_general_indices 跟 legal_actions.enumerate_legal_actions() 是
-    同一个概念（本回合已经被指派过的武将），同样是显式传入而不是从内存猜——
-    这是本回合对局循环自己维护的状态，不是游戏内存字段，理由见 legal_actions.py
-    模块说明。默认空集合，方便只想看"全部己方武将现状"而不关心指派状态的调用方。
+    同一个概念（调用方维护的本回合指派历史）。同时排除己方has_acted=True者；
+    None保留为待核验候选并在文本标注，不能把未知当成已确认可行动。
     """
     own_cities = tuple(
         _city_situation(c, is_own=True) for c in state.cities if c.faction_id == player_faction_id
@@ -115,6 +116,8 @@ def summarize_situation(
             continue
         if general.index in assigned_general_indices:
             continue
+        if general.has_acted is True:
+            continue
         if general.stamina <= 0:
             continue
         city_index = next(
@@ -124,6 +127,7 @@ def summarize_situation(
             IdleGeneralSituation(
                 index=general.index, name=general.name, city_index=city_index,
                 stamina=general.stamina, loyalty=general.loyalty,
+                has_acted=general.has_acted,
             )
         )
 
@@ -131,6 +135,9 @@ def summarize_situation(
     total_food = sum(c.food for c in own_cities if c.food is not None)
 
     return SituationSummary(
+        own_force_action_points=tuple(
+            (f.index, f.action_points) for f in state.forces if f.faction_id == player_faction_id
+        ),
         turn=state.global_state.current_xun,
         player_faction_id=player_faction_id,
         own_cities=own_cities,
@@ -163,12 +170,18 @@ def render_situation_text(summary: SituationSummary) -> str:
     ]
     lines.extend(_render_city_line(c) for c in summary.own_cities)
 
+    if summary.own_force_action_points:
+        lines.append("【己方军团行動力】（按军团计，同军团都市不能重复计入余额）")
+        for index, points in summary.own_force_action_points:
+            lines.append(f"  军团[{index}]：行動力={points if points is not None else '未知'}")
+
     lines.append(f"【可见的非己方城池】({len(summary.other_visible_cities)}座，未探明的只显示归属)")
     lines.extend(_render_city_line(c) for c in summary.other_visible_cities)
 
-    lines.append(f"【可指派的己方武将】(体力>0 且本回合尚未指派，共{len(summary.idle_own_generals)}位)")
+    lines.append(f"【可指派的己方武将候选】(体力>0、未记录指派且未标记已行动，共{len(summary.idle_own_generals)}位；行动状态未知者仍需核验)")
     for g in summary.idle_own_generals:
         city_text = f"城池{g.city_index}" if g.city_index is not None else "位置未知（可能在部队中）"
-        lines.append(f"  武将[{g.index}] {g.name}：所在={city_text} 体力={g.stamina} 忠诚={g.loyalty}")
+        action_state = "未知" if g.has_acted is None else ("已行动" if g.has_acted else "未行动")
+        lines.append(f"  武将[{g.index}] {g.name}：所在={city_text} 体力={g.stamina} 忠诚={g.loyalty} 行动状态={action_state}")
 
     return "\n".join(lines)

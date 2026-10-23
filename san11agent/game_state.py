@@ -62,6 +62,9 @@ class General:
     surname: str = ""
     given_name: str = ""
     courtesy_name: str = ""
+    # 匹配版本General+0x124位0；未知配置保留None。不是体力或经验字段。
+    # 证据与覆盖边界见 docs/rea_general_action_state_2026-10-23.md。
+    has_acted: bool | None = None
 
 
 @dataclass
@@ -89,9 +92,8 @@ class City:
     faction_id: int | None = None
     map_x: int | None = None
     map_y: int | None = None
-    # "行動力"——2026-08-19 实机发现的城池级资源池，很可能是都市指令真正的
-    # 门槛/限制资源（不是 general.stamina），字段本身仍未定位，见
-    # docs/verification_checklist.md 7.4节和 offsets 文件里的字段 note。
+    # 保留旧模型的占位以兼容调用方；2026-10-22定位到的余额属于Force，
+    # 应读取Force.action_points，不能把本字段当作城池独立资源池。
     action_points: int | None = None
 
 
@@ -146,6 +148,9 @@ class Force:
     faction_id: int
     force_number: int
     commander_general_id: int
+    # 2026-10-22：军团资源，不能当作每座都市各有一份的独立余额。
+    # 原始EXE指纹、REA代码链与巡察/推进一旬对照见 docs/rea_action_points_2026-10-22.md。
+    action_points: int | None = None
 
 
 @dataclass

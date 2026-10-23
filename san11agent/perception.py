@@ -174,6 +174,7 @@ def parse_generals(reader: MemoryReader, offsets: OffsetsConfig, game_data_base:
             surname=surname,
             given_name=given_name,
             courtesy_name=courtesy_name,
+            has_acted=None if f.get("action_flags") is None else bool(f["action_flags"] & 1),
             portrait_id=f["portrait_id"],
             gender=f["gender"],
             debut_year=f["debut_year"],
@@ -299,6 +300,7 @@ def parse_forces(reader: MemoryReader, offsets: OffsetsConfig, game_data_base: i
             faction_id=f["faction_id"],
             force_number=f["force_number"],
             commander_general_id=f["commander_general_id"],
+            action_points=f.get("action_points"),
         ))
     return result
 

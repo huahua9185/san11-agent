@@ -295,6 +295,15 @@
           "source": "地址资料.txt",
           "note": "-1 表示无特技"
         },
+        "action_flags": {
+          "offset": "0x124",
+          "size": 4,
+          "type": "u32",
+          "unknown": false,
+          "confidence": "high",
+          "source": "REA 0x489420/0x489E60/0x472680/0x472610 + 2026-10-22 patrol + 2026-10-23 readonly cross-turn check",
+          "note": "仅解释位0为已行动，其余位不发布语义。三位执行者巡察后位0置1，推进旬后清0，桥接器hasActed同步false->true->false；+0x12A仍为2，排除该值为简单行动布尔值。只在meta.file_identity匹配构建验证，特殊任务/出征、跨旬精确清除调用栈及其他版本待验证。见docs/rea_general_action_state_2026-10-23.md。"
+        },
         "stamina": {
           "offset": "0x128",
           "size": 1,
@@ -736,8 +745,8 @@
     "force": {
       "base_offset": "0xB20C",
       "struct_size": "0x50",
-      "count": 42,
-      "note": "军团(Force)——势力麾下的一支独立编制的军队，不是Troop(具体带兵的部队)也不是Faction(政治势力本身)。base_offset/struct_size/count 三个数字本身来自 地址资料.txt 的原始核心表（见 docs/offset_research.md 第3节），但字段级别的内部布局原资料完全没有研究过；2026-08-18 才第一次实机探测出以下三个字段，是本项目自行在真实进程上探测得到的，不是来自第三方资料交叉印证，所以 confidence 定为 medium 而不是 high。结构体里还有大量字节完全没有解析（比如两个疑似指向所属城池/武将列表的指针），本次只解析出了刚好够解决 faction_id 归属问题的这三个字段。",
+      "count": 47,
+      "note": "军团(Force)——势力麾下的一支独立编制的军队，不是Troop(具体带兵的部队)也不是Faction(政治势力本身)。base_offset/struct_size 与历史 count=42 来自 地址资料.txt 的原始核心表（见 docs/offset_research.md 第3节），但字段级别的内部布局原资料完全没有研究过；2026-08-18 才第一次实机探测出以下三个字段，是本项目自行在真实进程上探测得到的，不是来自第三方资料交叉印证，所以 confidence 定为 medium 而不是 high。结构体里还有大量字节完全没有解析（比如两个疑似指向所属城池/武将列表的指针），本次只解析出了刚好够解决 faction_id 归属问题的这三个字段。 2026-10-22更正：REA军团访问器0x490D00检查index<0x2F，容量为47；实机槽42至46双读稳定，47条记录末尾恰接武将表。该容量不是活跃政治势力数量。具体证据与边界见docs/rea_action_points_2026-10-22.md。",
       "fields": {
         "faction_id": {
           "offset": "0x04",
@@ -762,6 +771,15 @@
           "unknown": false,
           "confidence": "medium",
           "note": "2026-08-18 实机探测：force[5]=403(張角本人)，force[6]=440(另一位張姓武将，推测是张角的兄弟)，推测是该军团的最高指挥官武将index，未找到独立验证来源，仅凭数值合理性判断"
+        },
+        "action_points": {
+          "offset": "0x2C",
+          "size": 1,
+          "type": "u8",
+          "unknown": false,
+          "confidence": "high",
+          "source": "REA loaded-text analysis + 2026-10-22 UI/ReadProcessMemory patrol and turn validation",
+          "note": "军团行動力余额，非城池独立资源。匹配meta.file_identity.sha256的Steam繁中构建中，REA函数0x490d00以GAME_DATA_BASE+0xB20C+index*0x50取军团记录，0x5fecf0读取+0x2C并用于行動力显示。190年曹操开局军团0，UI巡察消耗20，内存/界面55->35；推进一旬后35->90，日期190-1-1->190-1-11。仅该版本和样本已验证；其他军团/多城共享及上限恢复规则未独立穷举。详见docs/rea_action_points_2026-10-22.md。"
         }
       }
     },

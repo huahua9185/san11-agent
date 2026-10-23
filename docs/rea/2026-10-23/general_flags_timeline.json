@@ -1,0 +1,35 @@
+{
+  "source_before": "docs/rea/2026-10-23/general_records_before_patrol_retained.json",
+  "source_action_delta": "docs/rea/2026-10-22/patrol_general_byte_changes.json",
+  "source_current": "docs/rea/2026-10-23/general_flags_current.json",
+  "limitation": "Current capture is later than initial turn experiment; bridge date remains 190-1-11; no exact clearing call stack observed",
+  "rows": [
+    {
+      "id": 78,
+      "before_flags_u32": 712,
+      "after_patrol_flags_u32": 713,
+      "current_flags_u32": 712,
+      "before_12a_u16": 0,
+      "after_patrol_12a_u16": 2,
+      "current_12a_u16": 2
+    },
+    {
+      "id": 85,
+      "before_flags_u32": 712,
+      "after_patrol_flags_u32": 713,
+      "current_flags_u32": 712,
+      "before_12a_u16": 0,
+      "after_patrol_12a_u16": 2,
+      "current_12a_u16": 2
+    },
+    {
+      "id": 343,
+      "before_flags_u32": 760,
+      "after_patrol_flags_u32": 761,
+      "current_flags_u32": 760,
+      "before_12a_u16": 0,
+      "after_patrol_12a_u16": 2,
+      "current_12a_u16": 2
+    }
+  ]
+}

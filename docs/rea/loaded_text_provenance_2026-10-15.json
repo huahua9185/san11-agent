@@ -1,0 +1,27 @@
+{
+  "source_kind": "hybrid analysis artifact, not shipped original",
+  "captured_at_utc": "2026-10-15T14:49:01.148710+00:00",
+  "pid": 14908,
+  "module_base": "0x400000",
+  "original_path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\San11WPK\\San11WPK.exe",
+  "original_sha256": "f2a304b118e72673f4a788b1e87322fa891ff57218a8b89e671d4f8cb6aca041",
+  "derived_path": "C:\\projects\\san11-agent\\.rea-tools\\san11-loaded-text.pe.bin",
+  "derived_sha256": "bc7f57cf26fc7a17f3e85d520543f397d93fbba7bea13a74162f32bbe6410e8f",
+  "replaced_section": {
+    "name": ".text",
+    "rva": 4096,
+    "virtual_size": 3460849,
+    "raw_offset": 4096,
+    "raw_size": 3461120,
+    "flags": 1610612768
+  },
+  "stable_across_two_reads": true,
+  "loaded_text_sha256": "cd2f334c7c92d1b217ca993519edb06998135e4f3d06a343dbe20bfe47edbed0",
+  "disk_text_sha256": "d9a2dfe6dbbd9fae2cc8062850a7168a7f47a8127b1826c0bafb1c8f86ee212f",
+  "limitations": [
+    "Only .text is loaded-memory evidence; all other sections remain disk bytes",
+    "No execution or functional-equivalence claim",
+    "No game state or candidate function semantics verified",
+    "Do not execute this file or overwrite the installed EXE"
+  ]
+}

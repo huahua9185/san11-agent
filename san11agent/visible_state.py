@@ -90,6 +90,7 @@ class VisibleGeneralFull(VisibleGeneralPublic):
     garrison_count: int
     health: int
     force_id: int
+    has_acted: bool | None = None
 
 
 @dataclass
@@ -173,9 +174,19 @@ class VisibleFactionFull(VisibleFactionPublic):
 
 
 @dataclass
+class VisibleForce:
+    """仅己方军团的行動力余额；多个都市可能引用同一军团。"""
+
+    index: int
+    faction_id: int
+    action_points: int | None = None
+
+
+@dataclass
 class VisibleGameState:
     global_state: VisibleGlobalState
     generals: list[VisibleGeneralPublic] = field(default_factory=list)
     cities: list[VisibleCitySummary] = field(default_factory=list)
     troops: list[VisibleTroop] = field(default_factory=list)
     factions: list[VisibleFactionPublic] = field(default_factory=list)
+    forces: list[VisibleForce] = field(default_factory=list)

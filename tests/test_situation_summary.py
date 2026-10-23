@@ -37,6 +37,17 @@ GENERAL_NO_STAMINA = 2
 GENERAL_ELSEWHERE = 3
 
 
+def test_summary_excludes_acted_and_labels_unknown():
+    state = _build_state()
+    general = next(g for g in state.generals if g.index == GENERAL_IDLE)
+    general.has_acted = True
+    assert general.index not in {g.index for g in summarize_situation(state, PLAYER_FACTION_ID).idle_own_generals}
+    general.has_acted = None
+    summary = summarize_situation(state, PLAYER_FACTION_ID)
+    assert next(g for g in summary.idle_own_generals if g.index == general.index).has_acted is None
+    assert "行动状态=未知" in render_situation_text(summary)
+
+
 def _global_state(xun: int = 12) -> VisibleGlobalState:
     return VisibleGlobalState(
         scenario_id=1, start_year=190, start_month=1, start_day=1,

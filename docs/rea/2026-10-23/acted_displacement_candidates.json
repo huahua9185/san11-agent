@@ -1,0 +1,148 @@
+{
+  "source": ".rea-tools\\san11-loaded-text.pe.bin",
+  "sha256": "bc7f57cf26fc7a17f3e85d520543f397d93fbba7bea13a74162f32bbe6410e8f",
+  "method": "Supplemental Capstone overlapping instruction-start candidates, not REA facts",
+  "scope": ".text raw bytes only; memory displacement 0x12a, not exhaustive aliases or computed offsets",
+  "hits": [
+    {
+      "address": "0x41bb4f",
+      "bytes": "8d84482a010000",
+      "mnemonic": "lea",
+      "operands": "eax, [eax + ecx*2 + 0x12a]",
+      "displacement_file_offset": "0x1bb52"
+    },
+    {
+      "address": "0x488922",
+      "bytes": "6489962a010000",
+      "mnemonic": "mov",
+      "operands": "dword ptr fs:[esi + 0x12a], edx",
+      "displacement_file_offset": "0x88925"
+    },
+    {
+      "address": "0x488923",
+      "bytes": "89962a010000",
+      "mnemonic": "mov",
+      "operands": "dword ptr [esi + 0x12a], edx",
+      "displacement_file_offset": "0x88925"
+    },
+    {
+      "address": "0x48948d",
+      "bytes": "668b84412a010000",
+      "mnemonic": "mov",
+      "operands": "ax, word ptr [ecx + eax*2 + 0x12a]",
+      "displacement_file_offset": "0x89491"
+    },
+    {
+      "address": "0x48948e",
+      "bytes": "8b84412a010000",
+      "mnemonic": "mov",
+      "operands": "eax, dword ptr [ecx + eax*2 + 0x12a]",
+      "displacement_file_offset": "0x89491"
+    },
+    {
+      "address": "0x48a4b9",
+      "bytes": "668b846f2a010000",
+      "mnemonic": "mov",
+      "operands": "ax, word ptr [edi + ebp*2 + 0x12a]",
+      "displacement_file_offset": "0x8a4bd"
+    },
+    {
+      "address": "0x48a4ba",
+      "bytes": "8b846f2a010000",
+      "mnemonic": "mov",
+      "operands": "eax, dword ptr [edi + ebp*2 + 0x12a]",
+      "displacement_file_offset": "0x8a4bd"
+    },
+    {
+      "address": "0x48a715",
+      "bytes": "668bb4772a010000",
+      "mnemonic": "mov",
+      "operands": "si, word ptr [edi + esi*2 + 0x12a]",
+      "displacement_file_offset": "0x8a719"
+    },
+    {
+      "address": "0x48a716",
+      "bytes": "8bb4772a010000",
+      "mnemonic": "mov",
+      "operands": "esi, dword ptr [edi + esi*2 + 0x12a]",
+      "displacement_file_offset": "0x8a719"
+    },
+    {
+      "address": "0x48ab38",
+      "bytes": "668984512a010000",
+      "mnemonic": "mov",
+      "operands": "word ptr [ecx + edx*2 + 0x12a], ax",
+      "displacement_file_offset": "0x8ab3c"
+    },
+    {
+      "address": "0x48ab39",
+      "bytes": "8984512a010000",
+      "mnemonic": "mov",
+      "operands": "dword ptr [ecx + edx*2 + 0x12a], eax",
+      "displacement_file_offset": "0x8ab3c"
+    },
+    {
+      "address": "0x48ab53",
+      "bytes": "668984512a010000",
+      "mnemonic": "mov",
+      "operands": "word ptr [ecx + edx*2 + 0x12a], ax",
+      "displacement_file_offset": "0x8ab57"
+    },
+    {
+      "address": "0x48ab54",
+      "bytes": "8984512a010000",
+      "mnemonic": "mov",
+      "operands": "dword ptr [ecx + edx*2 + 0x12a], eax",
+      "displacement_file_offset": "0x8ab57"
+    },
+    {
+      "address": "0x48ab72",
+      "bytes": "89812a010000",
+      "mnemonic": "mov",
+      "operands": "dword ptr [ecx + 0x12a], eax",
+      "displacement_file_offset": "0x8ab74"
+    },
+    {
+      "address": "0x48b45e",
+      "bytes": "8d962a010000",
+      "mnemonic": "lea",
+      "operands": "edx, [esi + 0x12a]",
+      "displacement_file_offset": "0x8b460"
+    },
+    {
+      "address": "0x48be0e",
+      "bytes": "8d8f2a010000",
+      "mnemonic": "lea",
+      "operands": "ecx, [edi + 0x12a]",
+      "displacement_file_offset": "0x8be10"
+    },
+    {
+      "address": "0x4a9d68",
+      "bytes": "668b912a010000",
+      "mnemonic": "mov",
+      "operands": "dx, word ptr [ecx + 0x12a]",
+      "displacement_file_offset": "0xa9d6b"
+    },
+    {
+      "address": "0x4a9d69",
+      "bytes": "8b912a010000",
+      "mnemonic": "mov",
+      "operands": "edx, dword ptr [ecx + 0x12a]",
+      "displacement_file_offset": "0xa9d6b"
+    },
+    {
+      "address": "0x4a9d6f",
+      "bytes": "6689902a010000",
+      "mnemonic": "mov",
+      "operands": "word ptr [eax + 0x12a], dx",
+      "displacement_file_offset": "0xa9d72"
+    },
+    {
+      "address": "0x4a9d70",
+      "bytes": "89902a010000",
+      "mnemonic": "mov",
+      "operands": "dword ptr [eax + 0x12a], edx",
+      "displacement_file_offset": "0xa9d72"
+    }
+  ]
+}

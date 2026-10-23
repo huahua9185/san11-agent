@@ -9,3 +9,6 @@ venv/
 tests/fixtures/*.real.json
 dumps/
 saves/
+
+# Portable research engines, downloaded archives and ephemeral analysis databases
+.rea-tools/

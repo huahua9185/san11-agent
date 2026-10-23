@@ -1,0 +1,27 @@
+{
+  "captured_at_utc": "2026-10-22T06:27:32.172956+00:00",
+  "status": "candidate_only_requires_ui_and_before_after_verification",
+  "source": "ReadProcessMemory, no input or memory writes",
+  "pid": 33888,
+  "executable": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\San11WPK\\San11WPK.exe",
+  "sha256": "f2a304b118e72673f4a788b1e87322fa891ff57218a8b89e671d4f8cb6aca041",
+  "module_base": "0x400000",
+  "game_data_base": "0x7201958",
+  "rows": [
+    {
+      "force_index": 0,
+      "record_address": "0x720cb64",
+      "faction_id_existing_layout": 0,
+      "force_number_existing_layout": 1,
+      "commander_existing_layout": 343,
+      "candidate_action_points_u8_at_0x2c": 90,
+      "candidate_field_stable_across_two_reads": true,
+      "record_stable_across_two_reads": true
+    }
+  ],
+  "limitations": [
+    "Byte meaning and ownership are not dynamically verified",
+    "A live process need not contain a loaded game",
+    "Do not use these values as verified LegalActions constraints"
+  ]
+}

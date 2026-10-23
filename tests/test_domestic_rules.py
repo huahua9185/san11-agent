@@ -15,6 +15,10 @@ _ALL_KINDS = {
     "build_facility",
     "produce_equipment",
     "research_tech",
+    "merchant",
+    "seek_talent",
+    "reward",
+    "recruit_general",
     "recruit_troops",
     "train_troops",
     "security_patrol",
@@ -70,6 +74,26 @@ def test_rule_value_is_known():
     unknown = RuleValue(value=None, unknown=True)
     assert known.is_known is True
     assert unknown.is_known is False
+
+
+def test_effective_action_points_cost_is_explicit_and_patrol_only_in_production():
+    rules = load_domestic_rules(REPO_ROOT / "rules" / "domestic_actions_pk_1.1_cn.json")
+    known = {key: rule.effective_action_points_cost.value for key, rule in rules.actions.items()
+             if rule.effective_action_points_cost.is_known}
+    assert known == {"security_patrol": 20}
+    legacy = load_domestic_rules(TEST_FIXTURE)
+    assert all(not rule.effective_action_points_cost.is_known for rule in legacy.actions.values())
+
+
+@pytest.mark.parametrize("value", [-1, True, 1.5, "20"])
+def test_effective_action_points_cost_rejects_invalid_values(tmp_path, value):
+    import json
+    raw = json.loads(TEST_FIXTURE.read_text(encoding="utf-8"))
+    raw["actions"]["security_patrol"]["effective_action_points_cost"] = {"value": value, "unknown": False}
+    path = tmp_path / "rules.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(DomesticRulesError, match="有效行動力费用"):
+        load_domestic_rules(path)
 
 
 # ---------------------------------------------------------------------------

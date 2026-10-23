@@ -80,6 +80,70 @@
         }
       }
     },
+    "merchant": {
+      "display_name_cn": "商人",
+      "requires_own_city": true,
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      }
+    },
+    "seek_talent": {
+      "display_name_cn": "探索人材",
+      "requires_own_city": true,
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      }
+    },
+    "reward": {
+      "display_name_cn": "褒賞",
+      "requires_own_city": true,
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      }
+    },
+    "recruit_general": {
+      "display_name_cn": "登庸武將",
+      "requires_own_city": true,
+      "min_general_stamina": {
+        "value": null,
+        "unknown": true
+      },
+      "gold_cost": {
+        "value": null,
+        "unknown": true
+      },
+      "food_cost": {
+        "value": null,
+        "unknown": true
+      }
+    },
     "recruit_troops": {
       "display_name_cn": "征兵",
       "requires_own_city": true,

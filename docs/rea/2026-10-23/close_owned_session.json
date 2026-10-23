@@ -1,0 +1,13 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"result\":null}"
+    }
+  ],
+  "structuredContent": {
+    "result": null
+  },
+  "isError": false,
+  "resultType": "complete"
+}

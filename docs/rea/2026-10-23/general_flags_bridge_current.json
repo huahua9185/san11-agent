@@ -1,0 +1,509 @@
+{
+  "captured_at_utc": "2026-10-23T01:04:41.434Z",
+  "source": "readonly san11 bridge; no gameplay input",
+  "date": {
+    "content": [
+      {
+        "type": "text",
+        "text": "当前为 190 年 1 月 11 日，场景阶段：campaign。"
+      }
+    ],
+    "structuredContent": {
+      "scenarioId": 1,
+      "scenarioStage": "campaign",
+      "startYear": 190,
+      "startMonth": 1,
+      "startDay": 1,
+      "currentYear": 190,
+      "currentMonth": 1,
+      "currentDay": 11,
+      "elapsedTurns": 1,
+      "playerForceIds": [
+        0
+      ],
+      "validation": "verified_readonly_structures_v1"
+    }
+  },
+  "officers": {
+    "content": [
+      {
+        "type": "text",
+        "text": "共有 15 名符合条件的武将，本次返回 15 名。"
+      }
+    ],
+    "structuredContent": {
+      "scenarioStage": "campaign",
+      "validation": "verified_readonly_structures_v1",
+      "officers": [
+        {
+          "id": 6,
+          "name": "于禁",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 99,
+          "merits": 0,
+          "skillId": 72,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 84,
+            "war": 78,
+            "intelligence": 70,
+            "politics": 57,
+            "charisma": 53
+          },
+          "aptitudes": {
+            "spear": 2,
+            "halberd": 1,
+            "crossbow": 0,
+            "cavalry": 2,
+            "siege": 0,
+            "navy": 1
+          }
+        },
+        {
+          "id": 69,
+          "name": "樂進",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 100,
+          "merits": 0,
+          "skillId": 17,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 80,
+            "war": 84,
+            "intelligence": 52,
+            "politics": 51,
+            "charisma": 65
+          },
+          "aptitudes": {
+            "spear": 3,
+            "halberd": 1,
+            "crossbow": 1,
+            "cavalry": 2,
+            "siege": 3,
+            "navy": 0
+          }
+        },
+        {
+          "id": 78,
+          "name": "夏侯淵",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 120,
+          "merits": 3050,
+          "skillId": 13,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 87,
+            "war": 91,
+            "intelligence": 54,
+            "politics": 60,
+            "charisma": 80
+          },
+          "aptitudes": {
+            "spear": 1,
+            "halberd": 1,
+            "crossbow": 3,
+            "cavalry": 3,
+            "siege": 2,
+            "navy": 0
+          }
+        },
+        {
+          "id": 85,
+          "name": "夏侯惇",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 120,
+          "merits": 3050,
+          "skillId": 37,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 89,
+            "war": 90,
+            "intelligence": 58,
+            "politics": 70,
+            "charisma": 81
+          },
+          "aptitudes": {
+            "spear": 2,
+            "halberd": 1,
+            "crossbow": 0,
+            "cavalry": 3,
+            "siege": 1,
+            "navy": 0
+          }
+        },
+        {
+          "id": 331,
+          "name": "曹休",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 120,
+          "merits": 0,
+          "skillId": 50,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 68,
+            "war": 69,
+            "intelligence": 53,
+            "politics": 52,
+            "charisma": 62
+          },
+          "aptitudes": {
+            "spear": 1,
+            "halberd": 0,
+            "crossbow": 3,
+            "cavalry": 2,
+            "siege": 0,
+            "navy": 1
+          }
+        },
+        {
+          "id": 335,
+          "name": "曹昂",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 120,
+          "merits": 0,
+          "skillId": 33,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 68,
+            "war": 62,
+            "intelligence": 61,
+            "politics": 63,
+            "charisma": 71
+          },
+          "aptitudes": {
+            "spear": 1,
+            "halberd": 2,
+            "crossbow": 0,
+            "cavalry": 1,
+            "siege": 0,
+            "navy": 0
+          }
+        },
+        {
+          "id": 336,
+          "name": "曹洪",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 120,
+          "merits": 3000,
+          "skillId": 12,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 75,
+            "war": 77,
+            "intelligence": 42,
+            "politics": 33,
+            "charisma": 51
+          },
+          "aptitudes": {
+            "spear": 3,
+            "halberd": 2,
+            "crossbow": 0,
+            "cavalry": 2,
+            "siege": 0,
+            "navy": 0
+          }
+        },
+        {
+          "id": 337,
+          "name": "曹純",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 120,
+          "merits": 0,
+          "skillId": null,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 71,
+            "war": 67,
+            "intelligence": 57,
+            "politics": 33,
+            "charisma": 68
+          },
+          "aptitudes": {
+            "spear": 1,
+            "halberd": 0,
+            "crossbow": 0,
+            "cavalry": 3,
+            "siege": 0,
+            "navy": 0
+          }
+        },
+        {
+          "id": 341,
+          "name": "曹仁",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 120,
+          "merits": 3000,
+          "skillId": 29,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 85,
+            "war": 82,
+            "intelligence": 53,
+            "politics": 44,
+            "charisma": 72
+          },
+          "aptitudes": {
+            "spear": 2,
+            "halberd": 3,
+            "crossbow": 0,
+            "cavalry": 2,
+            "siege": 0,
+            "navy": 0
+          }
+        },
+        {
+          "id": 343,
+          "name": "曹操",
+          "statusCode": 0,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 100,
+          "merits": 12050,
+          "skillId": 57,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 96,
+            "war": 72,
+            "intelligence": 91,
+            "politics": 94,
+            "charisma": 96
+          },
+          "aptitudes": {
+            "spear": 3,
+            "halberd": 3,
+            "crossbow": 2,
+            "cavalry": 2,
+            "siege": 1,
+            "navy": 0
+          }
+        },
+        {
+          "id": 430,
+          "name": "張邈",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 97,
+          "merits": 10000,
+          "skillId": 79,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 52,
+            "war": 53,
+            "intelligence": 70,
+            "politics": 75,
+            "charisma": 85
+          },
+          "aptitudes": {
+            "spear": 0,
+            "halberd": 1,
+            "crossbow": 1,
+            "cavalry": 1,
+            "siege": 0,
+            "navy": 0
+          }
+        },
+        {
+          "id": 446,
+          "name": "陳宮",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 97,
+          "merits": 2000,
+          "skillId": 18,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 78,
+            "war": 55,
+            "intelligence": 89,
+            "politics": 84,
+            "charisma": 68
+          },
+          "aptitudes": {
+            "spear": 1,
+            "halberd": 1,
+            "crossbow": 2,
+            "cavalry": 1,
+            "siege": 2,
+            "navy": 0
+          }
+        },
+        {
+          "id": 548,
+          "name": "卞氏",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 150,
+          "merits": 0,
+          "skillId": 75,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 36,
+            "war": 24,
+            "intelligence": 74,
+            "politics": 76,
+            "charisma": 87
+          },
+          "aptitudes": {
+            "spear": 0,
+            "halberd": 0,
+            "crossbow": 0,
+            "cavalry": 1,
+            "siege": 0,
+            "navy": 0
+          }
+        },
+        {
+          "id": 555,
+          "name": "鮑信",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 100,
+          "merits": 10000,
+          "skillId": 26,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 77,
+            "war": 67,
+            "intelligence": 81,
+            "politics": 74,
+            "charisma": 78
+          },
+          "aptitudes": {
+            "spear": 1,
+            "halberd": 2,
+            "crossbow": 1,
+            "cavalry": 0,
+            "siege": 1,
+            "navy": 0
+          }
+        },
+        {
+          "id": 609,
+          "name": "李典",
+          "statusCode": 3,
+          "forceId": 0,
+          "forceName": "曹操",
+          "districtId": 0,
+          "serviceCityId": 12,
+          "locationId": 12,
+          "loyalty": 100,
+          "merits": 0,
+          "skillId": 24,
+          "healthCode": 0,
+          "hasActed": false,
+          "taskCode": null,
+          "stats": {
+            "leadership": 72,
+            "war": 71,
+            "intelligence": 73,
+            "politics": 68,
+            "charisma": 60
+          },
+          "aptitudes": {
+            "spear": 2,
+            "halberd": 2,
+            "crossbow": 2,
+            "cavalry": 1,
+            "siege": 3,
+            "navy": 0
+          }
+        }
+      ],
+      "total": 15,
+      "offset": 0,
+      "limit": 20
+    }
+  }
+}

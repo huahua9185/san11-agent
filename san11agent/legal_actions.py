@@ -22,11 +22,10 @@
   "兵科适性"这类字段（M1 没做，见 docs/offset_research.md），special_skill_id
   虽然存在但没有任何地方定义每个 id 对应什么效果，无法用来做门槛判断，只能
   跳过，不猜测。
-- "一回合一将一令"里的"是否已指派"状态——这不是游戏内存里的字段，是本次
-  对局过程中 agent 自己发出过的指令历史，所以设计成显式传入的
-  assigned_general_indices 参数，调用方（未来的对局循环）自己维护，跟
-  visibility.py 里 player_faction_id 必须显式传入是同一种理由（这类信息
-  本来就是操作方自己已知的，不需要也不应该靠猜内存字段语义来推导）。
+- 任务/出征等完整人员资格仍未建模。2026-10-23已接入己方has_acted：
+  True时排除，None时把general_action_state列为未验证约束。显式传入的
+  assigned_general_indices继续记录调用方的已指派历史，与实机状态共同使用；
+  内存位及覆盖边界见docs/rea_general_action_state_2026-10-23.md。
 
 资源/体力门槛来自 domestic_rules.py 加载的规则表（rules/*.json）。规则表里
 大量数值目前是 unknown——这不是内存偏移问题，是游戏规则本身没有实机验证
@@ -37,7 +36,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 
 from .domestic_rules import ActionRuleSpec, DomesticRulesConfig, RuleValue
@@ -47,6 +46,7 @@ from .visible_state import (
     VisibleFactionPublic,
     VisibleGameState,
     VisibleGeneralFull,
+    VisibleGeneralPublic,
 )
 
 
@@ -57,6 +57,10 @@ class ActionKind(Enum):
     RECRUIT_TROOPS = "recruit_troops"
     TRAIN_TROOPS = "train_troops"
     SECURITY_PATROL = "security_patrol"
+    MERCHANT = "merchant"
+    SEEK_TALENT = "seek_talent"
+    REWARD = "reward"
+    RECRUIT_GENERAL = "recruit_general"
     DIPLOMACY = "diplomacy"
     STRATAGEM = "stratagem"
 
@@ -126,6 +130,42 @@ class SecurityPatrolAction(ActionBase):
 
 
 @dataclass(frozen=True, kw_only=True)
+class MerchantAction(ActionBase):
+    """商人：买卖兵糧。买卖方向和数量是运行时滑桿选择，不在枚举范围内。"""
+
+    kind: ActionKind = field(default=ActionKind.MERCHANT, init=False)
+
+
+@dataclass(frozen=True, kw_only=True)
+class SeekTalentAction(ActionBase):
+    """探索人材：搜索执行武将所在据点的在野武将。结果是运行时随机的，不在
+    枚举范围内，动作本身没有目标参数。"""
+
+    kind: ActionKind = field(default=ActionKind.SEEK_TALENT, init=False)
+
+
+@dataclass(frozen=True, kw_only=True)
+class RewardAction(ActionBase):
+    """褒赏：给同城的另一位己方武将资金以提升忠诚。只覆盖'褒赏1人'这个
+    最小单位，手册里"可1次給與複數的武將資金"的多人褒赏没有建模。"""
+
+    kind: ActionKind = field(default=ActionKind.REWARD, init=False)
+    target_general_index: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class RecruitGeneralAction(ActionBase):
+    """登庸武将。手册列出的可/不可登庸条件里，只有"目标武将不属于己方
+    势力"这一条被实现；是否为敌方君主、義兄弟/夫婦关系、俘虜身份、是否
+    正在接受援军请求出征中，这些都因数据模型缺口没法检查，见
+    _recruit_general_actions() 和 rules 文件里 recruit_general 的 note。
+    """
+
+    kind: ActionKind = field(default=ActionKind.RECRUIT_GENERAL, init=False)
+    target_general_index: int
+
+
+@dataclass(frozen=True, kw_only=True)
 class DiplomacyAction(ActionBase):
     """外交。目标势力是否已建立联系未建模，见模块说明。"""
 
@@ -150,6 +190,10 @@ Action = (
     | RecruitTroopsAction
     | TrainTroopsAction
     | SecurityPatrolAction
+    | MerchantAction
+    | SeekTalentAction
+    | RewardAction
+    | RecruitGeneralAction
     | DiplomacyAction
     | StratagemAction
 )
@@ -178,6 +222,25 @@ def _check_resource(current: int, rule: RuleValue, name: str, unverified: list[s
     return current >= rule.value
 
 
+def _check_action_points(
+    city: VisibleCityDetail, rule: ActionRuleSpec, budgets: dict[int, int | None]
+) -> tuple[bool, tuple[str, ...]]:
+    """单个候选的可负担性，不预留整批候选共享的余额。
+
+    只消费经过边界过滤的军团余额和已核实有效费用；基础标价可能有修正。
+    """
+    unverified: list[str] = []
+    cost = rule.effective_action_points_cost
+    if not cost.is_known:
+        unverified.append("action_points_cost")
+    balance = budgets.get(city.force_id)
+    if balance is None:
+        unverified.append("action_points_balance")
+    if cost.is_known and balance is not None and balance < cost.value:
+        return False, ()
+    return True, tuple(unverified)
+
+
 def _stamina_and_resource_check(
     general: VisibleGeneralFull, city: VisibleCityDetail, rule: ActionRuleSpec
 ) -> tuple[bool, tuple[str, ...]]:
@@ -196,6 +259,8 @@ def _simple_actions(
         (ActionKind.RECRUIT_TROOPS, RecruitTroopsAction),
         (ActionKind.TRAIN_TROOPS, TrainTroopsAction),
         (ActionKind.SECURITY_PATROL, SecurityPatrolAction),
+        (ActionKind.MERCHANT, MerchantAction),
+        (ActionKind.SEEK_TALENT, SeekTalentAction),
     ):
         if not rules.has_action(kind.value):
             continue
@@ -203,6 +268,11 @@ def _simple_actions(
         ok, unverified = _stamina_and_resource_check(general, city, rule)
         if not ok:
             continue
+        if kind is ActionKind.SECURITY_PATROL:
+            if city.security >= 100:  # REA 0x5CC000；满治安时不通过巡察门槛。
+                continue
+            # REA 0x5CC000仍含未建模的资格/状态检查；余额足够不是完整合法性证明。
+            unverified += ("patrol_preconditions",)
         out.append(cls(general_index=general.index, city_index=city.index, unverified_constraints=unverified))
     return out
 
@@ -282,6 +352,62 @@ def _tech_actions(
     ]
 
 
+def _reward_actions(
+    general: VisibleGeneralFull,
+    generals_here: Sequence[VisibleGeneralFull],
+    city: VisibleCityDetail,
+    rules: DomesticRulesConfig,
+) -> list[Action]:
+    """褒赏：目标是同城的己方武将（含执行武将自己——手册没有提到禁止
+    自我褒赏，不臆造这条排除），忠诚未满100。"""
+    if not rules.has_action(ActionKind.REWARD.value):
+        return []
+    rule = rules.action(ActionKind.REWARD.value)
+    ok, unverified = _stamina_and_resource_check(general, city, rule)
+    if not ok:
+        return []
+    return [
+        RewardAction(
+            general_index=general.index,
+            city_index=city.index,
+            target_general_index=target.index,
+            unverified_constraints=unverified,
+        )
+        for target in generals_here
+        if target.loyalty < 100
+    ]
+
+
+def _recruit_general_actions(
+    general: VisibleGeneralFull,
+    city: VisibleCityDetail,
+    candidate_generals: Sequence[VisibleGeneralPublic],
+    player_faction_id: int,
+    rules: DomesticRulesConfig,
+) -> list[Action]:
+    """登庸武将：目标是任何不属于己方势力的已登场武将（含在野，faction_id
+    为 FREE_AGENT_FACTION_ID -1）。手册里更细的可/不可登庸条件（敌方君主、
+    義兄弟/夫婦、俘虜身份、出征援军状态等）无法用现有数据模型检查，见
+    RecruitGeneralAction 文档字符串。"""
+    if not rules.has_action(ActionKind.RECRUIT_GENERAL.value):
+        return []
+    rule = rules.action(ActionKind.RECRUIT_GENERAL.value)
+    ok, unverified = _stamina_and_resource_check(general, city, rule)
+    if not ok:
+        return []
+    eligibility_unverified = unverified + ("recruit_general_eligibility",)
+    return [
+        RecruitGeneralAction(
+            general_index=general.index,
+            city_index=city.index,
+            target_general_index=target.index,
+            unverified_constraints=eligibility_unverified,
+        )
+        for target in candidate_generals
+        if target.faction_id != player_faction_id
+    ]
+
+
 def _diplomacy_actions(
     general: VisibleGeneralFull,
     city: VisibleCityDetail,
@@ -348,13 +474,16 @@ def enumerate_legal_actions(
     见模块顶部说明与 tests/test_legal_actions.py 的架构守卫测试。
 
     约束覆盖情况（详见 docs/legal_actions_research.md）：
-    - 武将已被指派：靠 assigned_general_indices 排除。
+    - 武将已被指派或实机标记已行动：靠 assigned_general_indices 和 has_acted 排除。
     - 体力：general.stamina > 0 是硬性门槛；具体每种动作的体力/金/粮消耗
       阈值来自 rules，未知时不拦，记录进 unverified_constraints。
     - 设施建设位是否可用：development_land_count - developed_land_count > 0。
     - 武将是否在这座城：is_general_in_city()，默认实现见 default_is_general_in_city，
       是一个未经验证的假设。
     - 城池是否己方：city.faction_id == player_faction_id。
+    - 行動力：已核实有效费用与所属己方军团余额都已知时检查单条可负担性；
+      其余标记action_points_cost/action_points_balance，不把基础标价当有效费用。
+      候选是互相可选的动作，不是已经预留共享资源的整批执行计划。
     - 武将适性/特技：数据模型里没有可用字段，完全没有实现，见模块说明。
     """
     own_cities = [
@@ -369,6 +498,7 @@ def enumerate_legal_actions(
         and general.faction_id == player_faction_id
         and general.index not in assigned_general_indices
         and general.stamina > 0
+        and general.has_acted is not True
     ]
     other_factions = [f for f in state.factions if f.index != player_faction_id]
     enemy_cities = [
@@ -376,6 +506,9 @@ def enumerate_legal_actions(
         for city in state.cities
         if city.faction_id is not None and city.faction_id != player_faction_id
     ]
+    # 登庸武将的候选目标跟发起城池无关，一次性算好：任何已登场（Public 或
+    # Full 都行，faction_id 两者都有）且不属于己方势力的武将。
+    recruitable_generals = [g for g in state.generals if g.faction_id != player_faction_id]
 
     actions: list[Action] = []
     for city in own_cities:
@@ -385,9 +518,36 @@ def enumerate_legal_actions(
             actions.extend(_facility_actions(general, city, rules))
             actions.extend(_equipment_actions(general, city, rules))
             actions.extend(_tech_actions(general, city, rules))
+            actions.extend(_reward_actions(general, generals_here, city, rules))
+            actions.extend(
+                _recruit_general_actions(general, city, recruitable_generals, player_faction_id, rules)
+            )
             actions.extend(_diplomacy_actions(general, city, other_factions, rules))
             actions.extend(_stratagem_actions(general, city, enemy_cities, rules))
-    return actions
+    # 旧配置或未核实版本不把未知解释为未行动；保持研究候选模式并明确标记。
+    unknown_action_state = {g.index for g in own_generals if g.has_acted is None}
+    # 军团表是唯一预算来源；禁止按城池重复建立资源池。重复ID视为未知。
+    budgets: dict[int, int | None] = {}
+    for force in state.forces:
+        if force.faction_id == player_faction_id:
+            budgets[force.index] = None if force.index in budgets else force.action_points
+    cities_by_index = {city.index: city for city in own_cities}
+    checks: dict[tuple[int, ActionKind], tuple[bool, tuple[str, ...]]] = {}
+    result: list[Action] = []
+    for action in actions:
+        key = (action.city_index, action.kind)
+        if key not in checks:
+            checks[key] = _check_action_points(
+                cities_by_index[action.city_index], rules.action(action.kind.value), budgets,
+            )
+        affordable, unchecked = checks[key]
+        if not affordable:
+            continue
+        if action.general_index in unknown_action_state:
+            unchecked += ("general_action_state",)
+        result.append(replace(action, unverified_constraints=action.unverified_constraints + unchecked)
+                      if unchecked else action)
+    return result
 
 
 def describe_action(action: Action, rules: DomesticRulesConfig) -> str:
@@ -407,6 +567,10 @@ def describe_action(action: Action, rules: DomesticRulesConfig) -> str:
         sub = rule.sub_types.get(action.tech_type) if rule else None
         label = sub.display_name_cn if sub else action.tech_type
         text += f"（{label}）"
+    elif isinstance(action, RewardAction):
+        text += f"（-> 武将{action.target_general_index}）"
+    elif isinstance(action, RecruitGeneralAction):
+        text += f"（-> 武将{action.target_general_index}）"
     elif isinstance(action, DiplomacyAction):
         sub = rule.sub_types.get(action.diplomacy_type) if rule else None
         label = sub.display_name_cn if sub else action.diplomacy_type

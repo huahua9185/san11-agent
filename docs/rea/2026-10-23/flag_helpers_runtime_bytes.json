@@ -1,0 +1,49 @@
+{
+  "captured_at_utc": "2026-10-23T01:05:38.983594+00:00",
+  "source": "ReadProcessMemory; no game inputs or writes",
+  "pid": 33888,
+  "original_sha256": "f2a304b118e72673f4a788b1e87322fa891ff57218a8b89e671d4f8cb6aca041",
+  "derived_sha256": "bc7f57cf26fc7a17f3e85d520543f397d93fbba7bea13a74162f32bbe6410e8f",
+  "rows": [
+    {
+      "analysis_va": "0x489420",
+      "runtime_address": "0x489420",
+      "size": 32,
+      "stable_across_two_reads": true,
+      "matches_derived_text": true,
+      "raw_hex": "81c1240100006a0051e85292feff83c408c3cccccccccccccccccccccccccccc"
+    },
+    {
+      "analysis_va": "0x489e60",
+      "runtime_address": "0x489e60",
+      "size": 48,
+      "stable_across_two_reads": true,
+      "matches_derived_text": true,
+      "raw_hex": "8b4424045081c1240100006a0051e89d87feff83c40cb95c899907e840690100b95c899907e856f70200c20400cccccc"
+    },
+    {
+      "analysis_va": "0x472610",
+      "runtime_address": "0x472610",
+      "size": 112,
+      "stable_across_two_reads": true,
+      "matches_derived_text": true,
+      "raw_hex": "8b54240485d2745c8b4424088bc8c1e9055683e01f8d348a85f6578bf874436a0456ff1568e2740085c075366a0456ff156ce2740085c075298b44241485c08bcf7410b801000000d3e08b0e5f0bc8890e5ec38b06ba01000000d3e2f7d223c289065f5ec3cccccccccccccccccccccc"
+    },
+    {
+      "analysis_va": "0x472680",
+      "runtime_address": "0x472680",
+      "size": 80,
+      "stable_across_two_reads": true,
+      "matches_derived_text": true,
+      "raw_hex": "8b54240485d2750333c0c38b4424088bc8c1e9055683e01f8d348a85f6578bf8740d6a0456ff1568e2740085c074055f33c05ec38bcf8b3eb801000000d3e033c923c73bc81bc05ff7d85ec3cccccccc"
+    },
+    {
+      "analysis_va": "0x489480",
+      "runtime_address": "0x489480",
+      "size": 64,
+      "stable_across_two_reads": true,
+      "matches_derived_text": true,
+      "raw_hex": "8b44240485c07c1083f8047f0b668b84412a010000c204006633c0c20400cccc8b44240485c07c0f83f8047f0a8b8481d0000000c2040083c8ffc20400cccccc"
+    }
+  ]
+}

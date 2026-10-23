@@ -1,0 +1,451 @@
+{
+  "date": "2026-10-22",
+  "authority": "UI-controlled experiment plus readonly bridge and ReadProcessMemory",
+  "original_sha256": "f2a304b118e72673f4a788b1e87322fa891ff57218a8b89e671d4f8cb6aca041",
+  "save": {
+    "slot": 5,
+    "comment": "REA-20261022-before"
+  },
+  "experiment": {
+    "scenarioId": 1,
+    "player_faction_id": 0,
+    "cityId": 12,
+    "cityName": "陳留",
+    "districtId": 0,
+    "action": "巡察",
+    "generalIds": [
+      343,
+      85,
+      78
+    ],
+    "ui_displayed_action_points_cost": 20,
+    "ui_displayed_gold_cost": 100,
+    "ui_predicted_security": [
+      80,
+      91
+    ]
+  },
+  "before": {
+    "date": {
+      "scenarioId": 1,
+      "scenarioStage": "campaign",
+      "startYear": 190,
+      "startMonth": 1,
+      "startDay": 1,
+      "currentYear": 190,
+      "currentMonth": 1,
+      "currentDay": 1,
+      "elapsedTurns": 0,
+      "playerForceIds": [
+        0
+      ],
+      "validation": "verified_readonly_structures_v1"
+    },
+    "city": {
+      "scenarioStage": "campaign",
+      "validation": "verified_readonly_structures_v1",
+      "city": {
+        "id": 12,
+        "name": "陳留",
+        "occupied": true,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "governorId": 343,
+        "troopCapacity": 100000,
+        "troops": 16000,
+        "gold": 4200,
+        "food": 42000,
+        "energy": 90,
+        "publicOrder": 80,
+        "weapons": {
+          "spears": 0,
+          "halberds": 2000,
+          "crossbows": 2000,
+          "horses": 2000
+        }
+      }
+    },
+    "officers": [
+      {
+        "id": 78,
+        "name": "夏侯淵",
+        "statusCode": 3,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "serviceCityId": 12,
+        "locationId": 12,
+        "loyalty": 120,
+        "merits": 3000,
+        "skillId": 13,
+        "healthCode": 0,
+        "hasActed": false,
+        "taskCode": null,
+        "stats": {
+          "leadership": 87,
+          "war": 91,
+          "intelligence": 54,
+          "politics": 60,
+          "charisma": 80
+        },
+        "aptitudes": {
+          "spear": 1,
+          "halberd": 1,
+          "crossbow": 3,
+          "cavalry": 3,
+          "siege": 2,
+          "navy": 0
+        }
+      },
+      {
+        "id": 85,
+        "name": "夏侯惇",
+        "statusCode": 3,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "serviceCityId": 12,
+        "locationId": 12,
+        "loyalty": 120,
+        "merits": 3000,
+        "skillId": 37,
+        "healthCode": 0,
+        "hasActed": false,
+        "taskCode": null,
+        "stats": {
+          "leadership": 89,
+          "war": 90,
+          "intelligence": 58,
+          "politics": 70,
+          "charisma": 81
+        },
+        "aptitudes": {
+          "spear": 2,
+          "halberd": 1,
+          "crossbow": 0,
+          "cavalry": 3,
+          "siege": 1,
+          "navy": 0
+        }
+      },
+      {
+        "id": 343,
+        "name": "曹操",
+        "statusCode": 0,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "serviceCityId": 12,
+        "locationId": 12,
+        "loyalty": 100,
+        "merits": 12000,
+        "skillId": 57,
+        "healthCode": 0,
+        "hasActed": false,
+        "taskCode": null,
+        "stats": {
+          "leadership": 96,
+          "war": 72,
+          "intelligence": 91,
+          "politics": 94,
+          "charisma": 96
+        },
+        "aptitudes": {
+          "spear": 3,
+          "halberd": 3,
+          "crossbow": 2,
+          "cavalry": 2,
+          "siege": 1,
+          "navy": 0
+        }
+      }
+    ]
+  },
+  "after_action": {
+    "date": {
+      "scenarioId": 1,
+      "scenarioStage": "campaign",
+      "startYear": 190,
+      "startMonth": 1,
+      "startDay": 1,
+      "currentYear": 190,
+      "currentMonth": 1,
+      "currentDay": 1,
+      "elapsedTurns": 0,
+      "playerForceIds": [
+        0
+      ],
+      "validation": "verified_readonly_structures_v1"
+    },
+    "city": {
+      "scenarioStage": "campaign",
+      "validation": "verified_readonly_structures_v1",
+      "city": {
+        "id": 12,
+        "name": "陳留",
+        "occupied": true,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "governorId": 343,
+        "troopCapacity": 100000,
+        "troops": 16000,
+        "gold": 4100,
+        "food": 42000,
+        "energy": 90,
+        "publicOrder": 91,
+        "weapons": {
+          "spears": 0,
+          "halberds": 2000,
+          "crossbows": 2000,
+          "horses": 2000
+        }
+      }
+    },
+    "officers": [
+      {
+        "id": 78,
+        "name": "夏侯淵",
+        "statusCode": 3,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "serviceCityId": 12,
+        "locationId": 12,
+        "loyalty": 120,
+        "merits": 3050,
+        "skillId": 13,
+        "healthCode": 0,
+        "hasActed": true,
+        "taskCode": null,
+        "stats": {
+          "leadership": 87,
+          "war": 91,
+          "intelligence": 54,
+          "politics": 60,
+          "charisma": 80
+        },
+        "aptitudes": {
+          "spear": 1,
+          "halberd": 1,
+          "crossbow": 3,
+          "cavalry": 3,
+          "siege": 2,
+          "navy": 0
+        }
+      },
+      {
+        "id": 85,
+        "name": "夏侯惇",
+        "statusCode": 3,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "serviceCityId": 12,
+        "locationId": 12,
+        "loyalty": 120,
+        "merits": 3050,
+        "skillId": 37,
+        "healthCode": 0,
+        "hasActed": true,
+        "taskCode": null,
+        "stats": {
+          "leadership": 89,
+          "war": 90,
+          "intelligence": 58,
+          "politics": 70,
+          "charisma": 81
+        },
+        "aptitudes": {
+          "spear": 2,
+          "halberd": 1,
+          "crossbow": 0,
+          "cavalry": 3,
+          "siege": 1,
+          "navy": 0
+        }
+      },
+      {
+        "id": 343,
+        "name": "曹操",
+        "statusCode": 0,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "serviceCityId": 12,
+        "locationId": 12,
+        "loyalty": 100,
+        "merits": 12050,
+        "skillId": 57,
+        "healthCode": 0,
+        "hasActed": true,
+        "taskCode": null,
+        "stats": {
+          "leadership": 96,
+          "war": 72,
+          "intelligence": 91,
+          "politics": 94,
+          "charisma": 96
+        },
+        "aptitudes": {
+          "spear": 3,
+          "halberd": 3,
+          "crossbow": 2,
+          "cavalry": 2,
+          "siege": 1,
+          "navy": 0
+        }
+      }
+    ]
+  },
+  "after_turn": {
+    "date": {
+      "scenarioId": 1,
+      "scenarioStage": "campaign",
+      "startYear": 190,
+      "startMonth": 1,
+      "startDay": 1,
+      "currentYear": 190,
+      "currentMonth": 1,
+      "currentDay": 11,
+      "elapsedTurns": 1,
+      "playerForceIds": [
+        0
+      ],
+      "validation": "verified_readonly_structures_v1"
+    },
+    "city": {
+      "scenarioStage": "campaign",
+      "validation": "verified_readonly_structures_v1",
+      "city": {
+        "id": 12,
+        "name": "陳留",
+        "occupied": true,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "governorId": 343,
+        "troopCapacity": 100000,
+        "troops": 16000,
+        "gold": 4100,
+        "food": 41600,
+        "energy": 90,
+        "publicOrder": 91,
+        "weapons": {
+          "spears": 0,
+          "halberds": 2000,
+          "crossbows": 2000,
+          "horses": 2000
+        }
+      }
+    },
+    "officers": [
+      {
+        "id": 78,
+        "name": "夏侯淵",
+        "statusCode": 3,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "serviceCityId": 12,
+        "locationId": 12,
+        "loyalty": 120,
+        "merits": 3050,
+        "skillId": 13,
+        "healthCode": 0,
+        "hasActed": false,
+        "taskCode": null,
+        "stats": {
+          "leadership": 87,
+          "war": 91,
+          "intelligence": 54,
+          "politics": 60,
+          "charisma": 80
+        },
+        "aptitudes": {
+          "spear": 1,
+          "halberd": 1,
+          "crossbow": 3,
+          "cavalry": 3,
+          "siege": 2,
+          "navy": 0
+        }
+      },
+      {
+        "id": 85,
+        "name": "夏侯惇",
+        "statusCode": 3,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "serviceCityId": 12,
+        "locationId": 12,
+        "loyalty": 120,
+        "merits": 3050,
+        "skillId": 37,
+        "healthCode": 0,
+        "hasActed": false,
+        "taskCode": null,
+        "stats": {
+          "leadership": 89,
+          "war": 90,
+          "intelligence": 58,
+          "politics": 70,
+          "charisma": 81
+        },
+        "aptitudes": {
+          "spear": 2,
+          "halberd": 1,
+          "crossbow": 0,
+          "cavalry": 3,
+          "siege": 1,
+          "navy": 0
+        }
+      },
+      {
+        "id": 343,
+        "name": "曹操",
+        "statusCode": 0,
+        "forceId": 0,
+        "forceName": "曹操",
+        "districtId": 0,
+        "serviceCityId": 12,
+        "locationId": 12,
+        "loyalty": 100,
+        "merits": 12050,
+        "skillId": 57,
+        "healthCode": 0,
+        "hasActed": false,
+        "taskCode": null,
+        "stats": {
+          "leadership": 96,
+          "war": 72,
+          "intelligence": 91,
+          "politics": 94,
+          "charisma": 96
+        },
+        "aptitudes": {
+          "spear": 3,
+          "halberd": 3,
+          "crossbow": 2,
+          "cavalry": 2,
+          "siege": 1,
+          "navy": 0
+        }
+      }
+    ]
+  },
+  "ui_observations": [
+    "巡察 dialog showed 行動力20/55, 資金100/4200, 治安80->91",
+    "After patrol, top bar showed 35",
+    "After one turn, date was190-1-11 and top bar showed90",
+    "Dismissed adviser messages and reopened city menu without spending further resources"
+  ],
+  "limitations": [
+    "One scenario, one district, one city; no independent multi-city or multi-district consumption experiment",
+    "No autonomous ActionExecutor/advance_turn implementation validated",
+    "No deduction that general+0x12a bit1 universally covers all task modes",
+    "Screenshot observations were viewed through Computer Use; no screenshot payload stored here"
+  ]
+}

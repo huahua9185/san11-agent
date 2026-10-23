@@ -1,0 +1,36 @@
+{
+  "captured_at_utc": "2026-10-23T01:18:53.522611+00:00",
+  "source": "RealGameStateSource.read -> visible state -> enumerate_legal_actions; no execution or new game input",
+  "sha256": "f2a304b118e72673f4a788b1e87322fa891ff57218a8b89e671d4f8cb6aca041",
+  "pid": 33888,
+  "turn": 1,
+  "own_force_budgets": [
+    {
+      "index": 0,
+      "action_points": 90
+    }
+  ],
+  "effective_patrol_cost": 20,
+  "patrol_candidate_count": 15,
+  "patrol_missing_ap_check_count": 0,
+  "patrol_other_unverified_constraints": [],
+  "all_candidates_by_kind": {
+    "recruit_troops": 15,
+    "train_troops": 15,
+    "security_patrol": 15,
+    "merchant": 15,
+    "seek_talent": 15,
+    "build_facility": 300,
+    "produce_equipment": 150,
+    "research_tech": 480,
+    "reward": 45,
+    "recruit_general": 10065,
+    "diplomacy": 4305,
+    "stratagem": 1125
+  },
+  "limitations": [
+    "Candidates are alternatives, not a simultaneously executable or budget-reserved batch",
+    "No actual insufficient-budget gameplay experiment",
+    "Snapshot not cross-table atomic"
+  ]
+}

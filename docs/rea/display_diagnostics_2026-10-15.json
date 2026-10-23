@@ -1,0 +1,40 @@
+{
+  "source": "dxdiag /whql:off /x, read-only observation",
+  "captured_in": "current remote desktop environment",
+  "displays": [
+    {
+      "CardName": "Microsoft Remote Display Adapter",
+      "DriverVersion": "10.0.26100.9711",
+      "DDIVersion": "12",
+      "FeatureLevels": "12_1,12_0,11_1,11_0,10_1,10_0,9_3,9_2,9_1,1_0_CORE",
+      "DDrawStatus": "Not Available",
+      "D3DStatus": "Enabled",
+      "AGPStatus": "Not Available",
+      "DeviceProblemCode": "No Problem"
+    },
+    {
+      "CardName": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "31.0.101.3430",
+      "DDIVersion": "unknown",
+      "FeatureLevels": "Unknown",
+      "DDrawStatus": "Enabled",
+      "D3DStatus": "Not Available",
+      "AGPStatus": "Enabled",
+      "DeviceProblemCode": "No Problem"
+    },
+    {
+      "CardName": "Intel(R) Arc(TM) A770M Graphics",
+      "DriverVersion": "32.0.101.8993",
+      "DDIVersion": "12",
+      "FeatureLevels": "12_2,12_1,12_0,11_1,11_0,10_1,10_0,9_3,9_2,9_1,1_0_CORE",
+      "DDrawStatus": "Enabled",
+      "D3DStatus": "Enabled",
+      "AGPStatus": "Enabled",
+      "DeviceProblemCode": "No Problem"
+    }
+  ],
+  "limitations": [
+    "Does not establish the exact game API failing initialization",
+    "Local desktop comparison and game error code remain unavailable"
+  ]
+}
