@@ -37,8 +37,10 @@ SetTransform，全部是WORLD(0x100)，没有VIEW/PROJECTION；42处`+0x178`
 得到 map→world 仿射并固化到 `map_camera.py`；已实现 d3d9 代理 DLL，
 实时 VIEW/PROJECTION 写入 `Local\San11Camera`，`camera_reader.py` 可读取。
 当前423 passed。2026-10-23 实机 live hover 平原成功（selection None→4，只移动
-鼠标未点击）；4K下右键自己的城陈留已测到城池指令菜单与“都市”二级菜单坐标，
-但仅单城单样本，见[4K菜单测量](rea_4k_menu_2026-10-23.md)。
+鼠标未点击）；4K下右键自己的城陈留已测到城池指令菜单与“都市”二级菜单坐标；
+2048×1152窗口下又测到南皮坐标。两者不是线性缩放，均仅单城单样本，见
+[4K菜单测量](rea_4k_menu_2026-10-23.md) /
+[2048菜单测量](rea_2048_menu_2026-10-23.md)。
 
 **已确认**：便携Ghidra/JDK已可用，游戏已进入可恢复存档并完成一次巡察和一次推进旬；
 早期DirectX启动失败不再是当前阻塞。军团行動力 `Force+0x2C u8` 和表容量47

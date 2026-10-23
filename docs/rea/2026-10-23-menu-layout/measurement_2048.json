@@ -1,0 +1,67 @@
+{
+  "captured_at_local": "2026-10-23T21:34+08:00",
+  "resolution": [
+    2048,
+    1152
+  ],
+  "window_mode": "windowed",
+  "city": "南皮",
+  "city_index": 3,
+  "city_label_center_approx": [
+    1150,
+    305
+  ],
+  "city_tile_center_approx": [
+    1105,
+    390
+  ],
+  "top_menu": {
+    "outer_left_top": [
+      1165,
+      407
+    ],
+    "outer_right_bottom": [
+      1235,
+      632
+    ],
+    "first_item_center": [
+      1200,
+      427
+    ],
+    "item_height": 34,
+    "item_count": 6,
+    "relative_to_tile_first_item": [
+      95,
+      37
+    ],
+    "relative_to_label_first_item": [
+      50,
+      122
+    ]
+  },
+  "submenu": {
+    "outer_left_top": [
+      1250,
+      407
+    ],
+    "outer_right_bottom": [
+      1365,
+      644
+    ],
+    "first_item_center": [
+      1307,
+      424
+    ],
+    "item_height": 34,
+    "item_count": 7,
+    "relative_to_top_item_first_item": [
+      107,
+      -3
+    ]
+  },
+  "source_screenshots": [
+    "top_menu_2048.png",
+    "submenu_2048.png"
+  ],
+  "caveat": "Single city/one sample at 2048x1152 windowed. Production ui_layout not modified; menu edge-avoidance and anchor need another city validation."
+}
