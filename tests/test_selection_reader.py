@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from san11agent.execution_state import parse_selection_state
 from san11agent.memory import MutableMemoryReader
 from san11agent.offsets import load_offsets
 from san11agent.selection_reader import (
@@ -66,6 +67,15 @@ def test_reads_selected_city_and_candidate_coordinate():
     assert result.manager_address == MANAGER_ADDRESS
     assert result.object_address == object_address
     assert result.is_city
+
+
+def test_parse_selection_state_uses_reader_fallback():
+    reader = _reader()
+    _set_city(reader, index=11, name="濮陽", map_x=120, map_y=71)
+
+    selection = parse_selection_state(reader, OFFSETS, GAME_DATA_BASE)
+
+    assert selection.selected_city_index == 11
 
 
 def test_reads_second_city():

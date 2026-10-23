@@ -36,7 +36,7 @@
 | 真实状态源 | RealGameStateSource.read复用解析和边界过滤；advance_turn仍抛NotImplementedError | [strategy_loop.py](san11agent/strategy_loop.py) |
 | 键鼠执行 | SendInputBackend、执行/菜单/轮询脚手架存在；地图定位、相机、选中对象和阶段仍有缺口，未接成真实ActionExecutor | [input_backend.py](san11agent/input_backend.py)、[menu_execution.py](san11agent/menu_execution.py)、[execution_state.py](san11agent/execution_state.py)、[map_projection.py](san11agent/map_projection.py) |
 | 动作后置验证 | 巡察验证器已实现（前后 VisibleGameState 对比，confirmed/failed/inconclusive 三值）；尚未接真实执行器 | [patrol_verification.py](san11agent/patrol_verification.py) |
-| 城池菜单目标 | 2026-10-23 A/B（濮陽/南皮）验证 manager+0x64 → 城市对象 → index；空闲返回 None，仅覆盖菜单目标，未验证悬停 | [selection_reader.py](san11agent/selection_reader.py) |
+| 城池选择 | 2026-10-23 菜单 A/B + 纯悬停 A/B 均验证 manager+0x64 → 城市对象 → index；reader 已接入 parse_selection_state 的 unknown 回退；camera 仍缺 | [selection_reader.py](san11agent/selection_reader.py)、[execution_state.py](san11agent/execution_state.py) |
 
 数据流：
 
@@ -110,10 +110,12 @@ LegalActions、摘要和模型输入不得绕过VisibleGameState读取隐藏信�
 每项改动应明确：新增字段如何从读取层进入己方可见态、如何被候选/摘要/执行器消费、失败与unknown怎样处理、哪些证据支持、哪些仍未覆盖。不要为让循环“跑通”而吞掉NotImplementedError或把真实依赖换成假成功。
 
 **2026-10-23 selection追加（未写入生产offsets）**：`DAT_096a58f0+0x64`
-当前指向选中城池对象；`FUN_004919a0` 用
-`(obj-(GAME_DATA_BASE+0x89730))/0x38` 算索引，当前值为12、对应city[12]陳留。
+指向当前城池对象；`FUN_004919a0` 用
+`(obj-(GAME_DATA_BASE+0x89730))/0x38` 算索引。菜单点击和纯悬停两种 A/B
+都已验证：濮陽/index 11、南皮/index 3，移开鼠标后manager回0。
 对象`+0x1C/+0x20`是`city.map_x/map_y`候选，42城坐标与内政用地坐标空间相关。
-仍需A/B城池选择对照；详见[selection报告](rea_selection_2026-10-23.md)。
+`selection_reader` 已接入 `parse_selection_state` 的 unknown 回退；详见
+[selection报告](rea_selection_2026-10-23.md)。
 
 ## 6. REA接续方法与避坑
 
@@ -191,7 +193,7 @@ python -m pytest -q
 git diff --check
 ```
 
-基线测试结果为408项通过。这些是离线测试，不能替代实机验收；后续修改后数量会变化，不应为了维持数字删除/伪造测试。新环境缺pytest时可在项目虚拟环境安装requirements-dev；不需要先启动游戏才能运行测试。
+基线测试结果为409项通过。这些是离线测试，不能替代实机验收；后续修改后数量会变化，不应为了维持数字删除/伪造测试。新环境缺pytest时可在项目虚拟环境安装requirements-dev；不需要先启动游戏才能运行测试。
 
 增加状态字段时至少核对未知值、字节宽度/掩码、版本边界及敌方信息不泄漏；修改执行/循环时增加状态变化、结果不明、失败、共享预算和终止条件的测试。文档-only改动检查链接与差异即可，无需新增镜像实现的测试。
 

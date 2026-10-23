@@ -103,9 +103,9 @@ if GAME_DATA_BASE + 0x89730 <= selected_object < ... + 0x4000*0x38:
 `domestic_land (103,74)` 相差 `+5/+5`。因此对象坐标很可能是
 **城池在地图上的格子坐标**，与内政用地坐标相近但不同。
 
-**仍不能直接上线**：这只是单个 UI 状态；对象数组前 42 项与 city 索引的对齐、
-`+0x1C/+0x20` 的坐标语义、以及 `map_x/map_y` 是否就是这两个半字，仍需要
-受控动态实验确认。生产 `offsets` 仍未修改。
+**仍不能直接上线**：对象数组前 42 项与 city 索引的对齐已有 42 城坐标相关性
+和多点（濮陽/南皮菜单、濮陽/南皮纯悬停）支持，但 `+0x1C/+0x20` 是否就是
+`city.map_x/map_y` 仍需更多城市/地图坐标对照。生产 `offsets` 仍未修改。
 
 ### A/B 受控验证结果（2026-10-23）
 
@@ -128,13 +128,36 @@ if GAME_DATA_BASE + 0x89730 <= selected_object < ... + 0x4000*0x38:
 **仍不能当成完整 selection 方案**：
 
 - manager 只在城池菜单/命令上下文存在时非零，关闭菜单后回到 `0x0`；
-- 这次验证的是“城池菜单目标”，**没有验证仅悬停时的选中状态**；
-- 因此它可以直接服务于“点开城池菜单后确认目标”的 Execute 流程，但还不能
-  直接替换当前基于悬停的 `CitySelector` 轮询；
+- 这次验证的是“城池菜单目标”；后续纯悬停 probe4 已确认悬停时同一条链
+  也会写入（见下节），因此可用于 `CitySelector` 的 hover 轮询；
 - `map_x/map_y` 仍是候选，尚未写入生产 offsets。
 
 证据：`probe2.jsonl`、`probe_summary.json`。两次 A/B 分别有 41/71 个稳定
 采样点，空闲段 manager 为 0，排除了“只捕获到一次瞬时值”的可能。
+
+### 纯悬停验证结果（probe4）
+
+用户明确确认：本轮**只把鼠标悬停到城池上，没有点击**。探针 `probe4.jsonl`
+捕获到：
+
+```text
+南皮菜单残留(14) -> 空闲(24) -> 濮陽悬停(17) -> 空闲(6)
+-> 南皮悬停(11) -> 空闲(166)
+```
+
+| 状态 | manager | selected object | index | city | object coord |
+|---|---|---:|---:|---|---:|
+| 空闲 | `0x0` | `None` | `None` | — | — |
+| 濮陽悬停 | `0x464cad0` | `0x728b2f0` | `11` | 濮陽 | `(120,71)` |
+| 南皮悬停 | `0x46487d0` | `0x728b130` | `3` | 南皮 | `(138,37)` |
+
+**已确认（纯悬停）**：
+
+- 悬停本身就会写 `[manager+0x64]`，不需要点击城池；
+- 鼠标移开后 manager 回到 `0x0`，所以 `CitySelector` 必须在 `move_mouse()`
+  后立即轮询；
+- `context+0x13c/+0x140` 全程不变，不是选中状态来源；
+- 因此 `selection_reader` 可以直接作为 `CitySelector` 的 selection 来源。
 
 ### Reader 落地
 
@@ -147,9 +170,12 @@ if GAME_DATA_BASE + 0x89730 <= selected_object < ... + 0x4000*0x38:
 - `read_city_map_coordinate()` 独立按 city index 读取对象数组候选坐标；
 - 不发送输入、不写内存；对象数组/坐标仍标为候选。
 
-5 项离线测试覆盖濮陽/南皮、空闲、非法指针、独立坐标读取。当前 408 项
-离线测试通过。这个 reader 还没有接进 `CitySelector`：后者依赖“悬停选中”，
-而本轮 A/B 验证的是“点开城池菜单后的目标”，两者不能混用。
+6 项离线测试覆盖濮陽/南皮、空闲、非法指针、独立坐标读取，以及
+`parse_selection_state()` 的 unknown 回退。当前 409 项离线测试通过。
+
+`execution_state.parse_selection_state()` 现在优先读 offsets 的显式字段，
+字段 unknown 时回退到该 reader；`CitySelector` 走同一个函数，因此纯悬停
+链路已经具备可用的 selection 来源。camera 坐标仍是实际点击前的硬阻塞。
 
 ## 范围与方法
 
@@ -187,6 +213,7 @@ if GAME_DATA_BASE + 0x89730 <= selected_object < ... + 0x4000*0x38:
 | `DAT_096a58f0` 引用点集中在 0x5746xx–0x57cfxx；其中 0x5746C8 写入命令上下文 `+0x20` | `command_global_96a58f0_xrefs.json` / `ev_db2e4854fa14f458aef626e65b4a61f4f389a170c326d2004388372c3451d9f7`；`command_selection_setter_disassembly.json`（Capstone 只读反汇编） |
 | 当前 `DAT_096a58f0+0x64` 指向对象索引 12，对应 city[12]=陳留；对象坐标 (108,79)，domestic_land=(103,74) | `selected_city_probe.json`（本轮只读探针） |
 | A/B 点击濮陽/南皮菜单后，manager+0x64 分别指向 index 11/3，city 名和坐标同步变化 | `probe2.jsonl`、`probe_summary.json`（只读轮询探针） |
+| 纯悬停濮陽/南皮（无点击）同样写 manager+0x64；移开鼠标后回到 0 | `probe4.jsonl`、`probe4_summary.json`（用户确认只悬停） |
 | `ctx+0x13c/+0x140` 同用 vtable `0x835bc8`；抽样槽位是 UI/几何方法而非 index getter | `vtable_473210.json` / `ev_596b05999d1d1e72b43a6d33bba8e0f8131ae86c8a8b4aed12af868b516567cf`；`vtable_475890.json` / `ev_712f7f9e96d3e5311050f9ef84399c98f4b8274b056de6ef143cae932e263bcd`；`vtable_4759d0.json` / `ev_c026b34d5d2298eaf0f1d15d9dc2ff3b83c8a01089b17b16a181c6197bd33a65`；`vtable_4eda70.json` / `ev_3c628a6e4e57bd73ce3bbc9ad9ae2dd4ad4da17337a239c2b8eb26ba2dbe27d2`；`vtable_4d67f0.json` / `ev_194f1b5a4e3c6a292bbb102c295f0585f4409a055358d53b026954d9631846ae` |
 | 运行时 `ctx` / `+0x13c` / `+0x140` 双读稳定，且 `+0x13c` 不在城池数组内 | `selected_pointer_probe.json`（本轮只读探针，不是 REA Evidence） |
 
@@ -197,22 +224,22 @@ if GAME_DATA_BASE + 0x89730 <= selected_object < ... + 0x4000*0x38:
 2. 城市/据点对象的真实 vtable 布局，以及 `+0x40/+0x44` 在真实城市对象上的
    语义；`ctx+0x13c` 同类对象的 vtable 抽样不是 index getter，不能据此推断
    所有对象。
-3. 对象数组前 42 项按 city index 对齐已有 42 城坐标相关性和两个 A/B 点支持，
-   但 `+0x1C/+0x20` 是否就是 `city.map_x/map_y` 仍需更多城市或地图坐标对照。
-4. 仅悬停（不打开菜单）时的选中状态没有验证；manager 只在菜单/命令上下文
-   存在时非零，关闭菜单后回到 0。
+3. 对象数组前 42 项按 city index 对齐已有 42 城坐标相关性和菜单/悬停多点
+   支持，但 `+0x1C/+0x20` 是否就是 `city.map_x/map_y` 仍需更多城市或地图
+   坐标对照。
+4. 悬停确认已经完成，但探针本身没有记录鼠标坐标；manager 只在悬停/菜单
+   期间非零，轮询必须紧接 `move_mouse()`，离开后立即回到 0。
 5. camera 的 `offset_x/offset_y/zoom_level` 本轮没有推进；`selection` 和
    camera 应作为两条独立链继续。
 
 ## 下一步
 
-1. 把“城池菜单目标”读法实现成一个独立 reader（manager global + 0x64 +
-   `0x89730/0x38` 索引），先用于真实执行器的目标确认；这不需要 globals
-   结构先改 offsets，可以在模块里明确标注版本绑定。
-2. 增加仅悬停 A/B 的对照，判断 `CitySelector` 是否能用同一指针；如果悬停
-   不写这个字段，就要另找悬停高亮字段，或把执行流程改成“点击打开菜单后确认”。
-3. 用有界 CLI 分析 `FUN_00487d00` / `FUN_00490dc0`，确认对象 `+8` 的语义
+1. 用有界 CLI 分析 `FUN_00487d00` / `FUN_00490dc0`，确认对象 `+8` 的语义
    （当前 42 项大多为 0，不能直接当作势力 ID）。
+2. 给 `CitySelector` 增加一个“selection 字段 unknown + reader 回退”的集成
+   测试，确认 hover 轮询在真实 selection 路径上不会退回假的 `-1`。
+3. 继续验证 `city.map_x/map_y`，再解决 camera；只有这两者都可用，地图点击
+   才算真正打通。
 4. camera 另行从地图滚动/投影调用链切入，不要与 selection 混在同一个候选里。
 
 ## 证据目录

@@ -12,16 +12,17 @@
 原 `+0x12A` 简单行动标志假设已被跨旬反例排除。完整来源与未解决的清位调用链见
 [武将行动状态报告](rea_general_action_state_2026-10-23.md)。最新测试366项通过。
 
-**2026-10-23追加，已做 A/B（selection）**：城池指令菜单调度入口
+**2026-10-23追加，已做 A/B + 纯悬停（selection）**：城池指令菜单调度入口
 `FUN_005756b0` 接收城池对象指针并进入 47 个 case 的分派；命令回调
 `FUN_00576650` 从 `this+0x20` 取该指针。全局上下文
 `DAT_091ba048+0x13c/+0x140` 是稳定的堆对象指针，但运行时不在城池数组内，
 vtable 抽样也是 UI/几何方法而非 index getter，不能当裸城池 index。另发现
-`DAT_096a58f0+0x64` 指向当前城池菜单目标对象；A/B 分别点击濮陽/南皮菜单
-后，`(obj-(GAME_DATA_BASE+0x89730))/0x38` 返回 index 11/3，city 名和对象
-`+0x1C/+0x20` 坐标同步变化。manager 只在菜单存在时非零，仅悬停未验证；
-对象坐标是 `city.map_x/map_y` 候选。未修改生产 offsets。已实现
-`selection_reader.py` 并新增 5 项离线测试，当前 408 项通过。详见
+`DAT_096a58f0+0x64` 指向当前城池对象：A/B 分别点击濮陽/南皮**菜单**，
+以及一次**只悬停、不点击**的濮陽/南皮测试，都返回 index 11/3，city 名和对象
+`+0x1C/+0x20` 坐标同步变化；移开鼠标后 manager 回到 0。对象坐标是
+`city.map_x/map_y` 候选。未修改生产 offsets。已实现 `selection_reader.py`，
+并接入 `execution_state.parse_selection_state()` 的 unknown 回退；新增 6 项
+离线测试，当前 409 项通过。详见
 [城池选择与命令上下文报告](rea_selection_2026-10-23.md)。本轮无游戏输入。
 
 **已确认**：便携Ghidra/JDK已可用，游戏已进入可恢复存档并完成一次巡察和一次推进旬；

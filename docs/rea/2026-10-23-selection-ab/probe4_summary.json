@@ -1,0 +1,134 @@
+{
+  "source": "ReadProcessMemory probe; no input from assistant, no injection, no memory writes",
+  "file": "probe4.jsonl",
+  "user_confirmation": "用户确认本轮只悬停、没有点击城池。",
+  "samples": 238,
+  "first_captured_at_utc": "2026-10-23T03:38:47.312+00:00",
+  "last_captured_at_utc": "2026-10-23T03:40:45.978+00:00",
+  "segments": [
+    {
+      "start_index": 0,
+      "end_index": 13,
+      "samples": 14,
+      "state": [
+        "0x46487d0",
+        "0x728b130",
+        3,
+        [
+          3,
+          "南皮",
+          5
+        ],
+        [
+          138,
+          37
+        ]
+      ]
+    },
+    {
+      "start_index": 14,
+      "end_index": 37,
+      "samples": 24,
+      "state": [
+        "0x0",
+        null,
+        null,
+        null,
+        []
+      ]
+    },
+    {
+      "start_index": 38,
+      "end_index": 54,
+      "samples": 17,
+      "state": [
+        "0x464cad0",
+        "0x728b2f0",
+        11,
+        [
+          11,
+          "濮陽",
+          5
+        ],
+        [
+          120,
+          71
+        ]
+      ]
+    },
+    {
+      "start_index": 55,
+      "end_index": 60,
+      "samples": 6,
+      "state": [
+        "0x0",
+        null,
+        null,
+        null,
+        []
+      ]
+    },
+    {
+      "start_index": 61,
+      "end_index": 71,
+      "samples": 11,
+      "state": [
+        "0x46487d0",
+        "0x728b130",
+        3,
+        [
+          3,
+          "南皮",
+          5
+        ],
+        [
+          138,
+          37
+        ]
+      ]
+    },
+    {
+      "start_index": 72,
+      "end_index": 237,
+      "samples": 166,
+      "state": [
+        "0x0",
+        null,
+        null,
+        null,
+        []
+      ]
+    }
+  ],
+  "conclusion": {
+    "hover_A": {
+      "manager": "0x464cad0",
+      "selected_object": "0x728b2f0",
+      "index": 11,
+      "city": "濮陽",
+      "map_object_coord": [
+        120,
+        71
+      ]
+    },
+    "hover_B": {
+      "manager": "0x46487d0",
+      "selected_object": "0x728b130",
+      "index": 3,
+      "city": "南皮",
+      "map_object_coord": [
+        138,
+        37
+      ]
+    },
+    "idle_returns_none": true,
+    "context_0x13c_0x140_unchanged": true,
+    "confirmed": "Hover-only input writes manager+0x64 with the hovered city object; moving away returns manager to 0.",
+    "not_confirmed": "Mouse-coordinate telemetry was not captured; this is one session and two cities."
+  },
+  "limitations": [
+    "User confirmed hover-only; the probe itself does not record mouse coordinates.",
+    "Manager is nonzero only while hovering; polling must happen immediately after move_mouse.",
+    "The city object array alignment and map coordinate semantics still rely on the 42-city correlation plus A/B points."
+  ]
+}

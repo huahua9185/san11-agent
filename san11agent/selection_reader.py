@@ -14,8 +14,10 @@ the offsets schema without changing callers.
 
 Boundary: this reader is read-only and does not send input or write game memory.
 The command-manager global is non-zero only while a city menu/command context
-exists; at idle it returns `None`. It therefore confirms a **menu target**, not
-a hover-only highlight.
+or a city hover exists; at idle it returns `None`. The 2026-10-23 menu A/B and
+a separate hover-only A/B (user confirmed no clicks) both produced the expected
+city index, so this can back `CitySelector`'s hover polling; callers must poll
+immediately after `move_mouse()` because moving away clears the pointer.
 """
 from __future__ import annotations
 
