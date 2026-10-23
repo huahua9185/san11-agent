@@ -89,7 +89,8 @@ def detect_top(arr: np.ndarray, near: tuple[int, int]) -> MenuGeometry | None:
     right = max(b["right"] for b in group)
     # City top menu is 6 items, ~34 px each, one narrow column. Reject the
     # false "city list/other panel" detections that caused a wrong click.
-    if not (5 <= count <= 7) or not (25 <= item_height <= 45) or not (40 <= right - left <= 120):
+    # The city top menu is exactly six commands (都市/軍事/人材/外交/計略/君主).
+    if count != 6 or not (25 <= item_height <= 45) or not (40 <= right - left <= 120):
         return None
     if abs((left + right) / 2 - near_x) > 180:
         return None
