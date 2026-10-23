@@ -1,0 +1,57 @@
+{
+  "source": "ReadProcessMemory + Capstone disassembly; no input, injection, or memory writes",
+  "function_prologue": "0x574608",
+  "instructions": [
+    {
+      "address": "0x57466b",
+      "instruction": "mov eax, dword ptr [0x96a58f0]",
+      "note": "command manager global"
+    },
+    {
+      "address": "0x574670",
+      "instruction": "mov esi, dword ptr [eax + 0x64]",
+      "note": "selected object pointer"
+    },
+    {
+      "address": "0x574674",
+      "instruction": "call 0x47a750",
+      "note": "generic object validation"
+    },
+    {
+      "address": "0x574680",
+      "instruction": "mov ecx, esi; call 0x487d00",
+      "note": "object/type/owner check; exact semantics unresolved"
+    },
+    {
+      "address": "0x574692",
+      "instruction": "mov ecx, 0x7201958; call 0x4919a0",
+      "note": "GAME_DATA_BASE + 0x89730 array index helper"
+    },
+    {
+      "address": "0x5746c1",
+      "instruction": "mov dword ptr [ebp + 0x1c], 1",
+      "note": "command state = selected"
+    },
+    {
+      "address": "0x5746c8",
+      "instruction": "mov dword ptr [ebp + 0x20], esi",
+      "note": "command context stores selected object pointer"
+    },
+    {
+      "address": "0x5746cb",
+      "instruction": "mov dword ptr [ebp + 0x24], ebx",
+      "note": "extra command params"
+    },
+    {
+      "address": "0x5746ce",
+      "instruction": "mov dword ptr [ebp + 0x28], edi",
+      "note": "extra command params"
+    }
+  ],
+  "limitations": [
+    "0x574608 is not a Ghidra-recognized procedure; these instructions are from a bounded Capstone disassembly, not REA Evidence.",
+    "ebp is inferred as the command context object from the surrounding function and the later +0x20 read in FUN_00576650.",
+    "This single run cannot prove the setter executes on every city selection."
+  ],
+  "captured_at_local": "2026-10-23T11:10:00+08:00"
+}

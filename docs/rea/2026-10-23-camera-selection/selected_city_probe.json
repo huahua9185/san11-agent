@@ -1,0 +1,600 @@
+{
+  "captured_at_utc": "2026-10-23T03:11:34+00:00",
+  "source": "ReadProcessMemory; no input, injection, or memory writes",
+  "pid": 33888,
+  "module_base": "0x400000",
+  "game_data_base": "0x7201958",
+  "command_manager_global": {
+    "va": "0x96a58f0",
+    "value": "0x464d250"
+  },
+  "selected_object_field": {
+    "manager_offset": "0x64",
+    "value": "0x728b328"
+  },
+  "map_object_array": {
+    "base": "0x728b088",
+    "stride": "0x38",
+    "capacity_checked": "0x4000"
+  },
+  "selected_object_index": 12,
+  "selected_city": {
+    "index": 12,
+    "name": "陳留",
+    "force_id": 0
+  },
+  "selected_object_vtable": "0x79c718",
+  "selected_object_fields": {
+    "0x04": "0x4",
+    "0x08": "0x0",
+    "0x10": "0xe10",
+    "0x14": "0x1",
+    "0x1c": "0x6c0000",
+    "0x20": "0x9e004f"
+  },
+  "selected_map_object_coord": [
+    108,
+    79
+  ],
+  "city_coordinate_rows": [
+    {
+      "city_index": 0,
+      "name": "襄平",
+      "domestic_land": [
+        176,
+        21
+      ],
+      "map_object_coord": [
+        174,
+        16
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 1,
+      "name": "北平",
+      "domestic_land": [
+        146,
+        15
+      ],
+      "map_object_coord": [
+        149,
+        20
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 2,
+      "name": "薊",
+      "domestic_land": [
+        115,
+        12
+      ],
+      "map_object_coord": [
+        122,
+        16
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 3,
+      "name": "南皮",
+      "domestic_land": [
+        129,
+        34
+      ],
+      "map_object_coord": [
+        138,
+        37
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 4,
+      "name": "平原",
+      "domestic_land": [
+        125,
+        59
+      ],
+      "map_object_coord": [
+        129,
+        54
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 5,
+      "name": "晉陽",
+      "domestic_land": [
+        86,
+        50
+      ],
+      "map_object_coord": [
+        91,
+        39
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 6,
+      "name": "鄴",
+      "domestic_land": [
+        100,
+        63
+      ],
+      "map_object_coord": [
+        109,
+        53
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 7,
+      "name": "北海",
+      "domestic_land": [
+        164,
+        47
+      ],
+      "map_object_coord": [
+        160,
+        51
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 8,
+      "name": "下邳",
+      "domestic_land": [
+        154,
+        83
+      ],
+      "map_object_coord": [
+        156,
+        77
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 9,
+      "name": "小沛",
+      "domestic_land": [
+        137,
+        71
+      ],
+      "map_object_coord": [
+        136,
+        77
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 10,
+      "name": "壽春",
+      "domestic_land": [
+        129,
+        97
+      ],
+      "map_object_coord": [
+        140,
+        96
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 11,
+      "name": "濮陽",
+      "domestic_land": [
+        109,
+        70
+      ],
+      "map_object_coord": [
+        120,
+        71
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 12,
+      "name": "陳留",
+      "domestic_land": [
+        103,
+        74
+      ],
+      "map_object_coord": [
+        108,
+        79
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 13,
+      "name": "許昌",
+      "domestic_land": [
+        92,
+        95
+      ],
+      "map_object_coord": [
+        99,
+        92
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 14,
+      "name": "汝南",
+      "domestic_land": [
+        112,
+        111
+      ],
+      "map_object_coord": [
+        113,
+        107
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 15,
+      "name": "洛陽",
+      "domestic_land": [
+        71,
+        73
+      ],
+      "map_object_coord": [
+        79,
+        76
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 16,
+      "name": "宛",
+      "domestic_land": [
+        70,
+        95
+      ],
+      "map_object_coord": [
+        77,
+        92
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 17,
+      "name": "長安",
+      "domestic_land": [
+        39,
+        69
+      ],
+      "map_object_coord": [
+        53,
+        73
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 18,
+      "name": "上庸",
+      "domestic_land": [
+        44,
+        101
+      ],
+      "map_object_coord": [
+        54,
+        102
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 19,
+      "name": "安定",
+      "domestic_land": [
+        27,
+        62
+      ],
+      "map_object_coord": [
+        28,
+        55
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 20,
+      "name": "天水",
+      "domestic_land": [
+        3,
+        64
+      ],
+      "map_object_coord": [
+        10,
+        71
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 21,
+      "name": "武威",
+      "domestic_land": [
+        2,
+        47
+      ],
+      "map_object_coord": [
+        9,
+        41
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 22,
+      "name": "建業",
+      "domestic_land": [
+        166,
+        105
+      ],
+      "map_object_coord": [
+        162,
+        104
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 23,
+      "name": "吳",
+      "domestic_land": [
+        176,
+        112
+      ],
+      "map_object_coord": [
+        182,
+        109
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 24,
+      "name": "會稽",
+      "domestic_land": [
+        191,
+        122
+      ],
+      "map_object_coord": [
+        184,
+        125
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 25,
+      "name": "廬江",
+      "domestic_land": [
+        136,
+        115
+      ],
+      "map_object_coord": [
+        146,
+        118
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 26,
+      "name": "柴桑",
+      "domestic_land": [
+        113,
+        139
+      ],
+      "map_object_coord": [
+        126,
+        133
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 27,
+      "name": "江夏",
+      "domestic_land": [
+        101,
+        119
+      ],
+      "map_object_coord": [
+        115,
+        121
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 28,
+      "name": "新野",
+      "domestic_land": [
+        85,
+        101
+      ],
+      "map_object_coord": [
+        87,
+        109
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 29,
+      "name": "襄陽",
+      "domestic_land": [
+        66,
+        111
+      ],
+      "map_object_coord": [
+        77,
+        117
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 30,
+      "name": "江陵",
+      "domestic_land": [
+        75,
+        131
+      ],
+      "map_object_coord": [
+        82,
+        137
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 31,
+      "name": "長沙",
+      "domestic_land": [
+        108,
+        153
+      ],
+      "map_object_coord": [
+        108,
+        164
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 32,
+      "name": "武陵",
+      "domestic_land": [
+        62,
+        150
+      ],
+      "map_object_coord": [
+        69,
+        155
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 33,
+      "name": "桂陽",
+      "domestic_land": [
+        98,
+        181
+      ],
+      "map_object_coord": [
+        99,
+        188
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 34,
+      "name": "零陵",
+      "domestic_land": [
+        63,
+        179
+      ],
+      "map_object_coord": [
+        70,
+        185
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 35,
+      "name": "永安",
+      "domestic_land": [
+        37,
+        124
+      ],
+      "map_object_coord": [
+        46,
+        128
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 36,
+      "name": "漢中",
+      "domestic_land": [
+        19,
+        89
+      ],
+      "map_object_coord": [
+        27,
+        89
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 37,
+      "name": "梓潼",
+      "domestic_land": [
+        9,
+        109
+      ],
+      "map_object_coord": [
+        16,
+        110
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 38,
+      "name": "江州",
+      "domestic_land": [
+        23,
+        142
+      ],
+      "map_object_coord": [
+        30,
+        147
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 39,
+      "name": "成都",
+      "domestic_land": [
+        0,
+        135
+      ],
+      "map_object_coord": [
+        10,
+        132
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 40,
+      "name": "建寧",
+      "domestic_land": [
+        16,
+        177
+      ],
+      "map_object_coord": [
+        27,
+        174
+      ],
+      "object_force_or_type_at_0x08": 0
+    },
+    {
+      "city_index": 41,
+      "name": "雲南",
+      "domestic_land": [
+        0,
+        184
+      ],
+      "map_object_coord": [
+        5,
+        191
+      ],
+      "object_force_or_type_at_0x08": 0
+    }
+  ],
+  "limitations": [
+    "One process/session and one UI state; the selected object may be the last selected city, not a proof of live selection changes.",
+    "The object array is inferred to align with city index from the first 42 entries and the current index=12 -> city[12]=陳留; not proven for every entry.",
+    "map_object_coord is inferred from object+0x1c high word and object+0x20 low word; this is a candidate for city.map_x/map_y, not a production offset.",
+    "No A/B city selection was performed; production offsets must not be changed from this observation alone."
+  ],
+  "coordinate_delta_summary": {
+    "dx_min": -7,
+    "dx_max": 14,
+    "dy_min": -11,
+    "dy_max": 11,
+    "rows": 42
+  }
+}

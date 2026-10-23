@@ -43,6 +43,71 @@ city_array=0x7201B30..0x7207B00
 `selection.selected_city_index` 这个“单一全局裸 index”的模型未必成立：
 城池选择更可能是**对象指针**，且可能随命令上下文/UI 对象变化。
 
+## 追加发现：可读的“选中城市对象”候选
+
+**已确认（静态 + 运行时只读）**：命令管理器全局 `DAT_096a58f0` 的
+`+0x64` 存放当前选中的城池对象指针。当前进程读到：
+
+```text
+DAT_096a58f0              = 0x464D250
+[0x464D250 + 0x64]        = 0x728B328
+GAME_DATA_BASE            = 0x7201958
+对象数组基址 +0x89730     = 0x728B088（布局步长 0x38）
+(0x728B328 - 0x728B088)/0x38 = 12
+city[12]                  = 陳留，force_id=0
+对象+0x1C 高 16 位 / +0x20 低 16 位 = (108, 79)
+city[12].domestic_land_x/y = (103, 74)
+```
+
+`FUN_004919a0` 的伪代码正好是：
+
+```c
+iVar1 = (param_1 - (in_ECX + 0x89730)) / 0x38;
+if (-1 < iVar1 && iVar1 < 0x4000) return iVar1;
+return -1;
+```
+
+也就是说，**该函数把“选中对象指针”换算成数组索引**，与当前
+`0x728B328 -> index 12` 完全吻合。
+
+**已确认（静态反汇编）**：在未被 Ghidra 识别为函数的 `0x574608` 附近，
+选择流程把对象指针写入命令上下文：
+
+```asm
+0x57466B  mov eax, [0x96a58f0]       ; 命令管理器
+0x574670  mov esi, [eax+0x64]        ; 选中对象
+0x574674  call 0x47a750              ; 通用对象校验
+0x574692  mov ecx, 0x7201958
+0x574697  call 0x4919a0              ; 指针 -> 数组索引
+0x5746C1  mov [ebp+0x1C], 1          ; 命令状态 = 已选中
+0x5746C8  mov [ebp+0x20], esi        ; 命令上下文保存选中对象
+```
+
+这与 `FUN_00576650` 从 `in_ECX[8]`（+0x20）取对象、再调用
+`FUN_005756b0` 的链完全闭合。
+
+**候选读取路径（尚未写入生产 offsets）**：
+
+```text
+command_manager = read_u32(module_base + (0x96A58F0 - 0x400000))
+selected_object = read_u32(command_manager + 0x64)
+if GAME_DATA_BASE + 0x89730 <= selected_object < ... + 0x4000*0x38:
+    selected_city_index = (selected_object - (GAME_DATA_BASE + 0x89730)) // 0x38
+    map_x = read_u32(selected_object + 0x1C) >> 16
+    map_y = read_u32(selected_object + 0x20) & 0xFFFF
+```
+
+**坐标证据**：对象数组前 42 项的 `(对象+0x1C 高 16 位, 对象+0x20 低 16 位)`
+与 `city[i].domestic_land_x/y` 逐个城市比较，差值范围为 `x:-7..+14`、
+`y:-11..+11`，空间关系一致；当前 `city[12]` 的 `(108,79)` 与
+`domestic_land (103,74)` 相差 `+5/+5`。因此对象坐标很可能是
+**城池在地图上的格子坐标**，与内政用地坐标相近但不同。
+
+**仍不能直接上线**：这只是单个 UI 状态；当前选中对象可能只是“上次选中的
+陈留”，还没有做 A/B 城池切换对照。对象数组前 42 项与 city 索引的对齐、
+`+0x1C/+0x20` 的坐标语义、以及 `map_x/map_y` 是否就是这两个半字，都需要
+受控动态实验确认。生产 `offsets` 仍未修改。
+
 ## 范围与方法
 
 - 目标：Steam 繁中 `San11WPK.exe`，x86，SHA-256
@@ -73,6 +138,11 @@ city_array=0x7201B30..0x7207B00
 | 面板把城池指针存在 `+0x18c`，把 3 个执行武将指针存在 `+0x190` 起 | `panel_helper_60b450.json` / `ev_da6b51b33a2f9991959c2fe57512b0f5b171dfa31aa5307d19aa003fa94ce85a`；`panel_helper_60af30.json` / `ev_cb4e6af4d583bcf527af8afe62c6fba35041993018ae3434cf1d3a7737400c00`；`panel_helper_60ae50.json` / `ev_81895d6d9bc0739471222ce7feb35890d5d50e6d5b8c38a986ba22c4463ecb80` |
 | 既有巡察面板证据：`+0x18c` 城池指针、`+0x44` 取军团、`+0x2c` 行動力 | `docs/rea/2026-10-23-budget/patrol_panel_60b4e0.json` / `ev_060e93e30f2ea41c07ab056cd5aa2e39a664f654e0bff9dbba501b0d2081b864`；`docs/rea/2026-10-22/followup/panel_5fecf0.json` / `ev_5349be912e33fbbe239a5207f4acf4442896dbe0a90380a12fee4160b415f7ab` |
 | `FUN_0047a750` 是通用对象校验器：`FUN_00472160(param_1,4,1)` + 虚表 `+8`，不区分类型 | `validator_47a750_decompile.json` / `ev_938ff0230ec3db7488c06ee5adb1dffca4ce97381c5cea54776b3d0aa011c840` |
+| `FUN_004919a0` 用 `(obj-(GAME_DATA_BASE+0x89730))/0x38` 计算索引，范围 0..0x3FFF | `selected_city_index_4919a0.json` / `ev_8ce79bebc4b53493fc0742ec2dc4b3ca9bfca8178ea7b3cc8119bd9d89aad0f0` |
+| `FUN_00487d00` 以对象 `+8` 调 `FUN_00490dc0` 并检查结果 `+0xB4==4`；具体类型语义未完全解析 | `selected_object_check_487d00.json` / `ev_25b7da7cbe665ce94d85f5f0d858dc4ad69614781a0f8c80cd72142ae8805c81` |
+| `FUN_00574f10` 初始化命令对象；`FUN_00574060` 用对象虚表 `+0x40` 生成状态 | `command_init_574f10.json` / `ev_cddb936852968aed68b3111e7fb716956f555abac2a68e2312b6c6b46b8071d9`；`command_helper_574060.json` / `ev_7c5e945d0885f2717ae314c76dab5f082752e7d2386b66faba873caff751331c` |
+| `DAT_096a58f0` 引用点集中在 0x5746xx–0x57cfxx；其中 0x5746C8 写入命令上下文 `+0x20` | `command_global_96a58f0_xrefs.json` / `ev_db2e4854fa14f458aef626e65b4a61f4f389a170c326d2004388372c3451d9f7`；`command_selection_setter_disassembly.json`（Capstone 只读反汇编） |
+| 当前 `DAT_096a58f0+0x64` 指向对象索引 12，对应 city[12]=陳留；对象坐标 (108,79)，domestic_land=(103,74) | `selected_city_probe.json`（本轮只读探针） |
 | `ctx+0x13c/+0x140` 同用 vtable `0x835bc8`；抽样槽位是 UI/几何方法而非 index getter | `vtable_473210.json` / `ev_596b05999d1d1e72b43a6d33bba8e0f8131ae86c8a8b4aed12af868b516567cf`；`vtable_475890.json` / `ev_712f7f9e96d3e5311050f9ef84399c98f4b8274b056de6ef143cae932e263bcd`；`vtable_4759d0.json` / `ev_c026b34d5d2298eaf0f1d15d9dc2ff3b83c8a01089b17b16a181c6197bd33a65`；`vtable_4eda70.json` / `ev_3c628a6e4e57bd73ce3bbc9ad9ae2dd4ad4da17337a239c2b8eb26ba2dbe27d2`；`vtable_4d67f0.json` / `ev_194f1b5a4e3c6a292bbb102c295f0585f4409a055358d53b026954d9631846ae` |
 | 运行时 `ctx` / `+0x13c` / `+0x140` 双读稳定，且 `+0x13c` 不在城池数组内 | `selected_pointer_probe.json`（本轮只读探针，不是 REA Evidence） |
 
@@ -83,8 +153,8 @@ city_array=0x7201B30..0x7207B00
 2. 城市/据点对象的真实 vtable 布局，以及 `+0x40/+0x44` 在真实城市对象上的
    语义；`ctx+0x13c` 同类对象的 vtable 抽样不是 index getter，不能据此推断
    所有对象。
-3. 命令上下文对象（`FUN_00576650` 的 `in_ECX`）由谁创建、`+0x20` 在哪里
-   写入；这决定能否从全局稳定读取“当前选中城池”。
+3. 对象数组前 42 项是否严格按 city index 对齐，以及 `+0x1C/+0x20` 是否就是
+   `city.map_x/map_y`；当前只有 42 城的空间相关性，没有 A/B 选择对照。
 4. camera 的 `offset_x/offset_y/zoom_level` 本轮没有推进；`selection` 和
    camera 应作为两条独立链继续。
 5. 没有做“选中 A 城 / B 城 → 观察对象指针变化”的动态实验，因此不能把
@@ -92,13 +162,13 @@ city_array=0x7201B30..0x7207B00
 
 ## 下一步
 
-1. 用受控动态样本确认城市/据点对象的真实 vtable，尤其是 `+0x40/+0x44`；
-   当前抽样的 `0x835bc8` 不是城市 index getter，不能据此推断所有对象。
-2. 分析命令上下文对象的构造/虚表，定位 `+0x20` 的写入点，判断是否存在
-   一个可稳定读取的“当前命令目标城池”指针。
-3. 在明确授权、可恢复存档的前提下做受控实验：依次选中 A 城/B 城，读取
-   该指针和对象虚表 `+0x40` 返回的索引，确认指针→城池记录的映射；没有
-   这一步，不修改 `offsets/pk_1.1_cn.json`。
+1. 在明确授权、可恢复存档的前提下做受控实验：依次选中 A 城/B 城，读取
+   `[DAT_096a58f0+0x64]` 和 `FUN_004919a0` 的索引，确认指针→city index
+   的映射；这是把 selection 写进生产 offsets 前必须的一步。
+2. 对 42 个 city 对象的 `+0x1C/+0x20` 与 `domestic_land_x/y` 做完整差值
+   统计，排除“只是地址相邻造成的巧合”；目前只看了前 15 行。
+3. 用有界 CLI 分析 `FUN_00487d00` / `FUN_00490dc0`，确认对象 `+8` 的语义
+   （当前 42 项大多为 0，不能直接当作势力 ID）。
 4. camera 另行从地图滚动/投影调用链切入，不要与 selection 混在同一个候选里。
 
 ## 证据目录

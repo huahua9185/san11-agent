@@ -108,6 +108,12 @@ LegalActions、摘要和模型输入不得绕过VisibleGameState读取隐藏信�
 
 每项改动应明确：新增字段如何从读取层进入己方可见态、如何被候选/摘要/执行器消费、失败与unknown怎样处理、哪些证据支持、哪些仍未覆盖。不要为让循环“跑通”而吞掉NotImplementedError或把真实依赖换成假成功。
 
+**2026-10-23 selection追加（未写入生产offsets）**：`DAT_096a58f0+0x64`
+当前指向选中城池对象；`FUN_004919a0` 用
+`(obj-(GAME_DATA_BASE+0x89730))/0x38` 算索引，当前值为12、对应city[12]陳留。
+对象`+0x1C/+0x20`是`city.map_x/map_y`候选，42城坐标与内政用地坐标空间相关。
+仍需A/B城池选择对照；详见[selection报告](rea_selection_2026-10-23.md)。
+
 ## 6. REA接续方法与避坑
 
 **已确认（本仓库脚本与记录）**：
