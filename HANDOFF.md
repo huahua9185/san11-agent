@@ -1,6 +1,6 @@
 # san11-agent 开发交底说明
 
-更新日期：2026-10-23。交底基线：[`b8f7f9a`](https://github.com/huahua9185/san11-agent/commit/b8f7f9ab4ab10529f1b6a8c8ec9751d728ac769e)，分支 `master`；本文描述该基线，之后又有 LegalActions 子类型金价提交，接手时以 `git log` 和当前工作区为准，不要覆盖后来工作。
+更新日期：2026-10-23。交底基线：[`b8f7f9a`](https://github.com/huahua9185/san11-agent/commit/b8f7f9ab4ab10529f1b6a8c8ec9751d728ac769e)，分支 `master`；本文描述该基线，之后又有 LegalActions 子类型金价、巡察后置验证等提交，接手时以 `git log` 和当前工作区为准，不要覆盖后来工作。
 
 本文供没有先前对话的智能体接续开发。**已确认**指源码、记录或明确实验支持的结论；方案、解释和未覆盖情况以**推测／待验证**标记。原始证据和历史报告不应因新结论被改写成“当时已经确认”。
 
@@ -35,6 +35,7 @@
 | 战术与循环 | 按意图选择候选，FakeActionExecutor用于离线验证；当前一次读状态后选整批，再逐条执行 | [domestic_tactics.py](san11agent/domestic_tactics.py)、[strategy_loop.py](san11agent/strategy_loop.py) |
 | 真实状态源 | RealGameStateSource.read复用解析和边界过滤；advance_turn仍抛NotImplementedError | [strategy_loop.py](san11agent/strategy_loop.py) |
 | 键鼠执行 | SendInputBackend、执行/菜单/轮询脚手架存在；地图定位、相机、选中对象和阶段仍有缺口，未接成真实ActionExecutor | [input_backend.py](san11agent/input_backend.py)、[menu_execution.py](san11agent/menu_execution.py)、[execution_state.py](san11agent/execution_state.py)、[map_projection.py](san11agent/map_projection.py) |
+| 动作后置验证 | 巡察验证器已实现（前后 VisibleGameState 对比，confirmed/failed/inconclusive 三值）；尚未接真实执行器 | [patrol_verification.py](san11agent/patrol_verification.py) |
 
 数据流：
 
@@ -183,7 +184,7 @@ python -m pytest -q
 git diff --check
 ```
 
-基线测试结果为392项通过。这些是离线测试，不能替代实机验收；后续修改后数量会变化，不应为了维持数字删除/伪造测试。新环境缺pytest时可在项目虚拟环境安装requirements-dev；不需要先启动游戏才能运行测试。
+基线测试结果为403项通过。这些是离线测试，不能替代实机验收；后续修改后数量会变化，不应为了维持数字删除/伪造测试。新环境缺pytest时可在项目虚拟环境安装requirements-dev；不需要先启动游戏才能运行测试。
 
 增加状态字段时至少核对未知值、字节宽度/掩码、版本边界及敌方信息不泄漏；修改执行/循环时增加状态变化、结果不明、失败、共享预算和终止条件的测试。文档-only改动检查链接与差异即可，无需新增镜像实现的测试。
 
