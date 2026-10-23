@@ -171,7 +171,7 @@ if GAME_DATA_BASE + 0x89730 <= selected_object < ... + 0x4000*0x38:
 - 不发送输入、不写内存；对象数组/坐标仍标为候选。
 
 6 项离线测试覆盖濮陽/南皮、空闲、非法指针、独立坐标读取，以及
-`parse_selection_state()` 的 unknown 回退。当前 422 项离线测试通过。
+`parse_selection_state()` 的 unknown 回退。当前 423 项离线测试通过。
 
 `execution_state.parse_selection_state()` 现在优先读 offsets 的显式字段，
 字段 unknown 时回退到该 reader；`CitySelector` 走同一个函数，因此纯悬停

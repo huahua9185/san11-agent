@@ -21,6 +21,7 @@ from san11agent.clock import FakeClock
 from san11agent.domestic_rules import load_domestic_rules
 from san11agent.execution import ExecutionConfig
 from san11agent.input_backend import VK_ESCAPE, FakeInputBackend
+from san11agent.map_camera import CameraMatrices
 from san11agent.legal_actions import (
     DiplomacyAction,
     RecruitTroopsAction,
@@ -59,6 +60,23 @@ FAST_CONFIG = ExecutionConfig(
     scroll_poll_interval=0.1,
 )
 
+LIVE_CAMERA = CameraMatrices(
+    view=[
+        [0.7071069, -0.4999996, -0.4999999, 0.0],
+        [0.0, 0.7071068, -0.7071066, 0.0],
+        [-0.7071064, -0.5, -0.5000003, 0.0],
+        [-719.1173, 2573.048, 3195.677, 1.0],
+    ],
+    projection=[
+        [0.0020993, 0.0, 0.0, 0.0],
+        [0.0, 0.0037321, 0.0, 0.0],
+        [0.0, 0.0, 0.0010163, 0.001],
+        [0.0, 0.0, -0.0162602, 0.0],
+    ],
+    screen_width=3840,
+    screen_height=2160,
+)
+
 
 def _build_reader(*, offset_x=0, offset_y=0, zoom=100):
     reader = MutableMemoryReader({GAME_DATA_BASE: bytes(0x30)}, module_base=0x400000)
@@ -83,7 +101,7 @@ def rules():
     return load_domestic_rules(DOMESTIC_RULES_TEST)
 
 
-def _make_executor(reader, offsets, ui_layout, input_backend, action_log):
+def _make_executor(reader, offsets, ui_layout, input_backend, action_log, *, live_camera=None):
     return ActionMenuExecutor(
         reader=reader,
         offsets=offsets,
@@ -93,6 +111,7 @@ def _make_executor(reader, offsets, ui_layout, input_backend, action_log):
         clock=FakeClock(),
         action_log=action_log,
         config=FAST_CONFIG,
+        live_camera=live_camera,
     )
 
 
@@ -162,6 +181,24 @@ def test_open_city_menu_homes_reveals_and_clicks_once(offsets, ui_layout):
     # 地图坐标(5,5)、offset(0,0) 时 dx=dy=5 -> (300,300)，已经在视野内不需要滚动。
     assert point.x == 300
     assert point.y == 300
+
+
+def test_open_city_menu_uses_live_camera(offsets, ui_layout):
+    reader = _build_reader()
+    input_backend = FakeInputBackend()
+    action_log = ActionLog(FakeClock())
+    executor = _make_executor(
+        reader, offsets, ui_layout, input_backend, action_log,
+        live_camera=lambda: LIVE_CAMERA,
+    )
+
+    point = executor.open_city_menu(4, TileCoord(129, 54))  # 平原
+
+    assert point.x == 3628
+    assert point.y == 183
+    click_calls = [c for c in input_backend.calls if c.method == "click"]
+    assert click_calls[-1].args == (3628, 183, "left")
+    assert not [e for e in action_log.entries if e.intent == "pan_map"]
 
 
 def test_open_city_menu_pans_map_when_target_outside_viewport(offsets, ui_layout):

@@ -239,7 +239,7 @@ world_z =  0.2722 * map_x + 20.2024 * map_y + 520.42
 - `DEFAULT_MAP_CALIBRATION` 明确标为 4K 四城验证候选，不是生产 offsets。
 
 新增 6 项离线测试（`tests/test_map_camera.py`）：已知 map->world、四城投影
-误差 <20px、自定义 calibration、非法矩阵、退化投影。当前全部 **422 passed**。
+误差 <20px、自定义 calibration、非法矩阵、退化投影。当前全部 **423 passed**。
 
 仍未完成：运行时读取 VIEW/PROJECTION 矩阵。代码层已经不再依赖
 `camera.offset_x/offset_y/zoom_level` 这组未确认字段。
@@ -295,7 +295,7 @@ proj[0]  = 0.0020992786157876253
 - `CameraSnapshot.as_camera(width, height)` 直接得到 `CameraMatrices`；
 - 共享内存缺失/全零时抛 `CameraReadError`，不会拿零矩阵继续算。
 
-新增 4 项离线测试（`tests/test_camera_reader.py`）。当前 **422 passed**。
+新增 4 项离线测试（`tests/test_camera_reader.py`）。当前 **423 passed**。
 注意：代理是研究工具，编译产物不提交；使用后要删除游戏目录里的
 `d3d9.dll`。
 
@@ -315,7 +315,12 @@ CitySelector(..., live_camera=lambda: snapshot.as_camera(3840, 2160))
 - 原有离线/旧字段路径保留为 fallback。
 
 新增 3 项测试（`tests/test_live_city_selector.py`）：live 投影成功、屏幕外
-拒绝、camera 读取异常不静默。当前全部 **422 passed**。
+拒绝、camera 读取异常不静默。当前全部 **423 passed**。
+
+`ActionMenuExecutor` 的 `open_city_menu()` 也新增 `live_camera` 参数：有实时
+矩阵时直接投影城池并单击，不再走旧 `CameraState`/`reveal_tile`。菜单项自身
+的 `ui_layout` 坐标仍是 unknown，所以这步只解决“点中城池”，不解决“点中
+菜单项”。新增 1 项测试，当前 **423 passed**。
 
 ## 实机 live hover 验证
 

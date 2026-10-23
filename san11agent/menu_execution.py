@@ -43,14 +43,17 @@ docs/offset_research.md 4.5节）。所以这里的每一步都只是"发送输�
 """
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from .action_log import ActionLog
 from .clock import Clock
 from .domestic_rules import DomesticRulesConfig
 from .execution import ExecutionConfig, reveal_tile
 from .execution_state import CameraState, parse_camera_state
+from .map_camera import CameraMatrices, project_map_point
 from .input_backend import VK_ESCAPE, InputBackend
 from .legal_actions import Action, ActionKind
-from .map_projection import ScreenPoint, TileCoord
+from .map_projection import MapProjectionError, ScreenPoint, TileCoord
 from .memory import MemoryReader
 from .offsets import OffsetsConfig
 from .perception import resolve_anchor
@@ -161,6 +164,7 @@ class ActionMenuExecutor:
         clock: Clock,
         action_log: ActionLog,
         config: ExecutionConfig = ExecutionConfig(),
+        live_camera: Callable[[], CameraMatrices] | None = None,
     ):
         self._reader = reader
         self._offsets = offsets
@@ -170,6 +174,7 @@ class ActionMenuExecutor:
         self._clock = clock
         self._log = action_log
         self._config = config
+        self._live_camera = live_camera
 
     def execute_action(self, action: Action, target_tile: TileCoord, rules: DomesticRulesConfig) -> None:
         """点出一个 Action 对应的菜单项。
@@ -211,6 +216,22 @@ class ActionMenuExecutor:
                 f"menu_execution.py 模块文档'明确没有实现的部分'"
             )
 
+    def _project_live(self, target_tile: TileCoord) -> ScreenPoint:
+        try:
+            camera = self._live_camera()
+            client_x, client_y = project_map_point(target_tile.x, target_tile.y, camera)
+        except Exception as exc:
+            raise MapProjectionError(f"live camera 投影失败: {exc}") from exc
+        x = round(client_x)
+        y = round(client_y)
+        if not (0 <= x < camera.screen_width and 0 <= y < camera.screen_height):
+            raise MenuExecutionError(
+                f"目标城池 {target_tile} 投影到 {x},{y}，不在当前 "
+                f"{camera.screen_width}x{camera.screen_height} 客户区内；"
+                "live camera 模式尚未实现边缘平移，不能盲点。"
+            )
+        return ScreenPoint(x, y)
+
     def open_city_menu(self, city_index: int, target_tile: TileCoord) -> ScreenPoint:
         """归位 -> 把目标城池滚进视野 -> 单击，弹出顶层指令菜单。
 
@@ -235,24 +256,27 @@ class ActionMenuExecutor:
             detail="无法校验归位后的界面状态，见 GlobalState.phase 字段 unknown 的说明",
         )
 
-        game_data_base = resolve_anchor(self._reader, self._offsets)
-        viewport = self._ui_layout.element("map_viewport")
-        camera = parse_camera_state(self._reader, self._offsets, game_data_base)
+        if self._live_camera is not None:
+            screen_point = self._project_live(target_tile)
+        else:
+            game_data_base = resolve_anchor(self._reader, self._offsets)
+            viewport = self._ui_layout.element("map_viewport")
+            camera = parse_camera_state(self._reader, self._offsets, game_data_base)
 
-        def _read_camera() -> CameraState:
-            return parse_camera_state(self._reader, self._offsets, game_data_base)
+            def _read_camera() -> CameraState:
+                return parse_camera_state(self._reader, self._offsets, game_data_base)
 
-        screen_point = reveal_tile(
-            target_tile,
-            camera,
-            viewport,
-            read_camera=_read_camera,
-            input_backend=self._input,
-            window=self._window,
-            clock=self._clock,
-            action_log=self._log,
-            config=self._config,
-        )
+            screen_point = reveal_tile(
+                target_tile,
+                camera,
+                viewport,
+                read_camera=_read_camera,
+                input_backend=self._input,
+                window=self._window,
+                clock=self._clock,
+                action_log=self._log,
+                config=self._config,
+            )
 
         screen_x, screen_y = self._window.client_to_screen(screen_point.x, screen_point.y)
         self._input.click(screen_x, screen_y)
