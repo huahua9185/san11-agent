@@ -87,6 +87,30 @@ PROJECTION:
 - 需要把城市点、屏幕点和当前 VIEW/PROJECTION 三者对齐后，才能实现
   world-to-screen。
 
+## 同帧 cursor/矩阵复核
+
+第二次抓帧同时运行了 cursor/selection 探针（`probe5.jsonl`），得到：
+
+| 城 | map 坐标 | cursor client |
+|---|---:|---:|
+| 濮陽 | `(120,71)` | `(1031,557)` |
+| 南皮 | `(138,37)` | `(1028,576)` |
+| 小沛 | `(136,77)` | `(1040,620)` |
+| 平原 | `(129,54)` | `(1033,621)` |
+
+四个点仍然挤在约 60×60 像素内。用抓到的 VIEW/PROJECTION 反投影到地图平面，
+四座城的世界坐标只相差约 10 个单位：
+
+```text
+濮陽 ≈ (3301.5, 1256.7)
+南皮 ≈ (3301.3, 1259.8)
+小沛 ≈ (3303.1, 1266.9)
+平原 ≈ (3302.3, 1267.0)
+```
+
+这说明当前悬停点**不足以确定世界坐标的轴和缩放**：它们在地图上太接近，
+或者悬停落在名字/缩放后的城池图标上，而不是分散的格子中心。
+
 ## 下一步
 
 1. 用本次 trace 里一个稳定的地图 VIEW/PROJECTION 组合，结合已知城市
@@ -100,4 +124,6 @@ PROJECTION:
 
 - `docs/rea/2026-10-23-d3d9-trace/trace_info.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_summary.json`
+- `docs/rea/2026-10-23-d3d9-trace/settransform_summary2.json`
+- `docs/rea/2026-10-23-d3d9-trace/same_frame_probe.json`
 - `docs/rea/2026-10-23-d3d9-trace/settransform_dump.txt`

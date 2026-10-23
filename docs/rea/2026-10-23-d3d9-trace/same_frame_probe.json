@@ -1,0 +1,81 @@
+{
+  "source": "probe5.jsonl",
+  "stable_points": [
+    {
+      "city": "濮陽",
+      "map": [
+        120,
+        71
+      ],
+      "cursor_client": [
+        1031,
+        557
+      ]
+    },
+    {
+      "city": "南皮",
+      "map": [
+        138,
+        37
+      ],
+      "cursor_client": [
+        1028,
+        576
+      ]
+    },
+    {
+      "city": "小沛",
+      "map": [
+        136,
+        77
+      ],
+      "cursor_client": [
+        1040,
+        620
+      ]
+    },
+    {
+      "city": "平原",
+      "map": [
+        129,
+        54
+      ],
+      "cursor_client": [
+        1033,
+        621
+      ]
+    }
+  ],
+  "trace_frames": 3631,
+  "unprojection_example": [
+    {
+      "city": "濮陽",
+      "world_xz": [
+        3301.5,
+        1256.7
+      ]
+    },
+    {
+      "city": "南皮",
+      "world_xz": [
+        3301.3,
+        1259.8
+      ]
+    },
+    {
+      "city": "小沛",
+      "world_xz": [
+        3303.1,
+        1266.9
+      ]
+    },
+    {
+      "city": "平原",
+      "world_xz": [
+        3302.3,
+        1267.0
+      ]
+    }
+  ],
+  "conclusion": "Same-frame points cluster within ~10 world units; this is insufficient to determine axis/scale. Hover points likely labels/zoomed-out city icons, not distinct tile centers."
+}

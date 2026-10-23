@@ -1,0 +1,14 @@
+{
+  "file": "C:/Users/hhhh/Desktop/San11WPK.trace",
+  "container_size": 10744986171,
+  "actual_data_size": 930310139,
+  "reported_container_size": 2155051579,
+  "frames": 3631,
+  "api": "DirectX (D3D9)",
+  "capture_method": "apitrace 14.0 d3d9 wrapper; launched via steam://rungameid/628070",
+  "probe": "docs/rea/2026-10-23-camera-calibration/probe5.jsonl",
+  "cleanup": "wrapper removed; game closed via CloseMainWindow after probe",
+  "notes": [
+    "The on-disk trace is sparse/large; apitrace reports a smaller logical container."
+  ]
+}
